@@ -1,0 +1,156 @@
+{
+  "model": "qwen2.5-coder:7b",
+  "fewshot": 3,
+  "split": "val",
+  "programs": 50,
+  "wall_seconds": 529.0,
+  "rules": 112,
+  "schema_valid_rate": 1.0,
+  "field_name_exact": 0.522,
+  "field_name_token_f1": 0.6949,
+  "intent_similarity": 0.8218,
+  "title_similarity": 0.7779,
+  "concept_jaccard": 0.4532,
+  "intent_numbers_grounded": 1.0,
+  "seconds_per_rule": 4.71,
+  "examples": [
+    {
+      "rule": "FRD0003-R001",
+      "title": "Online transaction hold",
+      "intent": "Hold and review online transactions over 1,000 without a card present.",
+      "gold_intent": "Hold online card-not-present transactions above 1,000 and send them for review.",
+      "names": {
+        "CHNL-CD": "channel_code",
+        "CARD-PRES-FLG": "card_present_flag",
+        "TXN-AMT": "transaction_amount",
+        "TXN-HOLD-IND": "transaction_hold_indicator",
+        "REVIEW-FLAG": "review_flag"
+      },
+      "gold_names": {
+        "CHNL-CD": "channel_code",
+        "CARD-PRES-FLG": "card_present",
+        "TXN-AMT": "transaction_amount",
+        "TXN-HOLD-IND": "hold_flag",
+        "REVIEW-FLAG": "review_flag"
+      },
+      "concepts": [
+        "online",
+        "transaction",
+        "hold",
+        "review",
+        "card"
+      ]
+    },
+    {
+      "rule": "FRD0003-R002",
+      "title": "High-value online transaction",
+      "intent": "Flag transactions over 17,500 made online unless a card is present and the amount is over 1,000.",
+      "gold_intent": "Send online transactions above 17,500 for review.",
+      "names": {
+        "CHNL-CD": "channel_code",
+        "CARD-PRES-FLG": "card_present_flag",
+        "TXN-AMT": "transaction_amount",
+        "REVIEW-FLAG": "review_flag"
+      },
+      "gold_names": {
+        "CHNL-CD": "channel_code",
+        "CARD-PRES-FLG": "card_present",
+        "TXN-AMT": "transaction_amount",
+        "REVIEW-FLAG": "review_flag"
+      },
+      "concepts": [
+        "amount",
+        "online",
+        "review"
+      ]
+    },
+    {
+      "rule": "FRD0003-R003",
+      "title": "Offline transaction processing",
+      "intent": "Allow transactions only if not processed online.",
+      "gold_intent": "Never hold transactions made outside the online channel.",
+      "names": {
+        "CHNL-CD": "channel_code",
+        "TXN-HOLD-IND": "transaction_hold_indicator"
+      },
+      "gold_names": {
+        "CHNL-CD": "channel_code",
+        "TXN-HOLD-IND": "hold_flag"
+      },
+      "concepts": [
+        "online",
+        "offline",
+        "transaction"
+      ]
+    },
+    {
+      "rule": "FEE0003-R001",
+      "title": "Student fee waiver",
+      "intent": "Waive service charge for students under 25 years old.",
+      "gold_intent": "Waive the monthly fee for students younger than 25.",
+      "names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "client_age",
+        "WAIVE-IND": "waive_indicator",
+        "SVC-CHARGE": "service_charge"
+      },
+      "gold_names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "customer_age",
+        "WAIVE-IND": "fee_waived",
+        "SVC-CHARGE": "monthly_fee"
+      },
+      "concepts": [
+        "student",
+        "fee",
+        "waiver",
+        "age"
+      ]
+    },
+    {
+      "rule": "FEE0003-R002",
+      "title": "Senior fee waiver",
+      "intent": "Waive fees for clients aged 60 and over unless they are students under 25.",
+      "gold_intent": "Waive the monthly fee for customers aged 60 or over.",
+      "names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "client_age",
+        "WAIVE-IND": "waive_indicator",
+        "SVC-CHARGE": "service_charge"
+      },
+      "gold_names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "customer_age",
+        "WAIVE-IND": "fee_waived",
+        "SVC-CHARGE": "monthly_fee"
+      },
+      "concepts": [
+        "fee",
+        "waiver",
+        "age",
+        "student"
+      ]
+    },
+    {
+      "rule": "FEE0003-R003",
+      "title": "Service charge for non-students and non-seniors",
+      "intent": "Apply a $4 service charge to non-student and non-senior customers.",
+      "gold_intent": "Charge everyone else the standard monthly fee of 4.",
+      "names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "client_age",
+        "SVC-CHARGE": "service_charge"
+      },
+      "gold_names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "customer_age",
+        "SVC-CHARGE": "monthly_fee"
+      },
+      "concepts": [
+        "charge",
+        "student",
+        "senior"
+      ]
+    }
+  ]
+}

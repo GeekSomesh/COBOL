@@ -31,6 +31,10 @@ An LLM-powered decision-rule extraction engine. It reads COBOL copybooks and PRO
 | [evaluation.md](evaluation.md) | Metrics, experiments, baselines |
 | [roadmap.md](roadmap.md) | Phases, milestones, risks |
 | [demo.md](demo.md) | Demo script and likely judge questions |
+| [implementation.md](implementation.md) | Phase-by-phase build plan |
+| [STATUS.md](STATUS.md) | Requirements status as built, with evidence |
+| [parser_subset.md](parser_subset.md) | Supported COBOL subset and slicing conventions |
+| [limitations.md](limitations.md) | Known limitations, measured |
 
 ## Planned repository layout
 ```
@@ -54,4 +58,4 @@ cobol-to-decision/
 Python, ANTLR4, LLaMA/DeepSeek (fine-tuned, served locally), GnuCOBOL (differential testing), SHAP, FastAPI (REST), Faker (synthetic data), IBM Z Open Platform / LinuxONE for deployment.
 
 ## Status
-Datathon prototype. Targets in these documents are goals to be measured, not results.
+Datathon prototype, built end to end (see [STATUS.md](STATUS.md)). Targets in the planning documents are goals; measured results are in [evaluation.md](evaluation.md) section 8 and `results/RESULTS.md`.

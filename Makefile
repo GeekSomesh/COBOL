@@ -22,18 +22,20 @@ finetune-data:    ## chat JSONL from the train split
 finetune:         ## LoRA fine-tune (needs .venv-train with CUDA torch, see requirements-train.txt)
 	$(PYT) scripts/finetune.py --epochs 2
 
-serve-model:      ## import the fine-tuned model into Ollama as cobol-enrich:1.5b
-	$(PY) scripts/serve_model.py
+serve-model:      ## GGUF (Q8_0) of the fine-tuned and base models, imported into Ollama
+	$(PY) scripts/serve_model.py --also-base models/Qwen2.5-Coder-1.5B-Instruct
 
 eval:             ## every system on the test split, then results/RESULTS.md
 	$(PY) scripts/evaluate.py system ast_only
-	$(PY) scripts/evaluate.py system llm_only --model qwen2.5-coder:7b
-	$(PY) scripts/evaluate.py system llm_slices --model qwen2.5-coder:1.5b --fewshot 3 --label llm_slices_1.5b
+	$(PY) scripts/evaluate.py system llm_only --model qwen2.5-coder:7b --limit 20
+	$(PY) scripts/evaluate.py system llm_slices --model qwen-coder-base:1.5b-q8_0 --fewshot 3 --label llm_slices_1.5b
 	$(PY) scripts/evaluate.py system llm_slices --model qwen2.5-coder:7b --fewshot 3 --label llm_slices_7b
 	$(PY) scripts/evaluate.py system full --model cobol-enrich:1.5b --consistency 2
 	$(PY) scripts/evaluate.py faults
 	$(PY) scripts/evaluate.py latency
 	$(PY) scripts/evaluate.py table
+	$(PY) scripts/evaluate.py errors
+	$(PY) scripts/update_docs.py
 
 demo:             ## load the demo programs, then start the explorer on http://localhost:8000
 	$(PY) scripts/load_demo.py --reset

@@ -20,9 +20,11 @@ These are honest limits of the prototype as built. Each was observed or measured
 
 ## LLM
 - The fine-tuned model is Qwen2.5-Coder-1.5B-Instruct with a LoRA adapter, trained only on the train split. Validation and test use held-out templates, but the same synthetic domain.
-- The model never sets operators, literals, actions or traces: `merge()` ignores everything except title, intent, business names and concepts. A wrong intent is still possible, so the number-grounding metric and human review remain necessary.
+- **The fine-tune did not generalise.** It beat the matched prompted 1.5B on the validation templates and was selected there. On the test templates it scored below both the prompted 1.5B and the prompted 7B for field names and intents (results/RESULTS.md). The training loss went near zero while the validation loss rose, so it learned the house style of 12 training templates. Per the plan's claims rule, we do not claim fine-tuning improves results. The default enrichment model is therefore the prompted 7B; the fine-tuned 1.5B stays available as a roughly 3x faster option. More template diversity, or mixing few-shot prompts into training, are the obvious next steps.
+- Ollama 0.35 no longer imports Qwen2 safetensors or LoRA adapters, so the fine-tuned model is served as a Q8_0 GGUF built with llama.cpp's converter. The prompted 1.5B baseline was converted the same way, so the two differ only by the fine-tune.
+- The model never sets operators, literals, actions or traces: `merge()` ignores everything except title, intent, business names and concepts. A wrong intent is still possible. The number-grounding check catches invented numbers, but not a paraphrased comparison: one demo intent says "more than 3 late payments" for a condition that is `>= 3`. The structured condition shown next to the intent is authoritative, and human review remains necessary.
 
 ## Product
 - Development tokens are generated locally. There is no TLS, SSO or RACF integration; these are planned (security.md 4.2).
 - PMML is produced only for decision blocks that write a single literal output field. It is checked for well-formed XML, not executed in a PMML engine.
-- The Docker image and compose file are provided, but the demo was run natively (Windows with GnuCOBOL in WSL).
+- The API image builds and was smoke-tested (upload, extract, differential test with the image's own GnuCOBOL). The two-service `docker-compose.yml` (API + Ollama on an internal network) was not run end to end. The demo runs natively (Windows, GnuCOBOL in WSL).

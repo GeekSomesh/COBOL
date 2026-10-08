@@ -1,0 +1,149 @@
+{
+  "model": "cobol-enrich:1.5b-b",
+  "fewshot": 0,
+  "split": "val",
+  "programs": 50,
+  "wall_seconds": 123.7,
+  "rules": 112,
+  "schema_valid_rate": 1.0,
+  "field_name_exact": 0.5073,
+  "field_name_token_f1": 0.7659,
+  "intent_similarity": 0.8023,
+  "title_similarity": 0.6696,
+  "concept_jaccard": 0.3971,
+  "intent_numbers_grounded": 0.9464,
+  "seconds_per_rule": 1.102,
+  "examples": [
+    {
+      "rule": "FRD0003-R001",
+      "title": "High-value transaction hold",
+      "intent": "Hold all other transactions over 1000.",
+      "gold_intent": "Hold online card-not-present transactions above 1,000 and send them for review.",
+      "names": {
+        "CHNL-CD": "channel",
+        "CARD-PRES-FLG": "card_present_flag",
+        "TXN-AMT": "transaction_amount",
+        "TXN-HOLD-IND": "hold_flag",
+        "REVIEW-FLAG": "review_flag"
+      },
+      "gold_names": {
+        "CHNL-CD": "channel_code",
+        "CARD-PRES-FLG": "card_present",
+        "TXN-AMT": "transaction_amount",
+        "TXN-HOLD-IND": "hold_flag",
+        "REVIEW-FLAG": "review_flag"
+      },
+      "concepts": [
+        "amount",
+        "transaction",
+        "hold"
+      ]
+    },
+    {
+      "rule": "FRD0003-R002",
+      "title": "High-value transaction",
+      "intent": "Flag transactions over 17,500 as potentially suspicious.",
+      "gold_intent": "Send online transactions above 17,500 for review.",
+      "names": {
+        "CHNL-CD": "channel",
+        "CARD-PRES-FLG": "card_present_flag",
+        "TXN-AMT": "transaction_amount",
+        "REVIEW-FLAG": "review_flag"
+      },
+      "gold_names": {
+        "CHNL-CD": "channel_code",
+        "CARD-PRES-FLG": "card_present",
+        "TXN-AMT": "transaction_amount",
+        "REVIEW-FLAG": "review_flag"
+      },
+      "concepts": [
+        "amount",
+        "suspicious activity"
+      ]
+    },
+    {
+      "rule": "FRD0003-R003",
+      "title": "Allow online transactions",
+      "intent": "Mark all other transaction types as not held.",
+      "gold_intent": "Never hold transactions made outside the online channel.",
+      "names": {
+        "CHNL-CD": "channel_code",
+        "TXN-HOLD-IND": "hold_flag"
+      },
+      "gold_names": {
+        "CHNL-CD": "channel_code",
+        "TXN-HOLD-IND": "hold_flag"
+      },
+      "concepts": [
+        "transaction type",
+        "holding"
+      ]
+    },
+    {
+      "rule": "FEE0003-R001",
+      "title": "Student fee waiver",
+      "intent": "Waive the fee for students younger than 25.",
+      "gold_intent": "Waive the monthly fee for students younger than 25.",
+      "names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "customer_age",
+        "WAIVE-IND": "waived",
+        "SVC-CHARGE": "fee"
+      },
+      "gold_names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "customer_age",
+        "WAIVE-IND": "fee_waived",
+        "SVC-CHARGE": "monthly_fee"
+      },
+      "concepts": [
+        "fee",
+        "student",
+        "age"
+      ]
+    },
+    {
+      "rule": "FEE0003-R002",
+      "title": "Senior fee waiver",
+      "intent": "Waive the fee for clients older than 60.",
+      "gold_intent": "Waive the monthly fee for customers aged 60 or over.",
+      "names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "age",
+        "WAIVE-IND": "waived",
+        "SVC-CHARGE": "fee"
+      },
+      "gold_names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "customer_age",
+        "WAIVE-IND": "fee_waived",
+        "SVC-CHARGE": "monthly_fee"
+      },
+      "concepts": [
+        "fee",
+        "senior",
+        "waiver"
+      ]
+    },
+    {
+      "rule": "FEE0003-R003",
+      "title": "Standard adult fee",
+      "intent": "Charge 4 for all other customers.",
+      "gold_intent": "Charge everyone else the standard monthly fee of 4.",
+      "names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "customer_age",
+        "SVC-CHARGE": "fee"
+      },
+      "gold_names": {
+        "CU-STUDENT-FLAG": "student_flag",
+        "CU-CLNT-AGE": "customer_age",
+        "SVC-CHARGE": "monthly_fee"
+      },
+      "concepts": [
+        "age",
+        "fee"
+      ]
+    }
+  ]
+}

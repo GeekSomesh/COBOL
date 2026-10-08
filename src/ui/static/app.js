@@ -135,7 +135,7 @@ async function showRule(id, detailSel) {
     const src = tr.lines.map((l) => `<div class="${l.in_rule ? "on" : ""}"><span class="n">${l.n}</span>${esc(l.text)}</div>`).join("");
     box.innerHTML = `
       <div class="dhead"><div><h2>${esc(r.title || r.rule_id)}</h2>
-        <div class="muted">${esc(r.rule_id)} · v${r.version} · ${esc(r.domain || "no domain")} · ${badge(r.status)}</div></div>
+        <div class="muted">${esc(r.rule_id)} · v${r.version}${r.domain ? " · " + esc(r.domain) : ""} · ${badge(r.status)}</div></div>
         <div>${confBar(r.confidence?.score)}</div></div>
       <div class="intent">${esc(r.intent || "No intent yet (AST-only extraction).")}</div>
       ${(r.concepts || []).map((c) => `<span class="chip">${esc(c)}</span>`).join("")}

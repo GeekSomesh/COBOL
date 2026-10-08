@@ -128,6 +128,9 @@ def run_pipeline(program_path: Path | str, copybook_dirs: Sequence[Path | str] =
                 enrich(s, ex.rules[k], client, fewshot_examples(cfg.fewshot), retries=0,
                        temperature=0.7, seed=100 + n)[1] for n in range(cfg.consistency_runs)]
             comps["consistency"] = consistency_score(samples)
+        if r.intent:
+            from src.llm.evaluation import grounded
+            extra["intent_grounded"] = grounded(r.intent, s)
         out.append(apply_confidence(r, comps, extra))
         tick("verify", k + 1, len(slices))
     return Extraction(ex.analysis, out, report)

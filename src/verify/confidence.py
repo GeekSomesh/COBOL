@@ -7,7 +7,8 @@ testing, no LLM for consistency), its weight is spread over the measured ones
 and the component is recorded as null. Routing: candidate only with
 score >= 0.90, structural == 1.0 and measured behavioural agreement >= 0.95,
 and never for unsupported constructs or external dependencies; everything else
-goes to review. Only a reviewer can set ``approved``.
+goes to review. An intent that cites a number absent from the code also goes to
+review. Only a reviewer can set ``approved``.
 """
 
 from __future__ import annotations
@@ -30,7 +31,9 @@ def combine(components: dict[str, Optional[float]]) -> float:
     return round(sum(WEIGHTS[k] * v for k, v in measured.items()) / total_w, 4)
 
 
-def route(rule: Rule, score: float, components: dict[str, Optional[float]]) -> tuple[str, list[str]]:
+def route(rule: Rule, score: float, components: dict[str, Optional[float]],
+          extra_flags: Optional[dict[str, Any]] = None) -> tuple[str, list[str]]:
+    extra_flags = extra_flags or {}
     warnings: list[str] = []
     if rule.unsupported:
         warnings.append("unsupported construct: " + ", ".join(rule.unsupported))
@@ -47,7 +50,14 @@ def route(rule: Rule, score: float, components: dict[str, Optional[float]]) -> t
         warnings.append("disagrees with compiled COBOL on some inputs")
     if score < REVIEW_MIN:
         warnings.append(f"low confidence ({score:.2f})")
-    ok = (score >= CANDIDATE_MIN and components.get("structural") == 1.0
+    elif score < CANDIDATE_MIN:
+        weakest = min(((k, v) for k, v in components.items() if v is not None), key=lambda kv: kv[1], default=None)
+        warnings.append(f"confidence below {CANDIDATE_MIN:.2f} ({score:.2f}; weakest: {weakest[0]} {weakest[1]:.2f})"
+                        if weakest else f"confidence below {CANDIDATE_MIN:.2f} ({score:.2f})")
+    ungrounded = extra_flags.get("intent_grounded") is False
+    if ungrounded:
+        warnings.append("intent mentions a number that is not in the code")
+    ok = (score >= CANDIDATE_MIN and components.get("structural") == 1.0 and not ungrounded
           and diff is not None and diff >= DIFFERENTIAL_MIN
           and not rule.unsupported and not rule.external_dependency
           and not rule.provenance.get("enrichment_error"))
@@ -56,7 +66,7 @@ def route(rule: Rule, score: float, components: dict[str, Optional[float]]) -> t
 
 def apply_confidence(rule: Rule, components: dict[str, Optional[float]], extra: Optional[dict[str, Any]] = None) -> Rule:
     score = combine(components)
-    status, warnings = route(rule, score, components)
+    status, warnings = route(rule, score, components, extra)
     out = rule.model_copy(deep=True)
     out.confidence = {"score": score, "components": components, "warnings": warnings, **(extra or {})}
     if out.status not in ("approved", "rejected", "superseded"):

@@ -10,8 +10,7 @@ data/synthetic/bin/
 *.so
 *.o
 *.exe
-results/*.json
-!results/.gitkeep
+results/*.log
 
 # model weights and fine-tuning artifacts
 models/

@@ -37,7 +37,8 @@ def structural(rule: Rule, slice_: Slice, rows: list[dict[str, Any]]) -> float:
         return 1.0
     rd = rule_dict(rule)["conditions"]
     agree = sum(eval_cond(rd, r) == eval_cond(slice_.condition, r) for r in rows) / max(len(rows), 1)
-    return round(agree * (1.0 if same_actions else 0.5), 4)
+    # a different canonical form is never an exact match, even when the grid cannot tell them apart
+    return round(min(agree, 0.99) * (1.0 if same_actions else 0.5), 4)
 
 
 # ---- differential test --------------------------------------------------------------------

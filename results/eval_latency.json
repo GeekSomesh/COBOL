@@ -1,0 +1,24 @@
+{
+  "system": "latency",
+  "rules_in_store": 61,
+  "api_read_ms": {
+    "GET /v1/rules?q": {
+      "median": 24.14,
+      "p95": 47.51
+    },
+    "GET /v1/rules/{id}": {
+      "median": 3.29,
+      "p95": 4.84
+    },
+    "GET /v1/rules/{id}/trace": {
+      "median": 3.2,
+      "p95": 4.46
+    }
+  },
+  "score_ms_in_process": {
+    "median": 0.052,
+    "p95": 0.117
+  },
+  "note": "In-process TestClient on this laptop; no network hop.",
+  "generated_at": "2026-10-08T12:37:40+00:00"
+}

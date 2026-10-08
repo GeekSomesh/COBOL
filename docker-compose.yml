@@ -7,7 +7,6 @@ services:
     ports:
       - "8000:8000"
     environment:
-      COBOL_LLM_MODEL: cobol-enrich:1.5b
       COBOL_DB: /app/data/state/rules.db
       COBOL_API_TOKENS: ${COBOL_API_TOKENS:?set COBOL_API_TOKENS="token:role:user,..."}
     volumes:

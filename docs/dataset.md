@@ -1,6 +1,14 @@
 # Datasets
 
-All datasets are synthetic or public. **No customer, transaction or PII data is used.** Synthetic generation uses Python and Faker with domain templates, and the generated corpus is included in the submission package.
+All datasets are synthetic or public. **No customer, transaction or PII data is used.** Synthetic generation uses Python with domain templates, and the generated corpus is included in the submission package.
+
+> **As built.** `scripts/generate.py --count 300` produces 300 programs across 6 domains: fraud scoring, interest tiers, fee exemptions, credit approval, loan limits and penalty assessment. They come from 18 templates (`src/corpus/templates.py`) and carry 809 gold rules. Each gold rule has a title, intent and concepts, the targets for the LLM stage.
+>
+> Splits are by template. 12 templates train (200 programs, 546 rules). Validation (50 programs, 112 rules) and test (50 programs, 151 rules) each use 3 templates never seen in training.
+>
+> Each program randomises its style: cryptic names, copybooks (some with `REPLACING`), 88-levels, abbreviated conditions, word operators, legacy, stale or prompt-injection comments, commented-out dead code, REDEFINES noise fields, and IF / ELSE-IF / EVALUATE layouts. Every program is compiled and smoke-run with GnuCOBOL. Faker was not needed: no personal-looking values are generated at all.
+>
+> The 12-domain list below is the original plan. Insurance, KYC, eligibility, discounts, currency and tax are not built.
 
 ## 1. Synthetic COBOL rule corpus (primary)
 Realistic COBOL programs across 12 business domains:

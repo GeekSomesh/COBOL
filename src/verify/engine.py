@@ -209,8 +209,11 @@ def apply_actions(actions: Iterable[dict[str, Any]], state: dict[str, Any], fiel
                 state[target] = store(src, entry)
             else:
                 state[target] = store(a.get("value"), entry)
-        elif a["type"] == "compute":
-            state[target] = store(eval_expr(a["expr"], state), entry)
+        elif a["type"] == "compute" and a.get("expr"):
+            try:
+                state[target] = store(eval_expr(a["expr"], state), entry)
+            except ExprError:
+                state[target] = None           # unreadable expression: the output will not match
         # perform / call: control transfer, nothing to evaluate here
 
 

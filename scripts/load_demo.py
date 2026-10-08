@@ -1,6 +1,6 @@
 """Load the demo programs into the rule store (data/rules.db) through the full pipeline.
 
-    python scripts/load_demo.py                         # LLM: cobol-enrich:1.5b if installed, else AST-only
+    python scripts/load_demo.py                         # LLM: best installed default model, else AST-only
     python scripts/load_demo.py --model none --reset    # AST-only, fresh database
 
 Demo set: the TXNCHK reference program, programs from the held-out test
@@ -49,7 +49,7 @@ def demo_programs() -> list[tuple[Path, list[Path]]]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--model", default="auto")
-    ap.add_argument("--fewshot", type=int, default=0)
+    ap.add_argument("--fewshot", type=int, default=0, help="only with an explicit --model")
     ap.add_argument("--consistency", type=int, default=2)
     ap.add_argument("--db", default=str(DATA / "rules.db"))
     ap.add_argument("--reset", action="store_true")
@@ -58,16 +58,17 @@ def main() -> int:
     if args.reset and Path(args.db).exists():
         Path(args.db).unlink()
     store = Store(args.db)
-    model = args.model
+    model, fewshot = args.model, args.fewshot
     if model == "auto":
-        model = "cobol-enrich:1.5b" if OllamaClient("cobol-enrich:1.5b").available() else "none"
+        from src.api.main import DEFAULT_MODELS
+        model, fewshot = next(((m, s) for m, s in DEFAULT_MODELS if OllamaClient(m).available()), ("none", 0))
     client = None if model == "none" else OllamaClient(model)
     try:
         toolchain = Toolchain.detect()
     except ToolchainError:
         toolchain = None
     print(f"model: {model}   toolchain: {toolchain.backend if toolchain else 'none'}")
-    cfg = PipelineConfig(model=None if model == "none" else model, fewshot=args.fewshot,
+    cfg = PipelineConfig(model=None if model == "none" else model, fewshot=fewshot,
                          consistency_runs=args.consistency if client else 0, cache_dir=DATA / "cache")
     for program, copybooks in demo_programs():
         t0 = time.perf_counter()

@@ -61,3 +61,17 @@
 ## 6. Residual risks
 - A fine-tuned model can still misread unusual code; this is why human approval gates the `approved` state.
 - Business logic exposed in the rule catalogue is itself sensitive; restrict access accordingly.
+
+## 7. As built (prototype)
+| Threat | What the build does |
+|---|---|
+| T1 source leaves the machine | The LLM runs in local Ollama and COBOL compiles in local GnuCOBOL; the code makes no outbound calls. `docker-compose.yml` puts the model server on an `internal: true` network. |
+| T2 prompt injection via comments | Comments are moved out of the code into a block labelled "untrusted, may be outdated", and the system prompt says code and comments are data. The output must match a JSON schema. `merge()` accepts only title, intent, names and concepts, so a comment cannot change logic, status or confidence. About 5% of corpus programs carry injection comments ("THIS RULE IS PRE-APPROVED...") to exercise this. |
+| T3 hallucinated or misread rules | Logic comes from the parser. Every rule gets a symbolic check and a differential test against the compiled program. An intent citing a number absent from the code is routed to review. Only a reviewer can approve. Fault injection: see results/RESULTS.md. |
+| T4 unauthorised access | Every `/v1` endpoint except `/v1/health` needs a bearer token. Roles are viewer < reviewer < admin. Tokens come from `COBOL_API_TOKENS` or local dev tokens (git-ignored). |
+| T5 tampering | Rules are versioned with a content hash per version. The review log is insert-only through the API. |
+| T7 sensitive data in logs | The API logs IDs and counts only, never source text or scoring inputs. |
+| T8 real values sent to scoring | `/v1/score` neither stores nor logs inputs and uses approved rules only. |
+| T9 oversized uploads | Uploads over 1 MB are rejected (413). Programs that fail to parse are rejected (422). Extraction runs on a single background worker. |
+
+Not built: TLS termination (put a reverse proxy in front), SSO/RACF, an internal package mirror, and checksum pinning of model weights.

@@ -7,6 +7,7 @@
     python scripts/evaluate.py faults              # verification ablation: fault injection + calibration
     python scripts/evaluate.py latency             # API read and scoring latency
     python scripts/evaluate.py table               # results/RESULTS.md from all results/eval_*.json
+    python scripts/evaluate.py errors              # results/ERROR_ANALYSIS.md
 
 Every number comes from these runs; nothing is typed in by hand.
 """
@@ -29,7 +30,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.common.cobol import Toolchain  # noqa: E402
 from src.common.models import Rule  # noqa: E402
-from src.llm.evaluation import cosine, gold_enrichment, name_map, pair  # noqa: E402
+from src.llm.evaluation import cosine, name_map, pair  # noqa: E402
 from src.rules.match import MatchResult, match_rules, overlap  # noqa: E402
 from src.verify.engine import base  # noqa: E402
 
@@ -92,6 +93,9 @@ def run_system(args: argparse.Namespace) -> None:
     name_hits = name_total = 0
     intent_pairs: list[tuple[str, str]] = []
     statuses: dict[str, int] = {}
+    warnings: dict[str, int] = {}
+    name_errors: list[dict[str, Any]] = []
+    ungrounded: list[dict[str, Any]] = []
     scores: list[float] = []
     seconds: list[float] = []
     per_program: list[dict[str, Any]] = []
@@ -131,7 +135,16 @@ def run_system(args: argparse.Namespace) -> None:
                 if src in gnames:
                     name_total += 1
                     name_hits += business == gnames[src]
+                    if business != gnames[src] and len(name_errors) < 25:
+                        name_errors.append({"rule": r.rule_id, "cobol": src, "predicted": business, "gold": gnames[src]})
+            if r.confidence.get("intent_grounded") is False and len(ungrounded) < 25:
+                ungrounded.append({"rule": r.rule_id, "intent": r.intent})
             statuses[r.status] = statuses.get(r.status, 0) + 1
+            for w in r.confidence.get("warnings", []):
+                key = w.split(" (")[0].split(":")[0]
+                if key.startswith("confidence below") and "weakest: " in w:
+                    key += " - weakest " + w.split("weakest: ")[1].split(" ")[0]
+                warnings[key] = warnings.get(key, 0) + 1
             if r.confidence.get("score") is not None:
                 scores.append(r.confidence["score"])
         # intent pairs: logic-matched rules, or best trace overlap for the LLM-only system
@@ -161,9 +174,10 @@ def run_system(args: argparse.Namespace) -> None:
         "field_name_accuracy": round(name_hits / name_total, 4) if name_total else None,
         "intent_similarity": intent_sim, "intent_pairs": len(intent_pairs),
         "llm_valid_outputs": valid_outputs if client else None,
-        "statuses": statuses, "mean_confidence": round(statistics.mean(scores), 4) if scores else None,
+        "statuses": statuses, "review_warnings": warnings, "mean_confidence": round(statistics.mean(scores), 4) if scores else None,
         "seconds_per_program": round(statistics.mean(seconds), 2),
         "per_program": per_program, "match_examples": total.examples[:10],
+        "name_error_examples": name_errors, "ungrounded_intent_examples": ungrounded,
     })
 
 
@@ -203,6 +217,26 @@ def mutate(rule: Rule, rng: random.Random) -> tuple[Rule, str] | None:
     return r, kind
 
 
+def behaviourally_equivalent(h, original: list[Rule], mutated: list[Rule], rng: random.Random) -> bool:
+    """No input among a dense boundary + random sample gives different outputs (an 'equivalent mutant').
+    The rule evaluator agrees with the compiled COBOL on correct rules, so this stands in for the program."""
+    from src.verify.engine import run_rules, store
+    from src.verify.harness import build_grid, same_output
+    a = [r.model_dump(by_alias=True) for r in original]
+    b = [r.model_dump(by_alias=True) for r in mutated]
+    rows = build_grid(h, [r["conditions"] for r in a + b], seed=rng.randrange(10**6), random_rows=3000, max_rows=4000)
+    for row in rows:
+        sa = dict(h.initial)
+        for f in h.layout:
+            sa[f["name"]] = store(row.get(f["name"], ""), f["entry"])
+        sb = dict(sa)
+        run_rules(a, sa, h.fields)
+        run_rules(b, sb, h.fields)
+        if any(not same_output(sa.get(base(o)), sb.get(base(o)), h.fields.get(base(o))) for o in h.outputs):
+            return False
+    return True
+
+
 def run_faults(args: argparse.Namespace) -> None:
     from src.pipeline import extract
     from src.verify.checks import differential, naming_score, structural
@@ -231,7 +265,9 @@ def run_faults(args: argparse.Namespace) -> None:
                          "differential": diff.rule_agreement(k) if diff.rule_agreement(k) is not None else diff.agreement,
                          "consistency": None, "naming": naming_score(variant, s)}
                 routed = apply_confidence(variant, comps)
+                equivalent = kind is not None and behaviourally_equivalent(h, ex.rules, rules, rng)
                 cases.append({"program": prog, "rule": rule.rule_id, "faulty": kind is not None, "kind": kind,
+                              "equivalent_mutant": equivalent,
                               "score": routed.confidence["score"], "status": routed.status,
                               "structural": comps["structural"], "differential": comps["differential"],
                               "external": rule.external_dependency or bool(rule.unsupported)})
@@ -244,14 +280,20 @@ def run_faults(args: argparse.Namespace) -> None:
     for kind in ("threshold", "operator", "action"):
         ks = [c for c in faulty if c["kind"] == kind]
         if ks:
+            live = [c for c in ks if not c["equivalent_mutant"]]
             by_kind[kind] = {"n": len(ks), "caught": round(sum(flagged(c) for c in ks) / len(ks), 4),
-                             "caught_by_differential": round(sum(c["differential"] < 1.0 for c in ks) / len(ks), 4)}
+                             "caught_by_differential": round(sum(c["differential"] < 1.0 for c in ks) / len(ks), 4),
+                             "equivalent_mutants": len(ks) - len(live),
+                             "caught_by_differential_non_equivalent": round(sum(c["differential"] < 1.0 for c in live) / max(1, len(live)), 4)}
     # expected calibration error of the confidence score as P(rule correct)
     bins = [[] for _ in range(10)]
     for c in cases:
         bins[min(int(c["score"] * 10), 9)].append(c)
     ece = sum(len(b) / len(cases) * abs(statistics.mean(x["score"] for x in b) - statistics.mean(0.0 if x["faulty"] else 1.0 for x in b))
               for b in bins if b)
+    # AUROC: probability that a clean rule scores higher than a faulty one (ties count half)
+    auroc = statistics.mean(1.0 if c["score"] > f["score"] else 0.5 if c["score"] == f["score"] else 0.0
+                            for c in clean for f in faulty)
     write("faults", {
         "system": "verification ablation (fault injection)", "split": args.split, "programs": len(progs),
         "faulty_rules": len(faulty), "clean_rules": len(clean),
@@ -259,12 +301,17 @@ def run_faults(args: argparse.Namespace) -> None:
             "faults_routed_to_review": round(sum(flagged(c) for c in faulty) / len(faulty), 4),
             "faults_caught_by_differential_alone": round(sum(c["differential"] < 1.0 for c in faulty) / len(faulty), 4),
             "faults_caught_by_structural_alone": round(sum(c["structural"] < 1.0 for c in faulty) / len(faulty), 4),
+            "equivalent_mutants": sum(c["equivalent_mutant"] for c in faulty),
+            "non_equivalent_faults_caught_by_differential": round(
+                sum(c["differential"] < 1.0 for c in faulty if not c["equivalent_mutant"])
+                / max(1, sum(not c["equivalent_mutant"] for c in faulty)), 4),
             "clean_rules_routed_to_review": round(sum(flagged(c) for c in clean) / len(clean), 4),
             "clean_rules_routed_to_review_excluding_external": round(
                 sum(flagged(c) for c in clean if not c["external"]) / max(1, sum(not c["external"] for c in clean)), 4),
             "mean_score_clean": round(statistics.mean(c["score"] for c in clean), 4),
             "mean_score_faulty": round(statistics.mean(c["score"] for c in faulty), 4),
             "expected_calibration_error": round(ece, 4),
+            "auroc_clean_vs_faulty": round(auroc, 4),
         },
         "without_verification": {"faults_routed_to_review": 0.0,
                                  "note": "Without verification every extracted rule gets the same status, so injected faults pass unnoticed."},
@@ -326,21 +373,36 @@ def run_latency(args: argparse.Namespace) -> None:
 def run_table(args: argparse.Namespace) -> None:
     order = ["ast_only", "llm_only", "llm_slices_1.5b", "llm_slices_7b", "full"]
     names = {"ast_only": "AST-only (no LLM)", "llm_only": "LLM-only, zero-shot on raw code (7B)",
-             "llm_slices_1.5b": "LLM on slices, prompted 1.5B (no fine-tune)",
+             "llm_slices_1.5b": "LLM on slices, prompted 1.5B Q8 (no fine-tune)",
              "llm_slices_7b": "LLM on slices, prompted 7B (no fine-tune)",
              "full": "Full pipeline (fine-tuned 1.5B + verification)"}
     fmt = lambda v: "n/a" if v is None else (f"{v:.3f}" if isinstance(v, float) else str(v))   # noqa: E731
-    lines = ["| System | Precision | Recall | F1 | Trace acc. | Behavioural agreement | Field names | Intent similarity | s/program |",
-             "|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| System | Precision | Recall | F1 | F1, logic only | Trace acc. | Behavioural agreement | Field names | Intent similarity | s/program |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
     for key in order:
         f = RESULTS / f"eval_{key}.json"
         if not f.exists():
             continue
         d = json.loads(f.read_text())
-        lines.append(f"| {names[key]} | {fmt(d['precision'])} | {fmt(d['recall'])} | {fmt(d['f1'])} | "
+        label = names[key] + (f", first {d['programs']} test programs" if d.get("programs", 50) < 50 else "")
+        ltp = d["tp"] + d["failures"].get("trace mismatch", 0)          # logic matched, lines ignored
+        lp, lr = ltp / max(d["n_pred"], 1), ltp / max(d["n_gold"], 1)
+        logic_f1 = 2 * lp * lr / (lp + lr) if lp + lr else 0.0
+        lines.append(f"| {label} | {fmt(d['precision'])} | {fmt(d['recall'])} | {fmt(d['f1'])} | {fmt(logic_f1)} | "
                      f"{fmt(d['traceability_accuracy'])} | {fmt(d['behavioural_agreement'])} | "
-                     f"{fmt(d['field_name_accuracy'])} | {fmt(d['intent_similarity'])} | {fmt(d['seconds_per_program'])} |")
+                     f"{fmt(d['field_name_accuracy'])} | {fmt(d['intent_similarity'])} | "
+                     f"{'<0.01' if d['seconds_per_program'] < 0.01 else format(d['seconds_per_program'], '.2f')} |")
     out = ["# Measured results", "", f"Test split: held-out templates, generated {datetime.now(timezone.utc):%Y-%m-%d}.", ""] + lines
+    sp = RESULTS / "model_selection.json"
+    if sp.exists():
+        d = json.loads(sp.read_text())
+        out += ["", "## Enrichment model selection (validation split, held-out templates)", "",
+                f"Criterion: {d['criterion']}. The test split was not used for selection.", "",
+                "| Model | Field names (exact) | Intent similarity | Concept overlap | Intent numbers grounded | s/rule | Selection score |",
+                "|---|---|---|---|---|---|---|"]
+        for m in d["models"]:
+            out.append(f"| {m['model']} | {m['field_name_exact']:.3f} | {m['intent_similarity']:.3f} | {m['concept_jaccard']:.3f} | "
+                       f"{m['intent_numbers_grounded']:.3f} | {m['seconds_per_rule']:.2f} | {m['selection_score']:.3f} |")
     fp = RESULTS / "eval_faults.json"
     if fp.exists():
         d = json.loads(fp.read_text())
@@ -349,16 +411,67 @@ def run_table(args: argparse.Namespace) -> None:
                 f"{d['faulty_rules']} rules with one injected fault (threshold, operator or action) and {d['clean_rules']} clean rules.", "",
                 "| | With verification | Without verification |", "|---|---|---|",
                 f"| Faulty rules routed to review | {w['faults_routed_to_review']:.3f} | 0.000 |",
-                f"| Faults caught by differential test alone | {w['faults_caught_by_differential_alone']:.3f} | - |",
+                f"| Faults caught by differential test alone (all / behaviour-changing only) | {w['faults_caught_by_differential_alone']:.3f} / {w['non_equivalent_faults_caught_by_differential']:.3f} | - |",
+                f"| Equivalent mutants (no input changes any output) | {w['equivalent_mutants']} of {d['faulty_rules']} | - |",
                 f"| Clean rules routed to review (excluding external/unsupported) | {w['clean_rules_routed_to_review_excluding_external']:.3f} | - |",
                 f"| Mean confidence, clean vs faulty | {w['mean_score_clean']:.3f} vs {w['mean_score_faulty']:.3f} | - |",
-                f"| Expected calibration error | {w['expected_calibration_error']:.3f} | - |"]
+                f"| Confidence AUROC, clean vs faulty | {w['auroc_clean_vs_faulty']:.3f} | - |",
+                f"| Expected calibration error (score read as a probability) | {w['expected_calibration_error']:.3f} | - |"]
     lp = RESULTS / "eval_latency.json"
     if lp.exists():
         d = json.loads(lp.read_text())
         out += ["", "## Latency", ""] + [f"- {k}: median {v['median']} ms, p95 {v['p95']} ms" for k, v in d["api_read_ms"].items()] + \
                [f"- scoring (in process): median {d['score_ms_in_process']['median']} ms, p95 {d['score_ms_in_process']['p95']} ms"]
     (RESULTS / "RESULTS.md").write_text("\n".join(out) + "\n", encoding="utf-8")
+    print("\n".join(out))
+
+
+def run_errors(args: argparse.Namespace) -> None:
+    """results/ERROR_ANALYSIS.md from the recorded failures (implementation.md 8, step 5)."""
+    out = ["# Error analysis", "", "Generated from results/eval_*.json. Examples are verbatim model output.", ""]
+    f = RESULTS / "eval_full.json"
+    if f.exists():
+        d = json.loads(f.read_text())
+        out += ["## Full pipeline: why rules were routed to review", "",
+                f"{d['statuses'].get('needs_review', 0)} of {sum(d['statuses'].values())} test rules went to review. Warnings raised:", ""]
+        out += [f"- {k}: {v}" for k, v in sorted(d.get("review_warnings", {}).items(), key=lambda kv: -kv[1])] or ["- none"]
+        out += ["", "## Full pipeline: field-name mistakes (first 10)", "", "| Rule | COBOL name | Model said | Gold |", "|---|---|---|---|"]
+        out += [f"| {e['rule']} | {e['cobol']} | {e['predicted']} | {e['gold']} |" for e in d.get("name_error_examples", [])[:10]]
+        train_names = set()
+        for g in (DATA / "gold").glob("*.json"):
+            doc = json.loads(g.read_text())
+            if doc.get("split") == "train":
+                for r in doc["rules"]:
+                    train_names.update(leaf_names(Rule.model_validate(r)).values())
+        leaked = [e for e in d.get("name_error_examples", []) if e["predicted"] in train_names and e["predicted"] != e["gold"]]
+        out += ["", "Exact match is strict. Some of these are reasonable synonyms (for example `deposit_term` for "
+                "`term_months`). Others are names the model copied from training templates: "
+                f"{len(leaked)} of the {len(d.get('name_error_examples', []))} recorded mistakes use a business name that "
+                "belongs to a different field in the training split (for example `CREDIT-LIMIT` named `max_loan`). "
+                "That is the overfitting described in docs/limitations.md."]
+        ug = d.get("ungrounded_intent_examples", [])
+        out += ["", f"## Full pipeline: intents citing numbers not in the code ({len(ug)} recorded)", ""]
+        out += [f"- {e['rule']}: \"{e['intent']}\"" for e in ug[:10]] or ["- none"]
+    f = RESULTS / "eval_llm_only.json"
+    if f.exists():
+        d = json.loads(f.read_text())
+        out += ["", "## LLM-only (no parser): failure categories", "",
+                f"{d['n_gold']} gold rules, {d['n_pred']} predicted, {d['tp']} matched.", ""]
+        out += [f"- {k}: {v}" for k, v in sorted(d["failures"].items(), key=lambda kv: -kv[1])]
+        out += ["", "Examples (gold vs nearest prediction, canonical form):", ""]
+        for e in d.get("match_examples", [])[:3]:
+            out += [f"- {e['gold']} ({e['reason']})", f"  - gold: `{e['gold_key'][:220]}`", f"  - pred: `{(e['pred_key'] or '-')[:220]}`"]
+    f = RESULTS / "eval_faults.json"
+    if f.exists():
+        d = json.loads(f.read_text())
+        w = d["with_verification"]
+        out += ["", "## Faults the behavioural test could not see", "",
+                f"{w['equivalent_mutants']} of {d['faulty_rules']} injected faults change no output for any input tried "
+                "(for example, a range bound raised beyond the field's PIC maximum, or a threshold moved inside a region an "
+                "earlier branch already claims). No behavioural test can detect those; the symbolic check still flags every "
+                f"one because the rule no longer matches the parsed source. On the behaviour-changing faults, the differential "
+                f"test alone caught {w['non_equivalent_faults_caught_by_differential']:.3f}."]
+    (RESULTS / "ERROR_ANALYSIS.md").write_text("\n".join(out) + "\n", encoding="utf-8")
     print("\n".join(out))
 
 
@@ -379,8 +492,10 @@ def main() -> int:
     f.add_argument("--seed", type=int, default=11)
     sub.add_parser("latency")
     sub.add_parser("table")
+    sub.add_parser("errors")
     args = ap.parse_args()
-    {"system": run_system, "faults": run_faults, "latency": run_latency, "table": run_table}[args.cmd](args)
+    {"system": run_system, "faults": run_faults, "latency": run_latency, "table": run_table,
+     "errors": run_errors}[args.cmd](args)
     return 0
 
 

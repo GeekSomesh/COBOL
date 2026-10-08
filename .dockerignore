@@ -1,0 +1,16 @@
+.git
+.venv
+.venv-train
+models
+results
+**/__pycache__
+.pytest_cache
+.ruff_cache
+data/cache
+data/uploads
+data/rules.db
+data/dev_tokens.json
+data/synthetic/bin
+data/finetune
+cobol-to-decision-docs.zip
+.claude

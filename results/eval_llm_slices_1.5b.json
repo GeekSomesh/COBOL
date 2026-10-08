@@ -1,0 +1,483 @@
+{
+  "system": "llm_slices_1.5b",
+  "kind": "llm_slices",
+  "model": "qwen-coder-base:1.5b-q8_0",
+  "fewshot": 3,
+  "consistency_runs": 0,
+  "split": "test",
+  "programs": 50,
+  "n_pred": 151,
+  "n_gold": 151,
+  "tp": 151,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0,
+  "traceability_accuracy": 1.0,
+  "unmatched_predictions": 0,
+  "failures": {},
+  "behavioural_agreement": 1.0,
+  "behavioural_rows": 8486,
+  "field_name_accuracy": 0.5659,
+  "intent_similarity": 0.8353,
+  "intent_pairs": 151,
+  "llm_valid_outputs": 151,
+  "statuses": {
+    "needs_review": 151
+  },
+  "mean_confidence": null,
+  "seconds_per_program": 3.28,
+  "per_program": [
+    {
+      "program": "INT0003",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 3.99
+    },
+    {
+      "program": "CRD0003",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.18
+    },
+    {
+      "program": "PEN0003",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.19
+    },
+    {
+      "program": "INT0006",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 3.88
+    },
+    {
+      "program": "CRD0006",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.3
+    },
+    {
+      "program": "PEN0006",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.01
+    },
+    {
+      "program": "INT0009",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 4.46
+    },
+    {
+      "program": "CRD0009",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.41
+    },
+    {
+      "program": "PEN0009",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.29
+    },
+    {
+      "program": "INT0012",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 4.16
+    },
+    {
+      "program": "CRD0012",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.16
+    },
+    {
+      "program": "PEN0012",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.4
+    },
+    {
+      "program": "INT0015",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 4.13
+    },
+    {
+      "program": "CRD0015",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.21
+    },
+    {
+      "program": "PEN0015",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.08
+    },
+    {
+      "program": "INT0018",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 4.07
+    },
+    {
+      "program": "CRD0018",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.19
+    },
+    {
+      "program": "PEN0018",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.47
+    },
+    {
+      "program": "INT0021",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 4.15
+    },
+    {
+      "program": "CRD0021",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.19
+    },
+    {
+      "program": "PEN0021",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.2
+    },
+    {
+      "program": "INT0024",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 4.2
+    },
+    {
+      "program": "CRD0024",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.58
+    },
+    {
+      "program": "PEN0024",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.27
+    },
+    {
+      "program": "INT0027",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 3.96
+    },
+    {
+      "program": "CRD0027",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.15
+    },
+    {
+      "program": "PEN0027",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.36
+    },
+    {
+      "program": "INT0030",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 4.14
+    },
+    {
+      "program": "CRD0030",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.39
+    },
+    {
+      "program": "PEN0030",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.71
+    },
+    {
+      "program": "INT0033",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 4.49
+    },
+    {
+      "program": "CRD0033",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.37
+    },
+    {
+      "program": "PEN0033",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.65
+    },
+    {
+      "program": "INT0036",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 4.72
+    },
+    {
+      "program": "CRD0036",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.59
+    },
+    {
+      "program": "PEN0036",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.55
+    },
+    {
+      "program": "INT0039",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 4.41
+    },
+    {
+      "program": "CRD0039",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.31
+    },
+    {
+      "program": "PEN0039",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.23
+    },
+    {
+      "program": "INT0042",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 3.97
+    },
+    {
+      "program": "CRD0042",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 2.99
+    },
+    {
+      "program": "PEN0042",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.58
+    },
+    {
+      "program": "INT0045",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 3.94
+    },
+    {
+      "program": "CRD0045",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.22
+    },
+    {
+      "program": "PEN0045",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.65
+    },
+    {
+      "program": "INT0048",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 3.79
+    },
+    {
+      "program": "CRD0048",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.34
+    },
+    {
+      "program": "PEN0048",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 2.35
+    },
+    {
+      "program": "INT0051",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 3.88
+    },
+    {
+      "program": "CRD0051",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 3.19
+    }
+  ],
+  "match_examples": [],
+  "generated_at": "2026-10-08T11:13:27+00:00"
+}

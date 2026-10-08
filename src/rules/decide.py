@@ -18,7 +18,7 @@ from typing import Any, Optional
 
 from src.common.models import Rule
 from src.rules.canon import canon_actions, canon_cond
-from src.verify.engine import apply_actions, base, eval_cond, store, to_num
+from src.verify.engine import apply_actions, base, eval_cond, to_num
 
 
 def _leaves(c: Any, out: list[dict[str, Any]]) -> list[dict[str, Any]]:

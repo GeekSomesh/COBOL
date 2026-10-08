@@ -107,3 +107,19 @@ The endpoint is stateless: inputs are neither stored nor logged ([security.md](s
 | 409 | `INVALID_STATE` | Illegal status transition |
 | 413 | `FILE_TOO_LARGE` | Upload over limit |
 | 422 | `PARSE_ERROR` | COBOL could not be parsed |
+
+## 7. Implementation notes (as built)
+- Run with `python -m uvicorn src.api.main:app --port 8000`. The live OpenAPI document is at `/openapi.json` and interactive docs are at `/docs`. The explorer UI is at `/`.
+- Roles: `viewer` reads, `reviewer` can also `PATCH` rules and read `/v1/audit`, `admin` can also upload and extract. Tokens come from `COBOL_API_TOKENS="token:role:user,..."`, or from generated development tokens in `data/dev_tokens.json`.
+- `approve` and `reject` require a non-empty `reason`. `edit` creates a new version: `trace`, `provenance`, `status` and `confidence` cannot be edited.
+- Re-extracting unchanged code keeps the rule version and reviewer decisions. Changed code creates a new version and marks an approved predecessor `superseded`.
+- Additional endpoints:
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/v1/audit?limit=` | Review log, newest first (reviewer) |
+| GET | `/v1/rule_sets/{name}/inputs` | Business inputs and outputs of the approved rules of a rule set (builds the scoring form) |
+| GET | `/v1/health` | GnuCOBOL backend and LLM availability |
+
+- `POST /v1/score` uses only `approved` rules. Outputs start from the program's `VALUE` defaults, so a decision is returned even when no rule fires.
+- `GET /v1/explain/{rule_set}` uses approved rules, or all non-rejected rules when none are approved yet. The response lists the rules used.

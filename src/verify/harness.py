@@ -183,9 +183,27 @@ def candidates(h: Harness, conditions: list[dict[str, Any]], rng: random.Random)
     return cands
 
 
+def _subnodes(c: dict[str, Any], out: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out.append(c)
+    for k in ("all", "any"):
+        for x in c.get(k) or []:
+            _subnodes(x, out)
+    inner = c.get("not") or c.get("not_")
+    if inner:
+        _subnodes(inner, out)
+    return out
+
+
 def build_grid(h: Harness, conditions: list[dict[str, Any]], seed: int = 7, random_rows: int = 40,
-               targeted_tries: int = 300, max_rows: int = 250) -> list[dict[str, Any]]:
-    """Rows that make each condition true and false at least once when possible, plus random rows."""
+               targeted_tries: int = 200, max_rows: int = 400) -> list[dict[str, Any]]:
+    """Boundary-probing input rows.
+
+    Targets: every condition true and false, and every sub-condition (each leaf,
+    group and negated group of any rule) true and false *while* each whole
+    condition holds. That reaches thresholds hidden inside first-match exclusions
+    of other branches. Each base row found is then walked across the boundary
+    values of every field; random rows are added last.
+    """
     from src.verify.engine import eval_cond
 
     rng = random.Random(seed)
@@ -195,27 +213,43 @@ def build_grid(h: Harness, conditions: list[dict[str, Any]], seed: int = 7, rand
     def sample() -> dict[str, Any]:
         return {n: rng.choice(cands[n]) for n in names}
 
-    rows: list[dict[str, Any]] = [{n: cands[n][0] for n in names}]
+    subs: dict[str, dict[str, Any]] = {}
     for c in conditions:
-        for want in (True, False):
-            for _ in range(targeted_tries):
-                row = sample()
-                if eval_cond(c, {**h.initial, **row}) == want:
-                    rows.append(row)
-                    # walk each field across its boundary values to probe thresholds
-                    for n in names:
-                        for v in cands[n]:
-                            if len(cands[n]) <= 12:
-                                rows.append({**row, n: v})
-                    break
-    rows.extend(sample() for _ in range(random_rows))
+        for s in _subnodes(c, []):
+            subs.setdefault(repr(s), s)
+    targets: list[list[tuple[dict[str, Any], bool]]] = [[(c, w)] for c in conditions for w in (True, False)]
+    targets += [[(c, True), (s, w)] for c in conditions for s in subs.values() for w in (True, False)]
+    # every conjunct failing alone while its siblings hold: probes each threshold in context,
+    # including thresholds inside first-match exclusions (not ...) of chained rules
+    for s in subs.values():
+        kids = s.get("all") or []
+        for k, kid in enumerate(kids):
+            targets.append([(x, True) for j, x in enumerate(kids) if j != k] + [(kid, False)])
+            inner = kid.get("not") or kid.get("not_")
+            if inner and (inner.get("all") or []):
+                # inside a negated group: make the group true except one member, siblings outside still hold
+                for m, member in enumerate(inner["all"]):
+                    targets.append([(x, True) for j, x in enumerate(kids) if j != k]
+                                   + [(y, True) for i, y in enumerate(inner["all"]) if i != m] + [(member, False)])
+
+    base_rows: list[dict[str, Any]] = [{n: cands[n][0] for n in names}]
+    for target in targets:
+        for _ in range(targeted_tries):
+            row = sample()
+            state = {**h.initial, **row}
+            if all(eval_cond(c, state) == want for c, want in target):
+                base_rows.append(row)
+                break
+    walked = [{**row, n: v} for row in base_rows for n in names if len(cands[n]) <= 12 for v in cands[n]]
+    rows = base_rows + walked + [sample() for _ in range(random_rows)]
+
     seen, unique = set(), []
     for r in rows:
         key = tuple(str(r[n]) for n in names)
         if key not in seen:
             seen.add(key)
             unique.append(r)
-    if len(unique) > max_rows:          # keep the targeted rows first, sample the rest
-        head = unique[: max_rows // 2]
-        unique = head + rng.sample(unique[max_rows // 2:], max_rows - len(head))
+    if len(unique) > max_rows:          # keep every targeted base row, sample the walked/random rest
+        head = unique[: min(len(base_rows), max_rows // 2)]
+        unique = head + rng.sample(unique[len(head):], max_rows - len(head))
     return unique

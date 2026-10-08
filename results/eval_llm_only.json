@@ -1,0 +1,444 @@
+{
+  "system": "llm_only",
+  "kind": "llm_only",
+  "model": "qwen2.5-coder:7b",
+  "fewshot": 0,
+  "consistency_runs": 0,
+  "split": "test",
+  "programs": 20,
+  "n_pred": 59,
+  "n_gold": 61,
+  "tp": 0,
+  "precision": 0.0,
+  "recall": 0.0,
+  "f1": 0.0,
+  "traceability_accuracy": 0.0,
+  "unmatched_predictions": 48,
+  "failures": {
+    "condition mismatch": 25,
+    "trace mismatch": 11,
+    "condition and action mismatch": 10,
+    "action mismatch": 13,
+    "missing rule": 2
+  },
+  "behavioural_agreement": 0.6214,
+  "behavioural_rows": 2911,
+  "field_name_accuracy": 0.2613,
+  "intent_similarity": 0.7746,
+  "intent_pairs": 39,
+  "llm_valid_outputs": 20,
+  "statuses": {
+    "needs_review": 59
+  },
+  "review_warnings": {},
+  "mean_confidence": null,
+  "seconds_per_program": 25.24,
+  "per_program": [
+    {
+      "program": "INT0003",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 0,
+      "agreement": 0.0,
+      "seconds": 48.79
+    },
+    {
+      "program": "CRD0003",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 0,
+      "agreement": 0.8333,
+      "seconds": 23.13
+    },
+    {
+      "program": "PEN0003",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 0,
+      "agreement": 0.4444,
+      "seconds": 18.23
+    },
+    {
+      "program": "INT0006",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 0,
+      "agreement": 0.3333,
+      "seconds": 29.46
+    },
+    {
+      "program": "CRD0006",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 0,
+      "agreement": 1.0,
+      "seconds": 24.74
+    },
+    {
+      "program": "PEN0006",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 0,
+      "agreement": 0.4444,
+      "seconds": 16.77
+    },
+    {
+      "program": "INT0009",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 0,
+      "agreement": 0.5,
+      "seconds": 36.36
+    },
+    {
+      "program": "CRD0009",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 0,
+      "agreement": 1.0,
+      "seconds": 23.57
+    },
+    {
+      "program": "PEN0009",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 0,
+      "agreement": 0.32,
+      "seconds": 17.3
+    },
+    {
+      "program": "INT0012",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 0,
+      "agreement": 0.3529,
+      "seconds": 29.11
+    },
+    {
+      "program": "CRD0012",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 0,
+      "agreement": 0.835,
+      "seconds": 21.38
+    },
+    {
+      "program": "PEN0012",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 0,
+      "agreement": 0.4444,
+      "seconds": 18.04
+    },
+    {
+      "program": "INT0015",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 0,
+      "agreement": 0.6667,
+      "seconds": 32.69
+    },
+    {
+      "program": "CRD0015",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 0,
+      "agreement": 0.8333,
+      "seconds": 22.36
+    },
+    {
+      "program": "PEN0015",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 0,
+      "agreement": 0.4167,
+      "seconds": 16.97
+    },
+    {
+      "program": "INT0018",
+      "template": "interest_term",
+      "pred": 3,
+      "gold": 4,
+      "tp": 0,
+      "agreement": 0.3529,
+      "seconds": 34.83
+    },
+    {
+      "program": "CRD0018",
+      "template": "credit_limit_assign",
+      "pred": 2,
+      "gold": 3,
+      "tp": 0,
+      "agreement": 1.0,
+      "seconds": 18.52
+    },
+    {
+      "program": "PEN0018",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 0,
+      "agreement": 0.365,
+      "seconds": 17.88
+    },
+    {
+      "program": "INT0021",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 0,
+      "agreement": 0.3333,
+      "seconds": 29.36
+    },
+    {
+      "program": "CRD0021",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 0,
+      "agreement": 1.0,
+      "seconds": 25.26
+    }
+  ],
+  "match_examples": [
+    {
+      "gold": "INT0003-R001",
+      "reason": "condition mismatch",
+      "pred": "INT0003-L001",
+      "gold_key": "(('all', ('WS-TRM <= n:3', 'WS-TRM >= n:1')), (('set', 'WS-IRT', 'n:0.0275'),), ())",
+      "pred_key": "('TRM-BAND-1-3 == n:1', (('set', 'WS-IRT', 'n:0.0275'),), ())"
+    },
+    {
+      "gold": "INT0003-R002",
+      "reason": "condition mismatch",
+      "pred": "INT0003-L002",
+      "gold_key": "(('all', ('WS-TRM <= n:18', 'WS-TRM >= n:4', ('any', ('WS-TRM < n:1', 'WS-TRM > n:3')))), (('set', 'WS-IRT', 'n:0.035'),), ())",
+      "pred_key": "('TRM-BAND-4-18 == n:1', (('set', 'WS-IRT', 'n:0.035'),), ())"
+    },
+    {
+      "gold": "INT0003-R003",
+      "reason": "condition mismatch",
+      "pred": "INT0003-L003",
+      "gold_key": "(('all', ('WS-TRM <= n:36', 'WS-TRM >= n:19', ('any', ('WS-TRM < n:1', 'WS-TRM > n:3')), ('any', ('WS-TRM < n:4', 'WS-TRM > n:18')))), (('set', 'WS-IRT', 'n:0.0425'),), ())",
+      "pred_key": "('TRM-BAND-19-36 == n:1', (('set', 'WS-IRT', 'n:0.0425'),), ())"
+    },
+    {
+      "gold": "INT0003-R004",
+      "reason": "condition mismatch",
+      "pred": "INT0003-L004",
+      "gold_key": "(('all', (('any', ('WS-TRM < n:1', 'WS-TRM > n:3')), ('any', ('WS-TRM < n:19', 'WS-TRM > n:36')), ('any', ('WS-TRM < n:4', 'WS-TRM > n:18')))), (('set', 'WS-IRT', 'n:0.015'),), ())",
+      "pred_key": "(('all', ('TRM-BAND-1-3 == n:0', 'TRM-BAND-19-36 == n:0', 'TRM-BAND-4-18 == n:0')), (('set', 'WS-IRT', 'n:0.015'),), ())"
+    },
+    {
+      "gold": "CRD0003-R002",
+      "reason": "condition and action mismatch",
+      "pred": "CRD0003-L003",
+      "gold_key": "(('all', ('CREDIT-SCORE < n:750', 'CREDIT-SCORE >= n:680')), (('compute', 'CREDIT-LIMIT', 'expr:ANNUAL-INCOME*0.15'),), ())",
+      "pred_key": "('CREDIT-SCORE < n:680', (('set', 'CREDIT-LIMIT', 'n:1000'),), ())"
+    },
+    {
+      "gold": "CRD0003-R003",
+      "reason": "condition mismatch",
+      "pred": "CRD0003-L003",
+      "gold_key": "(('all', ('CREDIT-SCORE < n:680', 'CREDIT-SCORE < n:750')), (('set', 'CREDIT-LIMIT', 'n:1000'),), ())",
+      "pred_key": "('CREDIT-SCORE < n:680', (('set', 'CREDIT-LIMIT', 'n:1000'),), ())"
+    },
+    {
+      "gold": "PEN0003-R001",
+      "reason": "action mismatch",
+      "pred": "PEN0003-L001",
+      "gold_key": "(('all', ('L-PY >= n:3', 'WS-DLT > n:45')), (('compute', 'PA-AMT', 'expr:PA-AMT+100'), ('set', 'AS-CD', 's:S')), ())",
+      "pred_key": "(('all', ('L-PY >= n:3', 'WS-DLT > n:45')), (('compute', 'PA-AMT', 'expr:PA-AMT+100'), ('set', 'AS-CD', \"s:'S'\")), ())"
+    },
+    {
+      "gold": "PEN0003-R002",
+      "reason": "action mismatch",
+      "pred": "PEN0003-L002",
+      "gold_key": "('WS-DLT > n:90', (('set', 'AS-CD', 's:C'),), ())",
+      "pred_key": "('WS-DLT > n:90', (('set', 'AS-CD', \"s:'C'\"),), ())"
+    },
+    {
+      "gold": "INT0006-R001",
+      "reason": "condition and action mismatch",
+      "pred": "INT0006-L004",
+      "gold_key": "(('all', ('TM-MM <= n:6', 'TM-MM >= n:1')), (('set', 'WS-IRT', 'n:0.03'),), ())",
+      "pred_key": "('TM-MM != ?:[1, 6, 7, 18, 19, 36]', (('set', 'WS-IRT', 'n:0.02'),), ())"
+    },
+    {
+      "gold": "INT0006-R002",
+      "reason": "condition and action mismatch",
+      "pred": "INT0006-L004",
+      "gold_key": "(('all', ('TM-MM <= n:18', 'TM-MM >= n:7', ('any', ('TM-MM < n:1', 'TM-MM > n:6')))), (('set', 'WS-IRT', 'n:0.0375'),), ())",
+      "pred_key": "('TM-MM != ?:[1, 6, 7, 18, 19, 36]', (('set', 'WS-IRT', 'n:0.02'),), ())"
+    }
+  ],
+  "name_error_examples": [
+    {
+      "rule": "INT0003-L001",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0003-L002",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0003-L003",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0003-L004",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "PEN0003-L001",
+      "cobol": "L-PY",
+      "predicted": "l_py",
+      "gold": "late_count_12m"
+    },
+    {
+      "rule": "PEN0003-L001",
+      "cobol": "WS-DLT",
+      "predicted": "ws_dlt",
+      "gold": "days_late"
+    },
+    {
+      "rule": "PEN0003-L001",
+      "cobol": "AS-CD",
+      "predicted": "as_cd",
+      "gold": "account_status"
+    },
+    {
+      "rule": "PEN0003-L001",
+      "cobol": "PA-AMT",
+      "predicted": "pa_amt",
+      "gold": "penalty_amt"
+    },
+    {
+      "rule": "PEN0003-L002",
+      "cobol": "WS-DLT",
+      "predicted": "ws_dlt",
+      "gold": "days_late"
+    },
+    {
+      "rule": "PEN0003-L002",
+      "cobol": "AS-CD",
+      "predicted": "as_cd",
+      "gold": "account_status"
+    },
+    {
+      "rule": "INT0006-L001",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0006-L002",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0006-L003",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0006-L004",
+      "cobol": "TM-MM",
+      "predicted": "tm_mm",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0006-L004",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "CRD0006-L001",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "approved_limit",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "CRD0006-L002",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "approved_limit",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "CRD0006-L003",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "approved_limit",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "PEN0006-L001",
+      "cobol": "LC-12",
+      "predicted": "lc_12",
+      "gold": "late_count_12m"
+    },
+    {
+      "rule": "PEN0006-L001",
+      "cobol": "WS-DLT",
+      "predicted": "ws_dlt",
+      "gold": "days_late"
+    },
+    {
+      "rule": "PEN0006-L001",
+      "cobol": "A-SC",
+      "predicted": "a_sc",
+      "gold": "account_status"
+    },
+    {
+      "rule": "PEN0006-L001",
+      "cobol": "WS-PEN",
+      "predicted": "ws_pen",
+      "gold": "penalty_amt"
+    },
+    {
+      "rule": "PEN0006-L002",
+      "cobol": "WS-DLT",
+      "predicted": "ws_dlt",
+      "gold": "days_late"
+    },
+    {
+      "rule": "PEN0006-L002",
+      "cobol": "A-SC",
+      "predicted": "a_sc",
+      "gold": "account_status"
+    },
+    {
+      "rule": "INT0009-L001",
+      "cobol": "INT-RATE",
+      "predicted": "int_rate",
+      "gold": "interest_rate"
+    }
+  ],
+  "ungrounded_intent_examples": [],
+  "generated_at": "2026-10-08T12:51:28+00:00"
+}

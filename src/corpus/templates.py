@@ -282,11 +282,11 @@ def interest_term(r: random.Random) -> list[dict]:
     ra = r.choice([0.0275, 0.0300])
     rb, rc, rd = rate(ra + 0.0075), rate(ra + 0.0150), r.choice([0.0150, 0.0200])
     return [block("chain", ["SET-TERM-RATE", "3000-TERM-RATE", "TERM-DEPOSIT-RATE"], [
-        rule(f"Short term deposit rate", f"Pay {pct(ra)} on deposits with a term of 1 to {a} months.",
+        rule("Short term deposit rate", f"Pay {pct(ra)} on deposits with a term of 1 to {a} months.",
              ["interest", "term", "deposit"], L("term_months", "between", [1, a]), [SET("interest_rate", ra)]),
-        rule(f"Medium term deposit rate", f"Pay {pct(rb)} on deposits with a term of {a + 1} to {b} months.",
+        rule("Medium term deposit rate", f"Pay {pct(rb)} on deposits with a term of {a + 1} to {b} months.",
              ["interest", "term", "deposit"], L("term_months", "between", [a + 1, b]), [SET("interest_rate", rb)]),
-        rule(f"Long term deposit rate", f"Pay {pct(rc)} on deposits with a term of {b + 1} to {c} months.",
+        rule("Long term deposit rate", f"Pay {pct(rc)} on deposits with a term of {b + 1} to {c} months.",
              ["interest", "term", "deposit"], L("term_months", "between", [b + 1, c]), [SET("interest_rate", rc)]),
         rule("Other deposit terms", f"Pay {pct(rd)} on deposits with any other term.",
              ["interest", "term", "default"], None, [SET("interest_rate", rd)]),

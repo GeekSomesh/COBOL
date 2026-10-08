@@ -1,0 +1,48 @@
+{
+  "system": "verification ablation (fault injection)",
+  "split": "test",
+  "programs": 50,
+  "faulty_rules": 151,
+  "clean_rules": 151,
+  "with_verification": {
+    "faults_routed_to_review": 1.0,
+    "faults_caught_by_differential_alone": 0.8609,
+    "faults_caught_by_structural_alone": 1.0,
+    "equivalent_mutants": 21,
+    "non_equivalent_faults_caught_by_differential": 1.0,
+    "clean_rules_routed_to_review": 0.0,
+    "clean_rules_routed_to_review_excluding_external": 0.0,
+    "mean_score_clean": 0.968,
+    "mean_score_faulty": 0.6369,
+    "expected_calibration_error": 0.3024,
+    "auroc_clean_vs_faulty": 0.9517
+  },
+  "without_verification": {
+    "faults_routed_to_review": 0.0,
+    "note": "Without verification every extracted rule gets the same status, so injected faults pass unnoticed."
+  },
+  "by_fault_kind": {
+    "threshold": {
+      "n": 50,
+      "caught": 1.0,
+      "caught_by_differential": 0.64,
+      "equivalent_mutants": 18,
+      "caught_by_differential_non_equivalent": 1.0
+    },
+    "operator": {
+      "n": 36,
+      "caught": 1.0,
+      "caught_by_differential": 0.9167,
+      "equivalent_mutants": 3,
+      "caught_by_differential_non_equivalent": 1.0
+    },
+    "action": {
+      "n": 65,
+      "caught": 1.0,
+      "caught_by_differential": 1.0,
+      "equivalent_mutants": 0,
+      "caught_by_differential_non_equivalent": 1.0
+    }
+  },
+  "generated_at": "2026-10-08T12:37:35+00:00"
+}

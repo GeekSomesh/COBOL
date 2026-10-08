@@ -1,0 +1,687 @@
+{
+  "system": "full",
+  "kind": "full",
+  "model": "cobol-enrich:1.5b",
+  "fewshot": 0,
+  "consistency_runs": 2,
+  "split": "test",
+  "programs": 50,
+  "n_pred": 151,
+  "n_gold": 151,
+  "tp": 151,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0,
+  "traceability_accuracy": 1.0,
+  "unmatched_predictions": 0,
+  "failures": {},
+  "behavioural_agreement": 1.0,
+  "behavioural_rows": 8484,
+  "field_name_accuracy": 0.5419,
+  "intent_similarity": 0.8203,
+  "intent_pairs": 151,
+  "llm_valid_outputs": 151,
+  "statuses": {
+    "candidate": 127,
+    "needs_review": 24
+  },
+  "review_warnings": {
+    "intent mentions a number that is not in the code": 11,
+    "confidence below 0.90 - weakest naming": 6,
+    "confidence below 0.90 - weakest consistency": 8
+  },
+  "mean_confidence": 0.9456,
+  "seconds_per_program": 10.82,
+  "per_program": [
+    {
+      "program": "INT0003",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 17.65
+    },
+    {
+      "program": "CRD0003",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 10.29
+    },
+    {
+      "program": "PEN0003",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 7.53
+    },
+    {
+      "program": "INT0006",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 10.43
+    },
+    {
+      "program": "CRD0006",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 9.79
+    },
+    {
+      "program": "PEN0006",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 7.63
+    },
+    {
+      "program": "INT0009",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 13.38
+    },
+    {
+      "program": "CRD0009",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 9.81
+    },
+    {
+      "program": "PEN0009",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 10.74
+    },
+    {
+      "program": "INT0012",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 11.51
+    },
+    {
+      "program": "CRD0012",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 12.26
+    },
+    {
+      "program": "PEN0012",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 8.06
+    },
+    {
+      "program": "INT0015",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 14.43
+    },
+    {
+      "program": "CRD0015",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 9.52
+    },
+    {
+      "program": "PEN0015",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 7.28
+    },
+    {
+      "program": "INT0018",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 11.1
+    },
+    {
+      "program": "CRD0018",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 12.51
+    },
+    {
+      "program": "PEN0018",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 11.0
+    },
+    {
+      "program": "INT0021",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 11.15
+    },
+    {
+      "program": "CRD0021",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 9.6
+    },
+    {
+      "program": "PEN0021",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 10.04
+    },
+    {
+      "program": "INT0024",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 13.1
+    },
+    {
+      "program": "CRD0024",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 9.81
+    },
+    {
+      "program": "PEN0024",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 8.15
+    },
+    {
+      "program": "INT0027",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 10.96
+    },
+    {
+      "program": "CRD0027",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 9.68
+    },
+    {
+      "program": "PEN0027",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 7.72
+    },
+    {
+      "program": "INT0030",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 12.46
+    },
+    {
+      "program": "CRD0030",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 13.14
+    },
+    {
+      "program": "PEN0030",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 8.55
+    },
+    {
+      "program": "INT0033",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 12.81
+    },
+    {
+      "program": "CRD0033",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 13.04
+    },
+    {
+      "program": "PEN0033",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 10.74
+    },
+    {
+      "program": "INT0036",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 13.46
+    },
+    {
+      "program": "CRD0036",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 14.36
+    },
+    {
+      "program": "PEN0036",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 11.51
+    },
+    {
+      "program": "INT0039",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 11.75
+    },
+    {
+      "program": "CRD0039",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 9.58
+    },
+    {
+      "program": "PEN0039",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 8.38
+    },
+    {
+      "program": "INT0042",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 11.64
+    },
+    {
+      "program": "CRD0042",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 12.27
+    },
+    {
+      "program": "PEN0042",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 7.93
+    },
+    {
+      "program": "INT0045",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 11.02
+    },
+    {
+      "program": "CRD0045",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 12.85
+    },
+    {
+      "program": "PEN0045",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 10.57
+    },
+    {
+      "program": "INT0048",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 10.77
+    },
+    {
+      "program": "CRD0048",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 10.31
+    },
+    {
+      "program": "PEN0048",
+      "template": "penalty_repeat",
+      "pred": 2,
+      "gold": 2,
+      "tp": 2,
+      "agreement": 1.0,
+      "seconds": 8.43
+    },
+    {
+      "program": "INT0051",
+      "template": "interest_term",
+      "pred": 4,
+      "gold": 4,
+      "tp": 4,
+      "agreement": 1.0,
+      "seconds": 10.72
+    },
+    {
+      "program": "CRD0051",
+      "template": "credit_limit_assign",
+      "pred": 3,
+      "gold": 3,
+      "tp": 3,
+      "agreement": 1.0,
+      "seconds": 9.44
+    }
+  ],
+  "match_examples": [],
+  "name_error_examples": [
+    {
+      "rule": "INT0003-R001",
+      "cobol": "WS-TRM",
+      "predicted": "deposit_term",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0003-R002",
+      "cobol": "WS-TRM",
+      "predicted": "deposit_term",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0003-R003",
+      "cobol": "WS-TRM",
+      "predicted": "deposit_term_months",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0003-R004",
+      "cobol": "WS-TRM",
+      "predicted": "deposit_term",
+      "gold": "term_months"
+    },
+    {
+      "rule": "CRD0003-R001",
+      "cobol": "CREDIT-LIMIT",
+      "predicted": "max_loan",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "CRD0003-R002",
+      "cobol": "CREDIT-LIMIT",
+      "predicted": "max_loan",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "CRD0003-R003",
+      "cobol": "CREDIT-LIMIT",
+      "predicted": "max_loan",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "PEN0003-R001",
+      "cobol": "L-PY",
+      "predicted": "days_since_last_payment",
+      "gold": "late_count_12m"
+    },
+    {
+      "rule": "PEN0003-R001",
+      "cobol": "AS-CD",
+      "predicted": "penalty_code",
+      "gold": "account_status"
+    },
+    {
+      "rule": "PEN0003-R002",
+      "cobol": "AS-CD",
+      "predicted": "penalty_code",
+      "gold": "account_status"
+    },
+    {
+      "rule": "INT0006-R001",
+      "cobol": "TM-MM",
+      "predicted": "months_since_open",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0006-R002",
+      "cobol": "TM-MM",
+      "predicted": "loan_term",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0006-R003",
+      "cobol": "TM-MM",
+      "predicted": "loan_term",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0006-R004",
+      "cobol": "TM-MM",
+      "predicted": "months_since_last_activity",
+      "gold": "term_months"
+    },
+    {
+      "rule": "CRD0006-R001",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "max_loan",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "CRD0006-R002",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "max_loan",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "CRD0006-R003",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "max_limit",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "PEN0006-R001",
+      "cobol": "LC-12",
+      "predicted": "days_late_12m",
+      "gold": "late_count_12m"
+    },
+    {
+      "rule": "PEN0006-R002",
+      "cobol": "A-SC",
+      "predicted": "penalty_code",
+      "gold": "account_status"
+    },
+    {
+      "rule": "INT0009-R001",
+      "cobol": "TERM-MONTHS",
+      "predicted": "months_since_open",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0009-R002",
+      "cobol": "TERM-MONTHS",
+      "predicted": "loan_term_years",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0009-R003",
+      "cobol": "TERM-MONTHS",
+      "predicted": "loan_term_months",
+      "gold": "term_months"
+    },
+    {
+      "rule": "CRD0009-R001",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "max_loan",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "CRD0009-R002",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "max_loan",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "CRD0009-R003",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "max_loan",
+      "gold": "credit_limit"
+    }
+  ],
+  "ungrounded_intent_examples": [
+    {
+      "rule": "PEN0003-R002",
+      "intent": "Charge 1 when a payment is more than 90 days late."
+    },
+    {
+      "rule": "INT0006-R003",
+      "intent": "Pay 4.5% interest on loans made between 20 and 35 years."
+    },
+    {
+      "rule": "PEN0006-R002",
+      "intent": "Charge 1 when a payment is more than 90 days late."
+    },
+    {
+      "rule": "PEN0009-R002",
+      "intent": "Charge a penalty of at least 1 when a payment is more than 60 days late."
+    },
+    {
+      "rule": "PEN0012-R002",
+      "intent": "Mark accounts that are 91 days or more late as delinquent."
+    },
+    {
+      "rule": "PEN0021-R002",
+      "intent": "Charge 1 when an employee is older than 60."
+    },
+    {
+      "rule": "PEN0027-R002",
+      "intent": "Charge a penalty of at least 1 when a payment is more than 60 days late."
+    },
+    {
+      "rule": "PEN0030-R002",
+      "intent": "Charge a penalty of at least 1 when a payment is more than 60 days late."
+    },
+    {
+      "rule": "INT0045-R003",
+      "intent": "Add a further 4.5% to the rate for deposits made at least 20 years old."
+    },
+    {
+      "rule": "PEN0045-R002",
+      "intent": "Mark accounts that are 61 or more days late as bad."
+    },
+    {
+      "rule": "PEN0048-R002",
+      "intent": "Charge a penalty of at least 1 when a payment is more than 60 days late."
+    }
+  ],
+  "generated_at": "2026-10-08T13:02:14+00:00"
+}

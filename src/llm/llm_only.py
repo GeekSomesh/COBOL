@@ -9,6 +9,7 @@ canonical Rule schema and scored like any other system.
 from __future__ import annotations
 
 import json
+import dataclasses
 from typing import Any
 
 from src.common.models import Rule
@@ -53,14 +54,16 @@ def _actions(items: list[Any]) -> list[dict[str, Any]]:
     for a in items or []:
         if not isinstance(a, dict) or not a.get("target"):
             continue
-        t = a.get("type") if a.get("type") in ("set", "compute") else ("compute" if a.get("expr") else "set")
+        expr = a.get("expr") if isinstance(a.get("expr"), str) and a.get("expr").strip() else None
+        value = a.get("value") if isinstance(a.get("value"), (int, float, str)) else None
+        if expr is None and value is None:
+            continue                       # nothing to execute: the model gave an empty action
+        t = "compute" if (a.get("type") == "compute" and expr) else "set"
         b = {"type": t, "target": str(a["target"]).lower().replace("-", "_"), "source_name": str(a["target"]).upper()}
-        if t == "compute" and a.get("expr"):
-            b["expr"] = str(a["expr"])
-        elif a.get("expr") and a.get("value") is None:
-            b["expr"] = str(a["expr"])
-        elif isinstance(a.get("value"), (int, float, str)):
-            b["value"] = a["value"]
+        if expr is not None and (t == "compute" or value is None):
+            b["expr"] = expr
+        else:
+            b["value"] = value
         out.append(b)
     return out
 
@@ -93,8 +96,11 @@ def to_rules(program: str, program_file: str, payload: dict[str, Any]) -> list[R
 def extract_llm_only(program: str, program_file: str, source: str, client: OllamaClient) -> tuple[list[Rule], bool]:
     numbered = "\n".join(f"{n:>4} {line}" for n, line in enumerate(source.splitlines(), start=1))
     msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": f"PROGRAM {program_file}:\n{numbered}"}]
+    # a whole program's rules need far more output than one rule's enrichment
+    big = dataclasses.replace(client, num_predict=max(client.num_predict, 2048), num_ctx=max(client.num_ctx, 8192),
+                              timeout=max(client.timeout, 600))
     try:
-        content = client.chat(msgs, schema=SCHEMA)
+        content = big.chat(msgs, schema=SCHEMA)
         return to_rules(program, program_file, json.loads(content)), True
     except Exception:
         return [], False

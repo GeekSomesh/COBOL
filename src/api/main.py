@@ -4,9 +4,9 @@
 
 Settings (environment):
   COBOL_DB                 SQLite file (default data/rules.db)
-  COBOL_LLM_MODEL          Ollama model for enrichment ("none" = AST names only;
-                           default: cobol-enrich:1.5b if installed, else none)
-  COBOL_LLM_FEWSHOT        few-shot examples for a prompted base model (default 0)
+  COBOL_LLM_MODEL          Ollama model for enrichment ("none" = AST names only; default: the best
+                           installed of qwen2.5-coder:7b (3-shot) and cobol-enrich:1.5b)
+  COBOL_LLM_FEWSHOT        few-shot examples (default 3 for prompted models, 0 for cobol-enrich)
   COBOL_CONSISTENCY_RUNS   extra sampled enrichments for self-consistency (default 2)
   COBOL_API_TOKENS         "token:role:user,..." (default: generated dev tokens)
 """
@@ -105,14 +105,25 @@ def need(role: str):
 
 # ---- helpers ---------------------------------------------------------------------------
 
+# Default enrichment models in order of measured quality on the held-out test split
+# (results/RESULTS.md): prompted 7B first, then the fine-tuned 1.5B (about 3x faster).
+DEFAULT_MODELS = [("qwen2.5-coder:7b", 3), ("cobol-enrich:1.5b", 0)]
+
+
 def llm_settings() -> tuple[Optional[str], int, int]:
     from src.llm.client import OllamaClient
     model = os.environ.get("COBOL_LLM_MODEL")
+    fewshot = os.environ.get("COBOL_LLM_FEWSHOT")
+    runs = int(os.environ.get("COBOL_CONSISTENCY_RUNS", "2"))
     if model is None:
-        model = "cobol-enrich:1.5b" if OllamaClient("cobol-enrich:1.5b").available() else "none"
+        for name, shots in DEFAULT_MODELS:
+            if OllamaClient(name).available():
+                return name, int(fewshot) if fewshot is not None else shots, runs
+        return None, 0, 0
     if model.lower() == "none":
         return None, 0, 0
-    return model, int(os.environ.get("COBOL_LLM_FEWSHOT", "0")), int(os.environ.get("COBOL_CONSISTENCY_RUNS", "2"))
+    default_shots = dict(DEFAULT_MODELS).get(model, 0)
+    return model, int(fewshot) if fewshot is not None else default_shots, runs
 
 
 def summary(rule: Rule, pid: str, relevance: Optional[float] = None) -> dict[str, Any]:
