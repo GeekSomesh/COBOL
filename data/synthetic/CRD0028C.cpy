@@ -1,0 +1,3 @@
+    05 :PFX:-CR-SCORE        PIC 9(3).
+    *> DEBT TO INCOME RATIO
+    05 :PFX:-DEBT-RATIO      PIC 9V99.

@@ -1,0 +1,105 @@
+program: PEN0044
+program_file: PEN0044.cob
+domain: penalty_assessment
+template: penalty_waiver
+seed: 27468302
+record: WS-IN-REC
+out_record: OUT-RECORD
+main: MAINLINE
+copybook: PEN0044C.cpy
+prefix: null
+inputs:
+- name: FIRST-LATE-IND
+  pic: X
+  business: first_offense
+  comment: FIRST LATE PAYMENT Y/N
+- name: CUST-TIER
+  pic: X
+  business: customer_tier
+  comment: TIER G=GOLD P=PLATINUM S=SILVER B=BASIC
+- name: DAYS-LATE
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+outputs:
+- name: PENALTY-WAIVED
+  pic: X
+  business: penalty_waived
+  init: N
+  comment: PENALTY WAIVER FLAG
+- name: PENALTY-AMT
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Premium first-offence waiver
+    intent: Waive the penalty on a first late payment for gold and platinum customers.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - customer tier
+    when:
+      field: customer_tier
+      op: in
+      value:
+      - G
+      - P
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R1
+  - title: Grace period waiver
+    intent: Waive the penalty on a first late payment made within 3 days.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - grace period
+    when:
+      field: days_late
+      op: <=
+      value: 3
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R2
+  outer:
+    field: first_offense
+    op: ==
+    value: Y
+  paragraph: 3000-WAIVER-RULES
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: misleading
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: false
+record_layout:
+- name: FIRST-LATE-IND
+  pic: X
+  business: first_offense
+- name: CUST-TIER
+  pic: X
+  business: customer_tier
+- name: DAYS-LATE
+  pic: 9(3)
+  business: days_late
+record_length: 5
+names88: {}
+expected_rules: 2

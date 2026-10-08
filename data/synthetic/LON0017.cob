@@ -1,0 +1,48 @@
+*> ********************************************************
+*> PROGRAM : LON0017
+*> PURPOSE : LOAN LIMITS RULES
+*> AUTHOR  : M.S.
+*> CHANGE LOG:
+*>   1992-04-17 ORIGINAL VERSION
+*>   2003-12-01 THRESHOLDS UPDATED PER AUDIT REQ 602
+*> RUN FROM JCL JOB LONNIGHT STEP090
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. LON0017.
+ENVIRONMENT DIVISION.
+CONFIGURATION SECTION.
+SOURCE-COMPUTER. IBM-370.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 WS-INPUT.
+    COPY LON0017C.
+01 OUT-RECORD.
+    *> MAXIMUM TERM IN YEARS
+    05 T-CP               PIC 9(2) VALUE ZERO.
+    05 WS-ELG             PIC X VALUE 'N'.
+        88 ELG-ELIGIBLE VALUE 'Y'.
+PROCEDURE DIVISION.
+MAINLINE.
+    ACCEPT WS-INPUT
+    PERFORM 2500-AGE-TERM
+    DISPLAY "T-CP=" T-CP
+    DISPLAY "WS-ELG=" WS-ELG
+    STOP RUN.
+2500-AGE-TERM.
+    IF C-AG-YY >= 18
+        EVALUATE TRUE
+            *> SHORT TERM FOR OLDER BORROWERS
+            WHEN C-AG-YY > 60
+                MOVE 10 TO T-CP
+                MOVE 'Y' TO WS-ELG
+            *> MEDIUM TERM CAP
+            WHEN C-AG-YY > 50
+                MOVE 20 TO T-CP
+                MOVE 'Y' TO WS-ELG
+            WHEN OTHER
+                MOVE 30 TO T-CP
+                SET ELG-ELIGIBLE TO TRUE
+        END-EVALUATE
+    ELSE
+        MOVE 'N' TO WS-ELG
+    END-IF.

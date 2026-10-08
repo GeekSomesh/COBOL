@@ -1,0 +1,106 @@
+program: PEN0017
+program_file: PEN0017.cob
+domain: penalty_assessment
+template: penalty_waiver
+seed: 233213002
+record: IN-RECORD
+out_record: WS-OUT-REC
+main: MAINLINE
+copybook: PEN0017C.cpy
+prefix: CU
+inputs:
+- name: CU-FO-IND
+  pic: X
+  business: first_offense
+  comment: FIRST LATE PAYMENT Y/N
+- name: CU-WS-TIER
+  pic: X
+  business: customer_tier
+  comment: TIER G=GOLD P=PLATINUM S=SILVER B=BASIC
+- name: CU-WS-DLT
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+outputs:
+- name: WS-PWV
+  pic: X
+  business: penalty_waived
+  init: N
+  comment: PENALTY WAIVER FLAG
+- name: WS-PEN
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Premium first-offence waiver
+    intent: Waive the penalty on a first late payment for gold and platinum customers.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - customer tier
+    when:
+      field: customer_tier
+      op: in
+      value:
+      - G
+      - P
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R1
+  - title: Grace period waiver
+    intent: Waive the penalty on a first late payment made within 7 days.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - grace period
+    when:
+      field: days_late
+      op: <=
+      value: 7
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R2
+  outer:
+    field: first_offense
+    op: ==
+    value: Y
+  paragraph: FIRST-OFFENSE-WAIVER
+  render: else_if
+  compact: false
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CU-FO-IND
+  pic: X
+  business: first_offense
+- name: CU-WS-TIER
+  pic: X
+  business: customer_tier
+- name: CU-WS-DLT
+  pic: 9(3)
+  business: days_late
+record_length: 5
+names88: {}
+expected_rules: 2

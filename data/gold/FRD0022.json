@@ -1,0 +1,129 @@
+{
+  "program": "FRD0022",
+  "program_file": "FRD0022.cob",
+  "domain": "fraud_scoring",
+  "template": "fraud_minor_high_value",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "FRD0022-R001",
+      "version": 1,
+      "title": "High-value transaction by minor",
+      "intent": "Flag transactions over 9,500 made by customers younger than 18 for manual review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "CUST-AGE",
+            "op": "<",
+            "value": 18
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "TXN-AMT",
+            "op": ">",
+            "value": 9500
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "FLAG-REVIEW",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0022.cob",
+        "paragraph": "MINOR-TXN-CHECK",
+        "line_start": 20,
+        "line_end": 23,
+        "copybooks": [
+          "FRD0022C.cpy"
+        ]
+      },
+      "concepts": [
+        "age",
+        "amount",
+        "minor",
+        "review"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_minor_high_value",
+        "spec": "data/specs/FRD0022.yaml",
+        "seed": 661019691
+      }
+    },
+    {
+      "rule_id": "FRD0022-R002",
+      "version": 1,
+      "title": "Large transaction from high-risk region",
+      "intent": "Flag transactions over 50,000 that originate from high-risk country codes XC and raise a fraud alert.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "transaction_amount",
+            "source_name": "TXN-AMT",
+            "op": ">",
+            "value": 50000
+          },
+          {
+            "field": "country_code",
+            "source_name": "COUNTRY-CD",
+            "op": "==",
+            "value": "XC"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "FLAG-REVIEW",
+          "value": "Y"
+        },
+        {
+          "type": "call",
+          "target": "frdalert",
+          "source_name": "FRDALERT"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0022.cob",
+        "paragraph": "HIGH-RISK-REGION",
+        "line_start": 25,
+        "line_end": 31,
+        "copybooks": [
+          "FRD0022C.cpy"
+        ]
+      },
+      "concepts": [
+        "amount",
+        "geography",
+        "country",
+        "review",
+        "alert"
+      ],
+      "external_dependency": true,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_minor_high_value",
+        "spec": "data/specs/FRD0022.yaml",
+        "seed": 661019691
+      }
+    }
+  ]
+}

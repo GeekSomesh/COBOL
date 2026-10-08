@@ -1,0 +1,48 @@
+*> ********************************************************
+*> PROGRAM : LON0020
+*> PURPOSE : LOAN LIMITS RULES
+*> AUTHOR  : R.T.
+*> CHANGE LOG:
+*>   1992-03-11 ORIGINAL VERSION
+*>   2009-12-08 THRESHOLDS UPDATED PER AUDIT REQ 855
+*> RUN FROM JCL JOB LONNIGHT STEP070
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. LON0020.
+ENVIRONMENT DIVISION.
+CONFIGURATION SECTION.
+SOURCE-COMPUTER. IBM-370.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 IN-RECORD.
+    05 C-AG-YY            PIC 9(3).
+01 WS-RESULTS.
+    *> MAXIMUM TERM IN YEARS
+    05 MT-YY              PIC 9(2) VALUE ZERO.
+    05 EL-IND             PIC X VALUE 'N'.
+PROCEDURE DIVISION.
+0000-MAIN.
+    ACCEPT IN-RECORD
+    PERFORM LOAN-TERM-RULES
+    DISPLAY "MT-YY=" MT-YY
+    DISPLAY "EL-IND=" EL-IND
+    STOP RUN.
+LOAN-TERM-RULES.
+    IF C-AG-YY >= 18
+        *> SHORT TERM FOR OLDER BORROWERS
+        IF C-AG-YY > 65
+            MOVE 10 TO MT-YY
+            MOVE 'Y' TO EL-IND
+        ELSE
+            *> MEDIUM TERM CAP
+            IF C-AG-YY > 55
+                MOVE 20 TO MT-YY
+                MOVE 'Y' TO EL-IND
+            ELSE
+                MOVE 30 TO MT-YY
+                MOVE 'Y' TO EL-IND
+            END-IF
+        END-IF
+    ELSE
+        MOVE 'N' TO EL-IND
+    END-IF.

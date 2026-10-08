@@ -1,0 +1,3 @@
+    05 CREDIT-SCORE       PIC 9(3).
+    *> DEBT TO INCOME RATIO
+    05 DTI-RATIO          PIC 9V99.

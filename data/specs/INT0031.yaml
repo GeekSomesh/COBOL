@@ -1,0 +1,116 @@
+program: INT0031
+program_file: INT0031.cob
+domain: interest_tiers
+template: interest_balance_tiers
+seed: 2027900243
+record: INPUT-AREA
+out_record: WS-RESULTS
+main: A000-MAIN
+copybook: INT0031C.cpy
+prefix: AC
+inputs:
+- name: AC-ACCOUNT-TYPE
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: AC-ACCT-BALANCE
+  pic: 9(9)V99
+  business: balance
+  comment: CURRENT LEDGER BALANCE
+outputs:
+- name: APPLIED-RATE
+  pic: 9V9999
+  business: interest_rate
+  init: 0
+  comment: APPLIED INTEREST RATE
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Top savings tier
+    intent: Pay 4.25% interest on savings accounts with a balance of at least 50,000.
+    concepts:
+    - interest
+    - savings
+    - balance
+    - tier
+    when:
+      all:
+      - field: account_type
+        op: ==
+        value: S
+      - field: balance
+        op: '>='
+        value: 50000
+    then:
+    - set: interest_rate
+      value: 0.0425
+    id: R1
+  - title: Middle savings tier
+    intent: Pay 3.25% interest on savings accounts with a balance of at least 10,000.
+    concepts:
+    - interest
+    - savings
+    - balance
+    - tier
+    when:
+      all:
+      - field: account_type
+        op: ==
+        value: S
+      - field: balance
+        op: '>='
+        value: 10000
+    then:
+    - set: interest_rate
+      value: 0.0325
+    id: R2
+  - title: Base savings rate
+    intent: Pay 2.5% interest on all other savings accounts.
+    concepts:
+    - interest
+    - savings
+    - account type
+    when:
+      field: account_type
+      op: ==
+      value: S
+    then:
+    - set: interest_rate
+      value: 0.025
+    id: R3
+  - title: Non-savings rate
+    intent: Pay 0.5% interest on every other account type.
+    concepts:
+    - interest
+    - account type
+    - default
+    when: null
+    then:
+    - set: interest_rate
+      value: 0.005
+    id: R4
+  paragraph: 2000-RATE-TIER
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: none
+  copybook: true
+  replacing: true
+  abbreviated: true
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: AC-ACCOUNT-TYPE
+  pic: X
+  business: account_type
+- name: AC-ACCT-BALANCE
+  pic: 9(9)V99
+  business: balance
+record_length: 12
+names88: {}
+expected_rules: 4

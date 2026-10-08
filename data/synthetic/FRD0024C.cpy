@@ -1,0 +1,6 @@
+    *> CHANNEL O=ONLINE B=BRANCH A=ATM
+    05 CHNL-CD            PIC X.
+    *> CARD PRESENT Y/N
+    05 CARD-PRESENT       PIC X.
+    *> TRANSACTION AMOUNT
+    05 TRAN-AMT           PIC 9(7)V99.

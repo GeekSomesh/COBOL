@@ -1,0 +1,118 @@
+{
+  "program": "PEN0039",
+  "program_file": "PEN0039.cob",
+  "domain": "penalty_assessment",
+  "template": "penalty_repeat",
+  "split": "test",
+  "rules": [
+    {
+      "rule_id": "PEN0039-R001",
+      "version": 1,
+      "title": "Repeat late payer suspension",
+      "intent": "Suspend the account and add a 50 penalty when a customer with 5 or more late payments in 12 months is over 30 days late.",
+      "domain": "penalty_assessment",
+      "conditions": {
+        "all": [
+          {
+            "field": "late_count_12m",
+            "source_name": "LATE-PMTS-YR",
+            "op": ">=",
+            "value": 5
+          },
+          {
+            "field": "days_late",
+            "source_name": "DAYS-PAST-DUE",
+            "op": ">",
+            "value": 30
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "account_status",
+          "source_name": "ACCOUNT-STAT",
+          "value": "S"
+        },
+        {
+          "type": "compute",
+          "target": "penalty_amt",
+          "source_name": "LATE-CHARGE",
+          "expr": "LATE-CHARGE + 50"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "PEN0039.cob",
+        "paragraph": "REPEAT-OFFENDER",
+        "line_start": 34,
+        "line_end": 37,
+        "copybooks": []
+      },
+      "concepts": [
+        "penalty",
+        "repeat",
+        "suspension",
+        "days late"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "penalty_repeat",
+        "spec": "data/specs/PEN0039.yaml",
+        "seed": 1003320377
+      }
+    },
+    {
+      "rule_id": "PEN0039-R002",
+      "version": 1,
+      "title": "Collections referral",
+      "intent": "Move accounts more than 60 days late to collections.",
+      "domain": "penalty_assessment",
+      "conditions": {
+        "all": [
+          {
+            "field": "days_late",
+            "source_name": "DAYS-PAST-DUE",
+            "op": ">",
+            "value": 60
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "account_status",
+          "source_name": "ACCOUNT-STAT",
+          "value": "C"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "PEN0039.cob",
+        "paragraph": "4100-TO-COLLECTIONS",
+        "line_start": 40,
+        "line_end": 42,
+        "copybooks": []
+      },
+      "concepts": [
+        "collections",
+        "days late",
+        "account status"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "penalty_repeat",
+        "spec": "data/specs/PEN0039.yaml",
+        "seed": 1003320377
+      }
+    }
+  ]
+}

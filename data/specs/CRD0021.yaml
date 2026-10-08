@@ -1,0 +1,92 @@
+program: CRD0021
+program_file: CRD0021.cob
+domain: credit_approval
+template: credit_limit_assign
+seed: 1902902833
+record: IN-RECORD
+out_record: WS-OUT-REC
+main: 0000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: WS-CSCR
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+- name: AI-AMT
+  pic: 9(7)V99
+  business: annual_income
+  comment: GROSS ANNUAL INCOME
+outputs:
+- name: WS-CLIM
+  pic: 9(7)V99
+  business: credit_limit
+  init: 0
+  comment: ASSIGNED CREDIT LIMIT
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Prime credit limit
+    intent: Set the credit limit to 30% of annual income for scores of 750 or more.
+    concepts:
+    - credit limit
+    - credit score
+    - income
+    when:
+      field: credit_score
+      op: '>='
+      value: 750
+    then:
+    - compute: credit_limit
+      expr: annual_income * 0.30
+    id: R1
+  - title: Standard credit limit
+    intent: Set the credit limit to 20% of annual income for scores of 680 or more.
+    concepts:
+    - credit limit
+    - credit score
+    - income
+    when:
+      field: credit_score
+      op: '>='
+      value: 680
+    then:
+    - compute: credit_limit
+      expr: annual_income * 0.20
+    id: R2
+  - title: Minimum credit limit
+    intent: Give every other approved applicant the minimum limit of 500.
+    concepts:
+    - credit limit
+    - default
+    when: null
+    then:
+    - set: credit_limit
+      value: 500
+    id: R3
+  paragraph: ASSIGN-LIMIT
+  render: else_if
+  compact: false
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: true
+  dead_code: true
+  noise_fields: false
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: WS-CSCR
+  pic: 9(3)
+  business: credit_score
+- name: AI-AMT
+  pic: 9(7)V99
+  business: annual_income
+record_length: 12
+names88: {}
+expected_rules: 3

@@ -1,0 +1,100 @@
+program: LON0043
+program_file: LON0043.cob
+domain: loan_limits
+template: loan_income_multiple
+seed: 294700392
+record: INPUT-AREA
+out_record: WS-RESULTS
+main: 0000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: JOB-TENURE
+  pic: 9(2)
+  business: employment_years
+  comment: YEARS WITH CURRENT EMPLOYER
+- name: ANN-INCOME
+  pic: 9(7)V99
+  business: annual_income
+  comment: GROSS ANNUAL INCOME
+outputs:
+- name: MAX-PRINCIPAL
+  pic: 9(9)V99
+  business: max_loan
+  init: 0
+  comment: MAXIMUM LOAN AMOUNT
+noise:
+  date: PROC-DATE
+  filler: 6
+blocks:
+- structure: chain
+  rules:
+  - title: Established employment multiple
+    intent: Lend up to 4 times annual income to applicants employed 5 years or more.
+    concepts:
+    - loan limit
+    - income
+    - employment
+    when:
+      field: employment_years
+      op: '>='
+      value: 5
+    then:
+    - compute: max_loan
+      expr: annual_income * 4
+    id: R1
+  - title: Standard employment multiple
+    intent: Lend up to 3 times annual income to applicants employed 2 years or more.
+    concepts:
+    - loan limit
+    - income
+    - employment
+    when:
+      field: employment_years
+      op: '>='
+      value: 2
+    then:
+    - compute: max_loan
+      expr: annual_income * 3
+    id: R2
+  - title: New employee multiple
+    intent: Lend up to 1.5 times annual income to everyone else.
+    concepts:
+    - loan limit
+    - income
+    - default
+    when: null
+    then:
+    - compute: max_loan
+      expr: annual_income * 1.5
+    id: R3
+  paragraph: INCOME-MULTIPLE
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: misleading
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: JOB-TENURE
+  pic: 9(2)
+  business: employment_years
+- name: ANN-INCOME
+  pic: 9(7)V99
+  business: annual_income
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(6)
+  business: null
+record_length: 25
+names88: {}
+expected_rules: 3

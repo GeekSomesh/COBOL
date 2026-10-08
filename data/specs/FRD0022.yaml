@@ -1,0 +1,102 @@
+program: FRD0022
+program_file: FRD0022.cob
+domain: fraud_scoring
+template: fraud_minor_high_value
+seed: 661019691
+record: INPUT-AREA
+out_record: OUT-RECORD
+main: 0000-MAIN
+copybook: FRD0022C.cpy
+prefix: null
+inputs:
+- name: CUST-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: TXN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+- name: COUNTRY-CD
+  pic: X(2)
+  business: country_code
+  comment: ORIGIN COUNTRY CODE
+outputs:
+- name: FLAG-REVIEW
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: High-value transaction by minor
+    intent: Flag transactions over 9,500 made by customers younger than 18 for manual review.
+    concepts:
+    - age
+    - amount
+    - minor
+    - review
+    when:
+      all:
+      - field: customer_age
+        op: <
+        value: 18
+      - field: transaction_amount
+        op: '>'
+        value: 9500
+    then:
+    - set: review_flag
+      value: Y
+    id: R1
+  paragraph: MINOR-TXN-CHECK
+- structure: if
+  rules:
+  - title: Large transaction from high-risk region
+    intent: Flag transactions over 50,000 that originate from high-risk country codes XC and raise a fraud alert.
+    concepts:
+    - amount
+    - geography
+    - country
+    - review
+    - alert
+    when:
+      all:
+      - field: transaction_amount
+        op: '>'
+        value: 50000
+      - field: country_code
+        op: ==
+        value: XC
+    then:
+    - set: review_flag
+      value: Y
+    - call: FRDALERT
+    id: R1
+  paragraph: HIGH-RISK-REGION
+style:
+  cryptic_names: false
+  comments: none
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CUST-AGE
+  pic: 9(3)
+  business: customer_age
+- name: TXN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+- name: COUNTRY-CD
+  pic: X(2)
+  business: country_code
+record_length: 14
+names88: {}
+expected_rules: 2

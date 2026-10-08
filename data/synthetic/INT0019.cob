@@ -1,0 +1,40 @@
+*> ********************************************************
+*> PROGRAM : INT0019
+*> PURPOSE : INTEREST TIERS RULES
+*> AUTHOR  : R.T.
+*> CHANGE LOG:
+*>   1987-06-19 ORIGINAL VERSION
+*>   2003-10-05 THRESHOLDS UPDATED PER AUDIT REQ 979
+*> RUN FROM JCL JOB INTNIGHT STEP090
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. INT0019.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 WS-IN-REC.
+    COPY INT0019C.
+01 WS-RESULTS.
+    *> APPLIED INTEREST RATE
+    05 IR-RT              PIC 9V9999 VALUE ZERO.
+PROCEDURE DIVISION.
+A000-MAIN.
+    ACCEPT WS-IN-REC
+    PERFORM SET-SAVINGS-RATE
+    DISPLAY "IR-RT=" IR-RT
+    STOP RUN.
+SET-SAVINGS-RATE.
+    IF A-TY = 'S' AND L-BL NOT < 75000
+        MOVE 0.0475 TO IR-RT
+    ELSE
+        *> MIDDLE SAVINGS TIER
+        IF A-TY = 'S' AND L-BL >= 10000
+            MOVE 0.0375 TO IR-RT
+        ELSE
+            *> BASE SAVINGS RATE
+            IF A-TY EQUAL TO 'S'
+                MOVE 0.0300 TO IR-RT
+            ELSE
+                MOVE 0.0050 TO IR-RT
+            END-IF
+        END-IF
+    END-IF.

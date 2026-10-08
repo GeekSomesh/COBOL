@@ -1,0 +1,315 @@
+{
+  "program": "INT0016",
+  "program_file": "INT0016.cob",
+  "domain": "interest_tiers",
+  "template": "interest_balance_tiers",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "INT0016-R001",
+      "version": 1,
+      "title": "Top savings tier",
+      "intent": "Pay 4.75% interest on savings accounts with a balance of at least 100,000.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "account_type",
+            "source_name": "IN-A-TY",
+            "op": "==",
+            "value": "S"
+          },
+          {
+            "field": "balance",
+            "source_name": "IN-L-BL",
+            "op": ">=",
+            "value": 100000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "IR-RT",
+          "value": 0.0475
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0016.cob",
+        "paragraph": "2000-RATE-TIER",
+        "line_start": 27,
+        "line_end": 29,
+        "copybooks": [
+          "INT0016C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "savings",
+        "balance",
+        "tier"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_balance_tiers",
+        "spec": "data/specs/INT0016.yaml",
+        "seed": 492954018
+      }
+    },
+    {
+      "rule_id": "INT0016-R002",
+      "version": 1,
+      "title": "Middle savings tier",
+      "intent": "Pay 3.75% interest on savings accounts with a balance of at least 20,000.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "account_type",
+                  "source_name": "IN-A-TY",
+                  "op": "==",
+                  "value": "S"
+                },
+                {
+                  "field": "balance",
+                  "source_name": "IN-L-BL",
+                  "op": ">=",
+                  "value": 100000
+                }
+              ]
+            }
+          },
+          {
+            "field": "account_type",
+            "source_name": "IN-A-TY",
+            "op": "==",
+            "value": "S"
+          },
+          {
+            "field": "balance",
+            "source_name": "IN-L-BL",
+            "op": ">=",
+            "value": 20000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "IR-RT",
+          "value": 0.0375
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0016.cob",
+        "paragraph": "2000-RATE-TIER",
+        "line_start": 31,
+        "line_end": 32,
+        "copybooks": [
+          "INT0016C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "savings",
+        "balance",
+        "tier"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_balance_tiers",
+        "spec": "data/specs/INT0016.yaml",
+        "seed": 492954018
+      }
+    },
+    {
+      "rule_id": "INT0016-R003",
+      "version": 1,
+      "title": "Base savings rate",
+      "intent": "Pay 3% interest on all other savings accounts.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "account_type",
+                  "source_name": "IN-A-TY",
+                  "op": "==",
+                  "value": "S"
+                },
+                {
+                  "field": "balance",
+                  "source_name": "IN-L-BL",
+                  "op": ">=",
+                  "value": 100000
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "account_type",
+                  "source_name": "IN-A-TY",
+                  "op": "==",
+                  "value": "S"
+                },
+                {
+                  "field": "balance",
+                  "source_name": "IN-L-BL",
+                  "op": ">=",
+                  "value": 20000
+                }
+              ]
+            }
+          },
+          {
+            "field": "account_type",
+            "source_name": "IN-A-TY",
+            "op": "==",
+            "value": "S"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "IR-RT",
+          "value": 0.03
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0016.cob",
+        "paragraph": "2000-RATE-TIER",
+        "line_start": 33,
+        "line_end": 34,
+        "copybooks": [
+          "INT0016C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "savings",
+        "account type"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_balance_tiers",
+        "spec": "data/specs/INT0016.yaml",
+        "seed": 492954018
+      }
+    },
+    {
+      "rule_id": "INT0016-R004",
+      "version": 1,
+      "title": "Non-savings rate",
+      "intent": "Pay 0.5% interest on every other account type.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "account_type",
+                  "source_name": "IN-A-TY",
+                  "op": "==",
+                  "value": "S"
+                },
+                {
+                  "field": "balance",
+                  "source_name": "IN-L-BL",
+                  "op": ">=",
+                  "value": 100000
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "account_type",
+                  "source_name": "IN-A-TY",
+                  "op": "==",
+                  "value": "S"
+                },
+                {
+                  "field": "balance",
+                  "source_name": "IN-L-BL",
+                  "op": ">=",
+                  "value": 20000
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "account_type",
+              "source_name": "IN-A-TY",
+              "op": "==",
+              "value": "S"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "IR-RT",
+          "value": 0.005
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0016.cob",
+        "paragraph": "2000-RATE-TIER",
+        "line_start": 35,
+        "line_end": 36,
+        "copybooks": [
+          "INT0016C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "account type",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_balance_tiers",
+        "spec": "data/specs/INT0016.yaml",
+        "seed": 492954018
+      }
+    }
+  ]
+}

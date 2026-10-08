@@ -1,0 +1,112 @@
+program: FRD0016
+program_file: FRD0016.cob
+domain: fraud_scoring
+template: fraud_minor_high_value
+seed: 1968709920
+record: WS-INPUT
+out_record: WS-OUT-REC
+main: A000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: CUST-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: TRAN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+- name: COUNTRY-CD
+  pic: X(2)
+  business: country_code
+  comment: ORIGIN COUNTRY CODE
+outputs:
+- name: FLAG-REVIEW
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise:
+  date: POST-DATE
+  filler: 2
+blocks:
+- structure: if
+  rules:
+  - title: High-value transaction by minor
+    intent: Flag transactions over 8,500 made by customers younger than 21 for manual review.
+    concepts:
+    - age
+    - amount
+    - minor
+    - review
+    when:
+      all:
+      - field: customer_age
+        op: <
+        value: 21
+      - field: transaction_amount
+        op: '>'
+        value: 8500
+    then:
+    - set: review_flag
+      value: Y
+    id: R1
+  paragraph: MINOR-TXN-CHECK
+- structure: if
+  rules:
+  - title: Large transaction from high-risk region
+    intent: Flag transactions over 75,000 that originate from high-risk country codes XB, XD and raise a fraud alert.
+    concepts:
+    - amount
+    - geography
+    - country
+    - review
+    - alert
+    when:
+      all:
+      - field: transaction_amount
+        op: '>'
+        value: 75000
+      - field: country_code
+        op: in
+        value:
+        - XB
+        - XD
+    then:
+    - set: review_flag
+      value: Y
+    - call: FRDALERT
+    id: R1
+  paragraph: CHECK-REGION
+style:
+  cryptic_names: false
+  comments: misleading
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: true
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: CUST-AGE
+  pic: 9(3)
+  business: customer_age
+- name: TRAN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+- name: COUNTRY-CD
+  pic: X(2)
+  business: country_code
+- name: POST-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 24
+names88: {}
+expected_rules: 2

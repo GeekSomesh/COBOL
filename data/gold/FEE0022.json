@@ -1,0 +1,82 @@
+{
+  "program": "FEE0022",
+  "program_file": "FEE0022.cob",
+  "domain": "fee_exemptions",
+  "template": "fee_waiver_balance",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "FEE0022-R001",
+      "version": 1,
+      "title": "Monthly fee waiver",
+      "intent": "Waive the monthly fee for premium or gold accounts and for accounts averaging at least 1,500; charge 10 otherwise.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "any": [
+          {
+            "field": "account_type",
+            "source_name": "ACCT-TYPE",
+            "op": "in",
+            "value": [
+              "G",
+              "P"
+            ]
+          },
+          {
+            "field": "avg_balance",
+            "source_name": "AVG-MTH-BAL",
+            "op": ">=",
+            "value": 1500
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "fee_waived",
+          "source_name": "FEE-WAIVED",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "SVC-CHARGE",
+          "value": 0
+        }
+      ],
+      "else_actions": [
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "SVC-CHARGE",
+          "value": 10
+        }
+      ],
+      "trace": {
+        "program": "FEE0022.cob",
+        "paragraph": "2000-FEE-WAIVER",
+        "line_start": 30,
+        "line_end": 37,
+        "copybooks": [
+          "FEE0022C.cpy"
+        ]
+      },
+      "concepts": [
+        "fee",
+        "waiver",
+        "account type",
+        "balance"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_waiver_balance",
+        "spec": "data/specs/FEE0022.yaml",
+        "seed": 1323970574
+      }
+    }
+  ]
+}

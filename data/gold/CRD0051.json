@@ -1,0 +1,176 @@
+{
+  "program": "CRD0051",
+  "program_file": "CRD0051.cob",
+  "domain": "credit_approval",
+  "template": "credit_limit_assign",
+  "split": "test",
+  "rules": [
+    {
+      "rule_id": "CRD0051-R001",
+      "version": 1,
+      "title": "Prime credit limit",
+      "intent": "Set the credit limit to 30% of annual income for scores of 760 or more.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "field": "credit_score",
+            "source_name": "WS-CSCR",
+            "op": ">=",
+            "value": 760
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "credit_limit",
+          "source_name": "CL-AMT",
+          "expr": "WS-ANINC * 0.30"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0051.cob",
+        "paragraph": "SET-CARD-LIMIT",
+        "line_start": 27,
+        "line_end": 28,
+        "copybooks": [
+          "CRD0051C.cpy"
+        ]
+      },
+      "concepts": [
+        "credit limit",
+        "credit score",
+        "income"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_limit_assign",
+        "spec": "data/specs/CRD0051.yaml",
+        "seed": 544674338
+      }
+    },
+    {
+      "rule_id": "CRD0051-R002",
+      "version": 1,
+      "title": "Standard credit limit",
+      "intent": "Set the credit limit to 15% of annual income for scores of 640 or more.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "credit_score",
+              "source_name": "WS-CSCR",
+              "op": ">=",
+              "value": 760
+            }
+          },
+          {
+            "field": "credit_score",
+            "source_name": "WS-CSCR",
+            "op": ">=",
+            "value": 640
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "credit_limit",
+          "source_name": "CL-AMT",
+          "expr": "WS-ANINC * 0.15"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0051.cob",
+        "paragraph": "SET-CARD-LIMIT",
+        "line_start": 30,
+        "line_end": 31,
+        "copybooks": [
+          "CRD0051C.cpy"
+        ]
+      },
+      "concepts": [
+        "credit limit",
+        "credit score",
+        "income"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_limit_assign",
+        "spec": "data/specs/CRD0051.yaml",
+        "seed": 544674338
+      }
+    },
+    {
+      "rule_id": "CRD0051-R003",
+      "version": 1,
+      "title": "Minimum credit limit",
+      "intent": "Give every other approved applicant the minimum limit of 500.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "credit_score",
+              "source_name": "WS-CSCR",
+              "op": ">=",
+              "value": 760
+            }
+          },
+          {
+            "not": {
+              "field": "credit_score",
+              "source_name": "WS-CSCR",
+              "op": ">=",
+              "value": 640
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "credit_limit",
+          "source_name": "CL-AMT",
+          "value": 500
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0051.cob",
+        "paragraph": "SET-CARD-LIMIT",
+        "line_start": 32,
+        "line_end": 33,
+        "copybooks": [
+          "CRD0051C.cpy"
+        ]
+      },
+      "concepts": [
+        "credit limit",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_limit_assign",
+        "spec": "data/specs/CRD0051.yaml",
+        "seed": 544674338
+      }
+    }
+  ]
+}

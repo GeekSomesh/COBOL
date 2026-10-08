@@ -1,0 +1,78 @@
+program: FRD0028
+program_file: FRD0028.cob
+domain: fraud_scoring
+template: fraud_minor_high_value
+seed: 980337245
+record: WS-INPUT
+out_record: WS-OUT-REC
+main: A000-MAIN
+copybook: FRD0028C.cpy
+prefix: AC
+inputs:
+- name: AC-C-AG-YY
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: AC-WS-TXAMT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+- name: AC-WS-CTRY
+  pic: X(2)
+  business: country_code
+  comment: ORIGIN COUNTRY CODE
+outputs:
+- name: FR-FLG
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: High-value transaction by minor
+    intent: Flag transactions over 2,000 made by customers younger than 21 for manual review.
+    concepts:
+    - age
+    - amount
+    - minor
+    - review
+    when:
+      all:
+      - field: customer_age
+        op: <
+        value: 21
+      - field: transaction_amount
+        op: '>'
+        value: 2000
+    then:
+    - set: review_flag
+      value: Y
+    id: R1
+  paragraph: MINOR-TXN-CHECK
+style:
+  cryptic_names: true
+  comments: none
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: true
+  word_operators: true
+  dead_code: true
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: AC-C-AG-YY
+  pic: 9(3)
+  business: customer_age
+- name: AC-WS-TXAMT
+  pic: 9(7)V99
+  business: transaction_amount
+- name: AC-WS-CTRY
+  pic: X(2)
+  business: country_code
+record_length: 14
+names88: {}
+expected_rules: 1

@@ -1,0 +1,10 @@
+    05 CUSTOMER-AGE       PIC 9(3).
+    05 TRAN-AMT           PIC 9(7)V99.
+    05 COUNTRY-CD         PIC X(2).
+       88 COUNTRY-IS-XC VALUE 'XC'.
+    05 PROC-DATE          PIC 9(8).
+    05 PROC-DATE-R REDEFINES PROC-DATE.
+       10 PROC-DATE-YYYY  PIC 9(4).
+       10 PROC-DATE-MM    PIC 9(2).
+       10 PROC-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(6).

@@ -1,0 +1,315 @@
+{
+  "program": "INT0037",
+  "program_file": "INT0037.cob",
+  "domain": "interest_tiers",
+  "template": "interest_balance_tiers",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "INT0037-R001",
+      "version": 1,
+      "title": "Top savings tier",
+      "intent": "Pay 4.25% interest on savings accounts with a balance of at least 50,000.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "account_type",
+            "source_name": "ACCT-TYP",
+            "op": "==",
+            "value": "S"
+          },
+          {
+            "field": "balance",
+            "source_name": "LEDGER-BAL",
+            "op": ">=",
+            "value": 50000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "APPLIED-RATE",
+          "value": 0.0425
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0037.cob",
+        "paragraph": "2000-RATE-TIER",
+        "line_start": 26,
+        "line_end": 28,
+        "copybooks": [
+          "INT0037C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "savings",
+        "balance",
+        "tier"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_balance_tiers",
+        "spec": "data/specs/INT0037.yaml",
+        "seed": 957157502
+      }
+    },
+    {
+      "rule_id": "INT0037-R002",
+      "version": 1,
+      "title": "Middle savings tier",
+      "intent": "Pay 3.25% interest on savings accounts with a balance of at least 20,000.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "account_type",
+                  "source_name": "ACCT-TYP",
+                  "op": "==",
+                  "value": "S"
+                },
+                {
+                  "field": "balance",
+                  "source_name": "LEDGER-BAL",
+                  "op": ">=",
+                  "value": 50000
+                }
+              ]
+            }
+          },
+          {
+            "field": "account_type",
+            "source_name": "ACCT-TYP",
+            "op": "==",
+            "value": "S"
+          },
+          {
+            "field": "balance",
+            "source_name": "LEDGER-BAL",
+            "op": ">=",
+            "value": 20000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "APPLIED-RATE",
+          "value": 0.0325
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0037.cob",
+        "paragraph": "2000-RATE-TIER",
+        "line_start": 29,
+        "line_end": 30,
+        "copybooks": [
+          "INT0037C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "savings",
+        "balance",
+        "tier"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_balance_tiers",
+        "spec": "data/specs/INT0037.yaml",
+        "seed": 957157502
+      }
+    },
+    {
+      "rule_id": "INT0037-R003",
+      "version": 1,
+      "title": "Base savings rate",
+      "intent": "Pay 2.5% interest on all other savings accounts.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "account_type",
+                  "source_name": "ACCT-TYP",
+                  "op": "==",
+                  "value": "S"
+                },
+                {
+                  "field": "balance",
+                  "source_name": "LEDGER-BAL",
+                  "op": ">=",
+                  "value": 50000
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "account_type",
+                  "source_name": "ACCT-TYP",
+                  "op": "==",
+                  "value": "S"
+                },
+                {
+                  "field": "balance",
+                  "source_name": "LEDGER-BAL",
+                  "op": ">=",
+                  "value": 20000
+                }
+              ]
+            }
+          },
+          {
+            "field": "account_type",
+            "source_name": "ACCT-TYP",
+            "op": "==",
+            "value": "S"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "APPLIED-RATE",
+          "value": 0.025
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0037.cob",
+        "paragraph": "2000-RATE-TIER",
+        "line_start": 32,
+        "line_end": 33,
+        "copybooks": [
+          "INT0037C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "savings",
+        "account type"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_balance_tiers",
+        "spec": "data/specs/INT0037.yaml",
+        "seed": 957157502
+      }
+    },
+    {
+      "rule_id": "INT0037-R004",
+      "version": 1,
+      "title": "Non-savings rate",
+      "intent": "Pay 1% interest on every other account type.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "account_type",
+                  "source_name": "ACCT-TYP",
+                  "op": "==",
+                  "value": "S"
+                },
+                {
+                  "field": "balance",
+                  "source_name": "LEDGER-BAL",
+                  "op": ">=",
+                  "value": 50000
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "account_type",
+                  "source_name": "ACCT-TYP",
+                  "op": "==",
+                  "value": "S"
+                },
+                {
+                  "field": "balance",
+                  "source_name": "LEDGER-BAL",
+                  "op": ">=",
+                  "value": 20000
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "account_type",
+              "source_name": "ACCT-TYP",
+              "op": "==",
+              "value": "S"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "APPLIED-RATE",
+          "value": 0.01
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0037.cob",
+        "paragraph": "2000-RATE-TIER",
+        "line_start": 34,
+        "line_end": 35,
+        "copybooks": [
+          "INT0037C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "account type",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_balance_tiers",
+        "spec": "data/specs/INT0037.yaml",
+        "seed": 957157502
+      }
+    }
+  ]
+}

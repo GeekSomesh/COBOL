@@ -1,0 +1,121 @@
+{
+  "program": "INT0041",
+  "program_file": "INT0041.cob",
+  "domain": "interest_tiers",
+  "template": "interest_senior_bonus",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "INT0041-R001",
+      "version": 1,
+      "title": "Senior saver bonus",
+      "intent": "Add 0.5% to the base rate for customers aged 55 or over with at least 5,000 on deposit; everyone else gets the base rate.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "CA-AGE",
+            "op": ">=",
+            "value": 55
+          },
+          {
+            "field": "balance",
+            "source_name": "WS-BAL",
+            "op": ">=",
+            "value": 5000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "bonus_rate",
+          "source_name": "WS-BNR",
+          "expr": "BR-RT + 0.0050"
+        }
+      ],
+      "else_actions": [
+        {
+          "type": "set",
+          "target": "bonus_rate",
+          "source_name": "WS-BNR",
+          "expr": "BR-RT"
+        }
+      ],
+      "trace": {
+        "program": "INT0041.cob",
+        "paragraph": "APPLY-BONUS",
+        "line_start": 40,
+        "line_end": 44,
+        "copybooks": []
+      },
+      "concepts": [
+        "interest",
+        "age",
+        "senior",
+        "balance",
+        "bonus"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_senior_bonus",
+        "spec": "data/specs/INT0041.yaml",
+        "seed": 897394739
+      }
+    },
+    {
+      "rule_id": "INT0041-R002",
+      "version": 1,
+      "title": "Fixed deposit uplift",
+      "intent": "Add a further 0.1% to the rate for fixed deposit accounts.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "account_type",
+            "source_name": "WS-ATYP",
+            "op": "==",
+            "value": "F"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "bonus_rate",
+          "source_name": "WS-BNR",
+          "expr": "WS-BNR + 0.0010"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0041.cob",
+        "paragraph": "2600-FIXED-DEP",
+        "line_start": 47,
+        "line_end": 49,
+        "copybooks": []
+      },
+      "concepts": [
+        "interest",
+        "fixed deposit",
+        "account type",
+        "bonus"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_senior_bonus",
+        "spec": "data/specs/INT0041.yaml",
+        "seed": 897394739
+      }
+    }
+  ]
+}

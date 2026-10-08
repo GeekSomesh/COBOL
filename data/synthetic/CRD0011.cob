@@ -1,0 +1,39 @@
+*> ********************************************************
+*> PROGRAM : CRD0011
+*> PURPOSE : CREDIT APPROVAL RULES
+*> AUTHOR  : D.P.
+*> CHANGE LOG:
+*>   1989-07-15 ORIGINAL VERSION
+*>   2009-11-05 THRESHOLDS UPDATED PER AUDIT REQ 741
+*> RUN FROM JCL JOB CRDNIGHT STEP010
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. CRD0011.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 IN-RECORD.
+    COPY CRD0011C REPLACING ==:PFX:== BY ==IN==.
+01 WS-RESULTS.
+    *> A=APPROVE R=REFER D=DECLINE
+    05 DC-CD              PIC X VALUE 'D'.
+    05 WS-RSN             PIC X(3) VALUE SPACES.
+PROCEDURE DIVISION.
+MAIN-PARA.
+    ACCEPT IN-RECORD
+    PERFORM 2500-BK-RULES
+    DISPLAY "DC-CD=" DC-CD
+    DISPLAY "WS-RSN=" WS-RSN
+    STOP RUN.
+2500-BK-RULES.
+    IF IN-BK-FLG = 'Y'
+        EVALUATE TRUE
+            WHEN IN-WS-BKY LESS THAN 7
+                MOVE 'D' TO DC-CD
+                MOVE 'BK1' TO WS-RSN
+            WHEN OTHER
+                MOVE 'R' TO DC-CD
+                MOVE 'BK2' TO WS-RSN
+        END-EVALUATE
+    ELSE
+        MOVE 'NA' TO WS-RSN
+    END-IF.

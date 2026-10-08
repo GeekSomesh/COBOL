@@ -1,0 +1,49 @@
+*> ********************************************************
+*> PROGRAM : FRD0045
+*> PURPOSE : FRAUD SCORING RULES
+*> AUTHOR  : D.P.
+*> CHANGE LOG:
+*>   1987-05-18 ORIGINAL VERSION
+*>   2009-10-08 THRESHOLDS UPDATED PER AUDIT REQ 564
+*> RUN FROM JCL JOB FRDNIGHT STEP080
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. FRD0045.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 WS-INPUT.
+    *> CHANNEL O=ONLINE B=BRANCH A=ATM
+    05 CH-CD              PIC X.
+    *> CARD PRESENT Y/N
+    05 WS-CPF             PIC X.
+    *> TRANSACTION AMOUNT
+    05 WS-TXAMT           PIC 9(7)V99.
+    05 RUN-DATE           PIC 9(8).
+    05 RUN-DATE-R REDEFINES RUN-DATE.
+       10 RUN-DATE-YYYY  PIC 9(4).
+       10 RUN-DATE-MM    PIC 9(2).
+       10 RUN-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(6).
+01 WS-RESULTS.
+    *> HOLD TRANSACTION FLAG
+    05 HF-FLG             PIC X VALUE 'N'.
+    05 WS-RVF             PIC X VALUE 'N'.
+PROCEDURE DIVISION.
+A000-MAIN.
+    ACCEPT WS-INPUT
+    PERFORM ONLINE-SCREEN
+    DISPLAY "HF-FLG=" HF-FLG
+    DISPLAY "WS-RVF=" WS-RVF
+    STOP RUN.
+ONLINE-SCREEN.
+    IF CH-CD = 'O'
+        IF WS-CPF = 'N' AND WS-TXAMT > 1750
+            MOVE 'Y' TO HF-FLG
+            MOVE 'Y' TO WS-RVF
+        ELSE IF WS-TXAMT > 12500
+            MOVE 'Y' TO WS-RVF
+        END-IF
+        END-IF
+    ELSE
+        MOVE 'N' TO HF-FLG
+    END-IF.

@@ -1,0 +1,81 @@
+program: LON0012
+program_file: LON0012.cob
+domain: loan_limits
+template: loan_ltv
+seed: 456477186
+record: IN-RECORD
+out_record: RESULT-AREA
+main: 0000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: L-TV
+  pic: 9(3)
+  business: ltv_pct
+  comment: LOAN TO VALUE PERCENT
+outputs:
+- name: MI-IND
+  pic: X
+  business: mi_required
+  init: N
+  comment: MORTGAGE INSURANCE REQUIRED
+- name: WS-RADJ
+  pic: 9V9999
+  business: rate_adjustment
+  init: 0
+  comment: RATE ADJUSTMENT
+noise:
+  date: PROC-DATE
+  filler: 4
+blocks:
+- structure: if
+  rules:
+  - title: Mortgage insurance requirement
+    intent: Require mortgage insurance and add 0.25% to the rate when the loan-to-value ratio exceeds 90%.
+    concepts:
+    - loan to value
+    - mortgage insurance
+    - rate
+    when:
+      field: ltv_pct
+      op: '>'
+      value: 90
+    then:
+    - set: mi_required
+      value: Y
+    - set: rate_adjustment
+      value: 0.0025
+    else:
+    - set: mi_required
+      value: N
+    id: R1
+  paragraph: CHECK-LTV
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: L-TV
+  pic: 9(3)
+  business: ltv_pct
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 15
+names88:
+  MI-REQUIRED:
+    field: mi_required
+    op: ==
+    value: Y
+expected_rules: 1

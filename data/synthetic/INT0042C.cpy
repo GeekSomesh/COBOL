@@ -1,0 +1,2 @@
+    *> DEPOSIT TERM IN MONTHS
+    05 DEP-TERM-MM        PIC 9(3).

@@ -1,0 +1,47 @@
+*> ********************************************************
+*> PROGRAM : LON0038
+*> PURPOSE : LOAN LIMITS RULES
+*> AUTHOR  : M.S.
+*> CHANGE LOG:
+*>   1987-09-14 ORIGINAL VERSION
+*>   2003-12-06 THRESHOLDS UPDATED PER AUDIT REQ 938
+*> RUN FROM JCL JOB LONNIGHT STEP080
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. LON0038.
+ENVIRONMENT DIVISION.
+CONFIGURATION SECTION.
+SOURCE-COMPUTER. IBM-370.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 WS-INPUT.
+    05 C-AG-YY            PIC 9(3).
+01 RESULT-AREA.
+    05 WS-MTRM            PIC 9(2) VALUE ZERO.
+    *> LOAN ELIGIBILITY Y/N
+    05 L-EL               PIC X VALUE 'N'.
+PROCEDURE DIVISION.
+MAIN-PARA.
+    ACCEPT WS-INPUT
+    PERFORM LOAN-TERM-RULES
+    DISPLAY "WS-MTRM=" WS-MTRM
+    DISPLAY "L-EL=" L-EL
+    STOP RUN.
+LOAN-TERM-RULES.
+    IF C-AG-YY >= 18
+        *> SHORT TERM FOR OLDER BORROWERS
+        IF C-AG-YY > 60
+            MOVE 10 TO WS-MTRM
+            MOVE 'Y' TO L-EL
+        *> MEDIUM TERM CAP
+        ELSE IF C-AG-YY > 55
+            MOVE 20 TO WS-MTRM
+            MOVE 'Y' TO L-EL
+        ELSE
+            MOVE 30 TO WS-MTRM
+            MOVE 'Y' TO L-EL
+        END-IF
+        END-IF
+    ELSE
+        MOVE 'N' TO L-EL
+    END-IF.

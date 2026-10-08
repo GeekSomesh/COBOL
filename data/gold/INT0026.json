@@ -1,0 +1,125 @@
+{
+  "program": "INT0026",
+  "program_file": "INT0026.cob",
+  "domain": "interest_tiers",
+  "template": "interest_senior_bonus",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "INT0026-R001",
+      "version": 1,
+      "title": "Senior saver bonus",
+      "intent": "Add 0.25% to the base rate for customers aged 62 or over with at least 10,000 on deposit; everyone else gets the base rate.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "TX-CUSTOMER-AGE",
+            "op": ">=",
+            "value": 62
+          },
+          {
+            "field": "balance",
+            "source_name": "TX-CURR-BAL",
+            "op": ">=",
+            "value": 10000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "bonus_rate",
+          "source_name": "BONUS-RATE",
+          "expr": "TX-BASE-RATE + 0.0025"
+        }
+      ],
+      "else_actions": [
+        {
+          "type": "set",
+          "target": "bonus_rate",
+          "source_name": "BONUS-RATE",
+          "expr": "TX-BASE-RATE"
+        }
+      ],
+      "trace": {
+        "program": "INT0026.cob",
+        "paragraph": "2500-SENIOR-RATE",
+        "line_start": 27,
+        "line_end": 32,
+        "copybooks": [
+          "INT0026C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "age",
+        "senior",
+        "balance",
+        "bonus"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_senior_bonus",
+        "spec": "data/specs/INT0026.yaml",
+        "seed": 1570503306
+      }
+    },
+    {
+      "rule_id": "INT0026-R002",
+      "version": 1,
+      "title": "Fixed deposit uplift",
+      "intent": "Add a further 0.15% to the rate for fixed deposit accounts.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "account_type",
+            "source_name": "TX-ACCT-TYPE",
+            "op": "==",
+            "value": "F"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "bonus_rate",
+          "source_name": "BONUS-RATE",
+          "expr": "BONUS-RATE + 0.0015"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0026.cob",
+        "paragraph": "FIXED-UPLIFT",
+        "line_start": 35,
+        "line_end": 37,
+        "copybooks": [
+          "INT0026C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "fixed deposit",
+        "account type",
+        "bonus"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_senior_bonus",
+        "spec": "data/specs/INT0026.yaml",
+        "seed": 1570503306
+      }
+    }
+  ]
+}

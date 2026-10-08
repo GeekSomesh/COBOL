@@ -1,0 +1,130 @@
+program: FRD0017
+program_file: FRD0017.cob
+domain: fraud_scoring
+template: fraud_velocity
+seed: 462689570
+record: WS-IN-REC
+out_record: WS-OUT-REC
+main: A000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: TRAN-CNT-DAY
+  pic: 9(3)
+  business: txn_count_24h
+  comment: TRANSACTIONS IN LAST 24 HOURS
+- name: TXN-AMOUNT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+- name: ACCT-AGE-DAYS
+  pic: 9(5)
+  business: account_age_days
+  comment: DAYS SINCE ACCOUNT OPENED
+outputs:
+- name: RISK-GRADE
+  pic: X
+  business: risk_level
+  init: L
+  comment: RISK LEVEL H/M/L
+- name: FRAUD-SCORE
+  pic: 9(3)
+  business: risk_score
+  init: 0
+  comment: FRAUD RISK SCORE
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Very high transaction velocity
+    intent: Rate activity as high risk when more than 15 transactions in 24 hours include one above 7,000.
+    concepts:
+    - velocity
+    - transaction count
+    - amount
+    - risk
+    when:
+      all:
+      - field: txn_count_24h
+        op: '>'
+        value: 15
+      - field: transaction_amount
+        op: '>'
+        value: 7000
+    then:
+    - set: risk_level
+      value: H
+    - set: risk_score
+      value: 90
+    id: R1
+  - title: Elevated transaction velocity
+    intent: Rate activity as medium risk when the customer made more than 10 transactions in the last 24 hours.
+    concepts:
+    - velocity
+    - transaction count
+    - risk
+    when:
+      field: txn_count_24h
+      op: '>'
+      value: 10
+    then:
+    - set: risk_level
+      value: M
+    - set: risk_score
+      value: 60
+    id: R2
+  - title: Activity on new account
+    intent: Rate activity on accounts opened less than 90 days ago as medium risk.
+    concepts:
+    - account age
+    - new account
+    - risk
+    when:
+      field: account_age_days
+      op: <
+      value: 90
+    then:
+    - set: risk_level
+      value: M
+    - set: risk_score
+      value: 40
+    id: R3
+  - title: Normal activity
+    intent: Rate all other activity as low risk.
+    concepts:
+    - risk
+    - default
+    when: null
+    then:
+    - set: risk_level
+      value: L
+    - set: risk_score
+      value: 10
+    id: R4
+  paragraph: SCORE-VELOCITY
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: TRAN-CNT-DAY
+  pic: 9(3)
+  business: txn_count_24h
+- name: TXN-AMOUNT
+  pic: 9(7)V99
+  business: transaction_amount
+- name: ACCT-AGE-DAYS
+  pic: 9(5)
+  business: account_age_days
+record_length: 17
+names88: {}
+expected_rules: 4

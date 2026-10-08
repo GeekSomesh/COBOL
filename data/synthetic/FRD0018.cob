@@ -1,0 +1,38 @@
+*> ********************************************************
+*> PROGRAM : FRD0018
+*> PURPOSE : FRAUD SCORING RULES
+*> AUTHOR  : J.K.
+*> CHANGE LOG:
+*>   1992-04-14 ORIGINAL VERSION
+*>   2003-11-07 THRESHOLDS UPDATED PER AUDIT REQ 411
+*> RUN FROM JCL JOB FRDNIGHT STEP020
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. FRD0018.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 IN-RECORD.
+    COPY FRD0018C.
+01 RESULT-AREA.
+    05 H-IN               PIC X VALUE 'N'.
+    *> MANUAL REVIEW FLAG
+    05 FR-FLG             PIC X VALUE 'N'.
+PROCEDURE DIVISION.
+MAIN-PARA.
+    ACCEPT IN-RECORD
+    PERFORM CHECK-CHANNEL
+    DISPLAY "H-IN=" H-IN
+    DISPLAY "FR-FLG=" FR-FLG
+    STOP RUN.
+CHECK-CHANNEL.
+    IF CH-CD = 'O'
+        EVALUATE TRUE
+            *> CARD-NOT-PRESENT ONLINE PURCHASE
+            WHEN WS-CPF = 'N' AND T-AMT1 > 2250
+                MOVE 'Y' TO H-IN
+                MOVE 'Y' TO FR-FLG
+            *> LARGE ONLINE TRANSACTION
+            WHEN T-AMT1 > 12500
+                MOVE 'Y' TO FR-FLG
+        END-EVALUATE
+    END-IF.

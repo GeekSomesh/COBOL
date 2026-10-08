@@ -1,0 +1,114 @@
+program: FRD0048
+program_file: FRD0048.cob
+domain: fraud_scoring
+template: fraud_channel
+seed: 1317160338
+record: WS-INPUT
+out_record: WS-RESULTS
+main: A000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: CH-CD
+  pic: X
+  business: channel_code
+  comment: CHANNEL O=ONLINE B=BRANCH A=ATM
+- name: C-PR
+  pic: X
+  business: card_present
+  comment: CARD PRESENT Y/N
+- name: T-AMT1
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+outputs:
+- name: HF-FLG
+  pic: X
+  business: hold_flag
+  init: N
+  comment: HOLD TRANSACTION FLAG
+- name: R-IND
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise:
+  date: RUN-DATE
+  filler: 2
+blocks:
+- structure: nested
+  rules:
+  - title: Card-not-present online purchase
+    intent: Hold online card-not-present transactions above 1,000 and send them for review.
+    concepts:
+    - channel
+    - online
+    - card not present
+    - amount
+    - hold
+    when:
+      all:
+      - field: card_present
+        op: ==
+        value: N
+      - field: transaction_amount
+        op: '>'
+        value: 1000
+    then:
+    - set: hold_flag
+      value: Y
+    - set: review_flag
+      value: Y
+    id: R1
+  - title: Large online transaction
+    intent: Send online transactions above 20,000 for review.
+    concepts:
+    - channel
+    - online
+    - amount
+    - review
+    when:
+      field: transaction_amount
+      op: '>'
+      value: 20000
+    then:
+    - set: review_flag
+      value: Y
+    id: R2
+  outer:
+    field: channel_code
+    op: ==
+    value: O
+  paragraph: ONLINE-SCREEN
+  render: evaluate_true
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: true
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: CH-CD
+  pic: X
+  business: channel_code
+- name: C-PR
+  pic: X
+  business: card_present
+- name: T-AMT1
+  pic: 9(7)V99
+  business: transaction_amount
+- name: RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 21
+names88: {}
+expected_rules: 2

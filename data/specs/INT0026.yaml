@@ -1,0 +1,112 @@
+program: INT0026
+program_file: INT0026.cob
+domain: interest_tiers
+template: interest_senior_bonus
+seed: 1570503306
+record: WS-IN-REC
+out_record: OUT-RECORD
+main: A000-MAIN
+copybook: INT0026C.cpy
+prefix: TX
+inputs:
+- name: TX-CUSTOMER-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: TX-CURR-BAL
+  pic: 9(9)V99
+  business: balance
+  comment: CURRENT LEDGER BALANCE
+- name: TX-ACCT-TYPE
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: TX-BASE-RATE
+  pic: 9V9999
+  business: base_rate
+  comment: BASE INTEREST RATE
+outputs:
+- name: BONUS-RATE
+  pic: 9V9999
+  business: bonus_rate
+  init: 0
+  comment: RATE AFTER BONUS
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Senior saver bonus
+    intent: Add 0.25% to the base rate for customers aged 62 or over with at least 10,000 on deposit; everyone else gets the
+      base rate.
+    concepts:
+    - interest
+    - age
+    - senior
+    - balance
+    - bonus
+    when:
+      all:
+      - field: customer_age
+        op: '>='
+        value: 62
+      - field: balance
+        op: '>='
+        value: 10000
+    then:
+    - compute: bonus_rate
+      expr: base_rate + 0.0025
+    else:
+    - set: bonus_rate
+      from: base_rate
+    id: R1
+  paragraph: 2500-SENIOR-RATE
+- structure: if
+  rules:
+  - title: Fixed deposit uplift
+    intent: Add a further 0.15% to the rate for fixed deposit accounts.
+    concepts:
+    - interest
+    - fixed deposit
+    - account type
+    - bonus
+    when:
+      field: account_type
+      op: ==
+      value: F
+    then:
+    - compute: bonus_rate
+      expr: bonus_rate + 0.0015
+    id: R1
+  paragraph: FIXED-UPLIFT
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: TX-CUSTOMER-AGE
+  pic: 9(3)
+  business: customer_age
+- name: TX-CURR-BAL
+  pic: 9(9)V99
+  business: balance
+- name: TX-ACCT-TYPE
+  pic: X
+  business: account_type
+- name: TX-BASE-RATE
+  pic: 9V9999
+  business: base_rate
+record_length: 20
+names88:
+  ACCT-FIXED:
+    field: account_type
+    op: ==
+    value: F
+expected_rules: 2

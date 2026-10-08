@@ -1,0 +1,116 @@
+program: PEN0025
+program_file: PEN0025.cob
+domain: penalty_assessment
+template: penalty_days_late
+seed: 1833490805
+record: WS-INPUT
+out_record: WS-RESULTS
+main: 0000-MAIN
+copybook: PEN0025C.cpy
+prefix: null
+inputs:
+- name: WS-DLT
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+- name: WS-BDUE
+  pic: 9(7)V99
+  business: balance_due
+  comment: STATEMENT AMOUNT DUE
+outputs:
+- name: PA-AMT
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Early late payment fee
+    intent: Charge 15 when a payment is 1 to 15 days late.
+    concepts:
+    - penalty
+    - days late
+    - late fee
+    when:
+      field: days_late
+      op: between
+      value:
+      - 1
+      - 15
+    then:
+    - set: penalty_amt
+      value: 15
+    id: R1
+  - title: Late payment fee
+    intent: Charge 50 when a payment is 16 to 30 days late.
+    concepts:
+    - penalty
+    - days late
+    - late fee
+    when:
+      field: days_late
+      op: between
+      value: &id001
+      - 16
+      - 30
+    then:
+    - set: penalty_amt
+      value: 50
+    id: R2
+  - title: Seriously late payment penalty
+    intent: Charge 8% of the amount due when a payment is more than 30 days late.
+    concepts:
+    - penalty
+    - days late
+    - amount due
+    when:
+      field: days_late
+      op: between
+      value:
+      - 31
+      - 999
+    then:
+    - compute: penalty_amt
+      expr: balance_due * 0.08
+    id: R3
+  - title: No penalty
+    intent: Charge no penalty when the payment is not late.
+    concepts:
+    - penalty
+    - default
+    when: null
+    then:
+    - set: penalty_amt
+      value: 0
+    id: R4
+  paragraph: CALC-LATE-FEE
+  render: else_if
+  compact: true
+style:
+  cryptic_names: true
+  comments: none
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: WS-DLT
+  pic: 9(3)
+  business: days_late
+- name: WS-BDUE
+  pic: 9(7)V99
+  business: balance_due
+record_length: 12
+names88:
+  DLT-BAND-16-30:
+    field: days_late
+    op: between
+    value: *id001
+expected_rules: 4

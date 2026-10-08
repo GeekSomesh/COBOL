@@ -1,0 +1,210 @@
+{
+  "program": "FEE0039",
+  "program_file": "FEE0039.cob",
+  "domain": "fee_exemptions",
+  "template": "fee_student_senior",
+  "split": "val",
+  "rules": [
+    {
+      "rule_id": "FEE0039-R001",
+      "version": 1,
+      "title": "Student fee waiver",
+      "intent": "Waive the monthly fee for students younger than 25.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "field": "student_flag",
+            "source_name": "STUDENT-FLAG",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "field": "customer_age",
+            "source_name": "CLNT-AGE",
+            "op": "<",
+            "value": 25
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "fee_waived",
+          "source_name": "FEE-WAIVED",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "MONTHLY-FEE",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0039.cob",
+        "paragraph": "2200-CONCESSIONS",
+        "line_start": 36,
+        "line_end": 38,
+        "copybooks": []
+      },
+      "concepts": [
+        "fee",
+        "waiver",
+        "student",
+        "age"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_student_senior",
+        "spec": "data/specs/FEE0039.yaml",
+        "seed": 1723963570
+      }
+    },
+    {
+      "rule_id": "FEE0039-R002",
+      "version": 1,
+      "title": "Senior fee waiver",
+      "intent": "Waive the monthly fee for customers aged 60 or over.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "student_flag",
+                  "source_name": "STUDENT-FLAG",
+                  "op": "==",
+                  "value": "Y"
+                },
+                {
+                  "field": "customer_age",
+                  "source_name": "CLNT-AGE",
+                  "op": "<",
+                  "value": 25
+                }
+              ]
+            }
+          },
+          {
+            "field": "customer_age",
+            "source_name": "CLNT-AGE",
+            "op": ">=",
+            "value": 60
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "fee_waived",
+          "source_name": "FEE-WAIVED",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "MONTHLY-FEE",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0039.cob",
+        "paragraph": "2200-CONCESSIONS",
+        "line_start": 40,
+        "line_end": 42,
+        "copybooks": []
+      },
+      "concepts": [
+        "fee",
+        "waiver",
+        "senior",
+        "age"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_student_senior",
+        "spec": "data/specs/FEE0039.yaml",
+        "seed": 1723963570
+      }
+    },
+    {
+      "rule_id": "FEE0039-R003",
+      "version": 1,
+      "title": "Standard monthly fee",
+      "intent": "Charge everyone else the standard monthly fee of 4.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "student_flag",
+                  "source_name": "STUDENT-FLAG",
+                  "op": "==",
+                  "value": "Y"
+                },
+                {
+                  "field": "customer_age",
+                  "source_name": "CLNT-AGE",
+                  "op": "<",
+                  "value": 25
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "customer_age",
+              "source_name": "CLNT-AGE",
+              "op": ">=",
+              "value": 60
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "MONTHLY-FEE",
+          "value": 4
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0039.cob",
+        "paragraph": "2200-CONCESSIONS",
+        "line_start": 43,
+        "line_end": 44,
+        "copybooks": []
+      },
+      "concepts": [
+        "fee",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_student_senior",
+        "spec": "data/specs/FEE0039.yaml",
+        "seed": 1723963570
+      }
+    }
+  ]
+}

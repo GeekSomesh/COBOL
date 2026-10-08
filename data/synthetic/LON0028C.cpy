@@ -1,0 +1,2 @@
+    05 :PFX:-JOB-TENURE      PIC 9(2).
+    05 :PFX:-GROSS-INCOME    PIC 9(7)V99.

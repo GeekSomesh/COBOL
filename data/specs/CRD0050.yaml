@@ -1,0 +1,125 @@
+program: CRD0050
+program_file: CRD0050.cob
+domain: credit_approval
+template: credit_bankruptcy
+seed: 345762509
+record: WS-IN-REC
+out_record: WS-RESULTS
+main: A000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: PRIOR-BK-FLG
+  pic: X
+  business: bankruptcy_flag
+  comment: PRIOR BANKRUPTCY Y/N
+- name: YRS-SINCE-BK
+  pic: 9(2)
+  business: years_since_bk
+  comment: YEARS SINCE BANKRUPTCY DISCHARGE
+- name: CR-SCORE
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+outputs:
+- name: CREDIT-DECN
+  pic: X
+  business: decision
+  init: D
+  comment: A=APPROVE R=REFER D=DECLINE
+- name: REASON-CODE
+  pic: X(3)
+  business: reason_code
+  init: ' '
+  comment: DECISION REASON CODE
+noise:
+  date: PROC-DATE
+  filler: 6
+blocks:
+- structure: nested
+  rules:
+  - title: Recent bankruptcy decline
+    intent: Decline applicants with a bankruptcy in the last 7 years.
+    concepts:
+    - bankruptcy
+    - decline
+    - credit history
+    when:
+      field: years_since_bk
+      op: <
+      value: 7
+    then:
+    - set: decision
+      value: D
+    - set: reason_code
+      value: BK1
+    id: R1
+  - title: Older bankruptcy referral
+    intent: Refer applicants whose bankruptcy is 7 or more years old.
+    concepts:
+    - bankruptcy
+    - referral
+    - credit history
+    when: null
+    then:
+    - set: decision
+      value: R
+    - set: reason_code
+      value: BK2
+    id: R2
+  outer:
+    field: bankruptcy_flag
+    op: ==
+    value: Y
+  outer_else:
+    title: No bankruptcy on file
+    intent: Record reason code NA when the applicant has no prior bankruptcy.
+    concepts:
+    - bankruptcy
+    - reason code
+    when: null
+    then:
+    - set: reason_code
+      value: NA
+  paragraph: PRIOR-BK-SCREEN
+  render: else_if
+  compact: false
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: PRIOR-BK-FLG
+  pic: X
+  business: bankruptcy_flag
+- name: YRS-SINCE-BK
+  pic: 9(2)
+  business: years_since_bk
+- name: CR-SCORE
+  pic: 9(3)
+  business: credit_score
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(6)
+  business: null
+record_length: 20
+names88:
+  PRIOR-BANKRUPT:
+    field: bankruptcy_flag
+    op: ==
+    value: Y
+  CREDIT-DECLINED:
+    field: decision
+    op: ==
+    value: D
+expected_rules: 3

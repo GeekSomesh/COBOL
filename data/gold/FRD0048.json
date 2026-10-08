@@ -1,0 +1,150 @@
+{
+  "program": "FRD0048",
+  "program_file": "FRD0048.cob",
+  "domain": "fraud_scoring",
+  "template": "fraud_channel",
+  "split": "val",
+  "rules": [
+    {
+      "rule_id": "FRD0048-R001",
+      "version": 1,
+      "title": "Card-not-present online purchase",
+      "intent": "Hold online card-not-present transactions above 1,000 and send them for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "channel_code",
+            "source_name": "CH-CD",
+            "op": "==",
+            "value": "O"
+          },
+          {
+            "field": "card_present",
+            "source_name": "C-PR",
+            "op": "==",
+            "value": "N"
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "T-AMT1",
+            "op": ">",
+            "value": 1000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "hold_flag",
+          "source_name": "HF-FLG",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "R-IND",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0048.cob",
+        "paragraph": "ONLINE-SCREEN",
+        "line_start": 43,
+        "line_end": 46,
+        "copybooks": []
+      },
+      "concepts": [
+        "channel",
+        "online",
+        "card not present",
+        "amount",
+        "hold"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0048.yaml",
+        "seed": 1317160338
+      }
+    },
+    {
+      "rule_id": "FRD0048-R002",
+      "version": 1,
+      "title": "Large online transaction",
+      "intent": "Send online transactions above 20,000 for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "channel_code",
+            "source_name": "CH-CD",
+            "op": "==",
+            "value": "O"
+          },
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "card_present",
+                  "source_name": "C-PR",
+                  "op": "==",
+                  "value": "N"
+                },
+                {
+                  "field": "transaction_amount",
+                  "source_name": "T-AMT1",
+                  "op": ">",
+                  "value": 1000
+                }
+              ]
+            }
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "T-AMT1",
+            "op": ">",
+            "value": 20000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "R-IND",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0048.cob",
+        "paragraph": "ONLINE-SCREEN",
+        "line_start": 48,
+        "line_end": 49,
+        "copybooks": []
+      },
+      "concepts": [
+        "channel",
+        "online",
+        "amount",
+        "review"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0048.yaml",
+        "seed": 1317160338
+      }
+    }
+  ]
+}

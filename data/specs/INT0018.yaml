@@ -1,0 +1,117 @@
+program: INT0018
+program_file: INT0018.cob
+domain: interest_tiers
+template: interest_term
+seed: 278726224
+record: WS-INPUT
+out_record: WS-OUT-REC
+main: A000-MAIN
+copybook: INT0018C.cpy
+prefix: TX
+inputs:
+- name: TX-DEPOSIT-TERM
+  pic: 9(3)
+  business: term_months
+  comment: DEPOSIT TERM IN MONTHS
+outputs:
+- name: INT-RATE
+  pic: 9V9999
+  business: interest_rate
+  init: 0
+  comment: APPLIED INTEREST RATE
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Short term deposit rate
+    intent: Pay 3% on deposits with a term of 1 to 3 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id001
+      - 1
+      - 3
+    then:
+    - set: interest_rate
+      value: 0.03
+    id: R1
+  - title: Medium term deposit rate
+    intent: Pay 3.75% on deposits with a term of 4 to 12 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id002
+      - 4
+      - 12
+    then:
+    - set: interest_rate
+      value: 0.0375
+    id: R2
+  - title: Long term deposit rate
+    intent: Pay 4.5% on deposits with a term of 13 to 36 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id003
+      - 13
+      - 36
+    then:
+    - set: interest_rate
+      value: 0.045
+    id: R3
+  - title: Other deposit terms
+    intent: Pay 1.5% on deposits with any other term.
+    concepts:
+    - interest
+    - term
+    - default
+    when: null
+    then:
+    - set: interest_rate
+      value: 0.015
+    id: R4
+  paragraph: SET-TERM-RATE
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: true
+  noise_fields: false
+  decimal_literals: true
+  environment_division: false
+record_layout:
+- name: TX-DEPOSIT-TERM
+  pic: 9(3)
+  business: term_months
+record_length: 3
+names88:
+  DEPOSIT-BAND-1-3:
+    field: term_months
+    op: between
+    value: *id001
+  DEPOSIT-BAND-4-12:
+    field: term_months
+    op: between
+    value: *id002
+  DEPOSIT-BAND-13-36:
+    field: term_months
+    op: between
+    value: *id003
+expected_rules: 4

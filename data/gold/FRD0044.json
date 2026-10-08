@@ -1,0 +1,303 @@
+{
+  "program": "FRD0044",
+  "program_file": "FRD0044.cob",
+  "domain": "fraud_scoring",
+  "template": "fraud_velocity",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "FRD0044-R001",
+      "version": 1,
+      "title": "Very high transaction velocity",
+      "intent": "Rate activity as high risk when more than 25 transactions in 24 hours include one above 2,000.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "txn_count_24h",
+            "source_name": "WS-TCNT",
+            "op": ">",
+            "value": 25
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "T-AMT1",
+            "op": ">",
+            "value": 2000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "risk_level",
+          "source_name": "RL-CD",
+          "value": "H"
+        },
+        {
+          "type": "set",
+          "target": "risk_score",
+          "source_name": "RS-SC",
+          "value": 90
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0044.cob",
+        "paragraph": "SCORE-VELOCITY",
+        "line_start": 39,
+        "line_end": 42,
+        "copybooks": []
+      },
+      "concepts": [
+        "velocity",
+        "transaction count",
+        "amount",
+        "risk"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_velocity",
+        "spec": "data/specs/FRD0044.yaml",
+        "seed": 1660504434
+      }
+    },
+    {
+      "rule_id": "FRD0044-R002",
+      "version": 1,
+      "title": "Elevated transaction velocity",
+      "intent": "Rate activity as medium risk when the customer made more than 6 transactions in the last 24 hours.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "txn_count_24h",
+                  "source_name": "WS-TCNT",
+                  "op": ">",
+                  "value": 25
+                },
+                {
+                  "field": "transaction_amount",
+                  "source_name": "T-AMT1",
+                  "op": ">",
+                  "value": 2000
+                }
+              ]
+            }
+          },
+          {
+            "field": "txn_count_24h",
+            "source_name": "WS-TCNT",
+            "op": ">",
+            "value": 6
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "risk_level",
+          "source_name": "RL-CD",
+          "value": "M"
+        },
+        {
+          "type": "set",
+          "target": "risk_score",
+          "source_name": "RS-SC",
+          "value": 60
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0044.cob",
+        "paragraph": "SCORE-VELOCITY",
+        "line_start": 44,
+        "line_end": 46,
+        "copybooks": []
+      },
+      "concepts": [
+        "velocity",
+        "transaction count",
+        "risk"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_velocity",
+        "spec": "data/specs/FRD0044.yaml",
+        "seed": 1660504434
+      }
+    },
+    {
+      "rule_id": "FRD0044-R003",
+      "version": 1,
+      "title": "Activity on new account",
+      "intent": "Rate activity on accounts opened less than 90 days ago as medium risk.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "txn_count_24h",
+                  "source_name": "WS-TCNT",
+                  "op": ">",
+                  "value": 25
+                },
+                {
+                  "field": "transaction_amount",
+                  "source_name": "T-AMT1",
+                  "op": ">",
+                  "value": 2000
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "txn_count_24h",
+              "source_name": "WS-TCNT",
+              "op": ">",
+              "value": 6
+            }
+          },
+          {
+            "field": "account_age_days",
+            "source_name": "A-OD",
+            "op": "<",
+            "value": 90
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "risk_level",
+          "source_name": "RL-CD",
+          "value": "M"
+        },
+        {
+          "type": "set",
+          "target": "risk_score",
+          "source_name": "RS-SC",
+          "value": 40
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0044.cob",
+        "paragraph": "SCORE-VELOCITY",
+        "line_start": 48,
+        "line_end": 50,
+        "copybooks": []
+      },
+      "concepts": [
+        "account age",
+        "new account",
+        "risk"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_velocity",
+        "spec": "data/specs/FRD0044.yaml",
+        "seed": 1660504434
+      }
+    },
+    {
+      "rule_id": "FRD0044-R004",
+      "version": 1,
+      "title": "Normal activity",
+      "intent": "Rate all other activity as low risk.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "txn_count_24h",
+                  "source_name": "WS-TCNT",
+                  "op": ">",
+                  "value": 25
+                },
+                {
+                  "field": "transaction_amount",
+                  "source_name": "T-AMT1",
+                  "op": ">",
+                  "value": 2000
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "txn_count_24h",
+              "source_name": "WS-TCNT",
+              "op": ">",
+              "value": 6
+            }
+          },
+          {
+            "not": {
+              "field": "account_age_days",
+              "source_name": "A-OD",
+              "op": "<",
+              "value": 90
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "risk_level",
+          "source_name": "RL-CD",
+          "value": "L"
+        },
+        {
+          "type": "set",
+          "target": "risk_score",
+          "source_name": "RS-SC",
+          "value": 10
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0044.cob",
+        "paragraph": "SCORE-VELOCITY",
+        "line_start": 51,
+        "line_end": 53,
+        "copybooks": []
+      },
+      "concepts": [
+        "risk",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_velocity",
+        "spec": "data/specs/FRD0044.yaml",
+        "seed": 1660504434
+      }
+    }
+  ]
+}

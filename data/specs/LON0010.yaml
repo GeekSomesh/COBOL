@@ -1,0 +1,101 @@
+program: LON0010
+program_file: LON0010.cob
+domain: loan_limits
+template: loan_income_multiple
+seed: 1991794119
+record: IN-RECORD
+out_record: WS-RESULTS
+main: MAINLINE
+copybook: null
+prefix: null
+inputs:
+- name: YRS-EMPLOYED
+  pic: 9(2)
+  business: employment_years
+  comment: YEARS WITH CURRENT EMPLOYER
+- name: ANN-INCOME
+  pic: 9(7)V99
+  business: annual_income
+  comment: GROSS ANNUAL INCOME
+outputs:
+- name: LOAN-CEILING
+  pic: 9(9)V99
+  business: max_loan
+  init: 0
+  comment: MAXIMUM LOAN AMOUNT
+noise:
+  date: RUN-DATE
+  filler: 2
+blocks:
+- structure: chain
+  rules:
+  - title: Established employment multiple
+    intent: Lend up to 4 times annual income to applicants employed 7 years or more.
+    concepts:
+    - loan limit
+    - income
+    - employment
+    when:
+      field: employment_years
+      op: '>='
+      value: 7
+    then:
+    - compute: max_loan
+      expr: annual_income * 4
+    id: R1
+  - title: Standard employment multiple
+    intent: Lend up to 3 times annual income to applicants employed 2 years or more.
+    concepts:
+    - loan limit
+    - income
+    - employment
+    when:
+      field: employment_years
+      op: '>='
+      value: 2
+    then:
+    - compute: max_loan
+      expr: annual_income * 3
+    id: R2
+  - title: New employee multiple
+    intent: Lend up to 1.5 times annual income to everyone else.
+    concepts:
+    - loan limit
+    - income
+    - default
+    when: null
+    then:
+    - compute: max_loan
+      expr: annual_income * 1.5
+    id: R3
+  paragraph: 2000-LOAN-MULTIPLE
+  render: else_if
+  compact: false
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: true
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: YRS-EMPLOYED
+  pic: 9(2)
+  business: employment_years
+- name: ANN-INCOME
+  pic: 9(7)V99
+  business: annual_income
+- name: RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 21
+names88: {}
+expected_rules: 3

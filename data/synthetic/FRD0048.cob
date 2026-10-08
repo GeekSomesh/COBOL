@@ -1,0 +1,51 @@
+*> ********************************************************
+*> PROGRAM : FRD0048
+*> PURPOSE : FRAUD SCORING RULES
+*> AUTHOR  : M.S.
+*> CHANGE LOG:
+*>   1987-02-11 ORIGINAL VERSION
+*>   1998-12-07 THRESHOLDS UPDATED PER AUDIT REQ 339
+*> RUN FROM JCL JOB FRDNIGHT STEP090
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. FRD0048.
+ENVIRONMENT DIVISION.
+CONFIGURATION SECTION.
+SOURCE-COMPUTER. IBM-370.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 WS-INPUT.
+    *> CHANNEL O=ONLINE B=BRANCH A=ATM
+    05 CH-CD              PIC X.
+    05 C-PR               PIC X.
+    05 T-AMT1             PIC 9(7)V99.
+    05 RUN-DATE           PIC 9(8).
+    05 RUN-DATE-R REDEFINES RUN-DATE.
+       10 RUN-DATE-YYYY  PIC 9(4).
+       10 RUN-DATE-MM    PIC 9(2).
+       10 RUN-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(2).
+01 WS-RESULTS.
+    *> HOLD TRANSACTION FLAG
+    05 HF-FLG             PIC X VALUE 'N'.
+    *> MANUAL REVIEW FLAG
+    05 R-IND              PIC X VALUE 'N'.
+PROCEDURE DIVISION.
+A000-MAIN.
+    ACCEPT WS-INPUT
+    PERFORM ONLINE-SCREEN
+    DISPLAY "HF-FLG=" HF-FLG
+    DISPLAY "R-IND=" R-IND
+    STOP RUN.
+ONLINE-SCREEN.
+    IF CH-CD = 'O'
+        EVALUATE TRUE
+            WHEN C-PR EQUAL TO 'N'
+               AND T-AMT1 > 1000.00
+                MOVE 'Y' TO HF-FLG
+                MOVE 'Y' TO R-IND
+            *> LARGE ONLINE TRANSACTION
+            WHEN T-AMT1 > 20000
+                MOVE 'Y' TO R-IND
+        END-EVALUATE
+    END-IF.

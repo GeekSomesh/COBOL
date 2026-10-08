@@ -1,21 +1,25 @@
 # Demo Script and Q&A Prep
 
-## 1. Five-minute demo flow
-1. **Hook (30 s):** show 80 lines of COBOL with a buried condition. Ask: "Why was this transaction flagged?" Nobody can answer quickly.
-2. **Upload (30 s):** upload the program and its copybook to the explorer.
-3. **Extraction (60 s):** show progress: parse, slice, extract, verify. Mention it runs fully on-premises.
-4. **Result (60 s):** open rule `TXNCHK-R014`: plain-English intent, structured conditions, confidence score. Click the rule and highlight lines 42 to 45 in the source.
-5. **Business query (45 s):** type "show all rules about customers under 18". Matching rules appear with source links.
-6. **Trust (45 s):** show a low-confidence rule in the review queue; approve one with a reason; show the audit log.
-7. **Explain and export (30 s):** show SHAP feature influence for the rule set; export JSON and PMML.
-8. **Close (30 s):** results slide with precision, recall, F1 and behavioural agreement on the test set (use measured numbers only).
+## 1. Five-minute demo flow (as built)
+Before the demo, run `python scripts/load_demo.py --reset`, then
+`python -m uvicorn src.api.main:app --port 8000`. Open http://localhost:8000 and sign in
+with the admin token from `data/dev_tokens.json`.
+
+1. **Hook (30 s):** open `data/synthetic/INT0003.cob` or another generated program with cryptic names, 88-levels and a stale comment. Ask: "What rate does a 12-month deposit get, and why?" Nobody can answer quickly.
+2. **Upload (30 s):** Programs tab, upload `TXNCHK.cob` (or any corpus program with its `...C.cpy` copybook).
+3. **Extraction (60 s):** the progress bar walks through parse, enrich, differential and verify. Everything runs locally: GnuCOBOL in WSL and the fine-tuned model in Ollama. Nothing leaves the machine.
+4. **Result (60 s):** open `TXNCHK-R001`. Show the plain-English intent, the conditions with business names (hover a name to see the COBOL name), the confidence breakdown, and source lines 16 to 18 highlighted next to the rule.
+5. **Business query (45 s):** search "customers under 18". The minor-transaction rules rank first, each with its source link.
+6. **Trust (45 s):** in the Review queue, open a rule flagged `needs_review`. Good examples are the FRD program's `CALL 'FRDALERT'` rule (external dependency) or an IBM SAM1 rule (not behaviourally verified). Approve one with a reason, then show the Audit log.
+7. **Explain and export (30 s):** Insights tab: SHAP influence for a rule set. Export tab: JSON, decision tree and PMML.
+8. **Close (30 s):** results slide from `results/RESULTS.md`. Use only these measured numbers, and say they come from synthetic held-out templates.
 
 ## 2. Demo checklist
-- [ ] One clean synthetic program with 3 to 5 clear rules
-- [ ] One public sample program to show it works on code we did not write
-- [ ] One deliberately tricky rule (88-level or abbreviated condition) that the tool expands correctly
-- [ ] One rule that is flagged `needs_review` or `external_dependency`
-- [ ] Offline run tested (no internet)
+- [x] One clean synthetic program with 3 to 5 clear rules (TXNCHK, INT0003, LON0002)
+- [x] One public sample program to show it works on code we did not write (IBM SAM1/SAM2)
+- [x] One tricky rule that is expanded correctly (INT0003: 88-level bands; CONSTRUCTS fixture: abbreviated `A > 17 AND < 65 AND R = 'A1' OR 'A2'`)
+- [x] One rule flagged `needs_review` or `external_dependency` (FRD `CALL 'FRDALERT'`, SAM1 `GO TO` / `CALL 'SAM2'`)
+- [ ] Offline run tested (no internet): unplug, run `load_demo.py` and the UI
 - [ ] Backup screen recording
 
 ## 3. Likely judge questions

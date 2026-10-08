@@ -1,0 +1,112 @@
+program: CRD0010
+program_file: CRD0010.cob
+domain: credit_approval
+template: credit_score_cutoff
+seed: 196388895
+record: IN-RECORD
+out_record: OUT-RECORD
+main: MAIN-PARA
+copybook: null
+prefix: null
+inputs:
+- name: CR-SCORE
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+- name: DEBT-RATIO
+  pic: 9V99
+  business: debt_ratio
+  comment: DEBT TO INCOME RATIO
+outputs:
+- name: CREDIT-DECN
+  pic: X
+  business: decision
+  init: D
+  comment: A=APPROVE R=REFER D=DECLINE
+noise:
+  date: RUN-DATE
+  filler: 4
+blocks:
+- structure: chain
+  rules:
+  - title: Automatic approval
+    intent: Approve applicants with a credit score of 700 or more and a debt-to-income ratio below 0.43.
+    concepts:
+    - credit score
+    - debt ratio
+    - approval
+    when:
+      all:
+      - field: credit_score
+        op: '>='
+        value: 700
+      - field: debt_ratio
+        op: <
+        value: 0.43
+    then:
+    - set: decision
+      value: A
+    id: R1
+  - title: Refer to underwriter
+    intent: Refer applicants scoring 620 or more to an underwriter.
+    concepts:
+    - credit score
+    - referral
+    - underwriting
+    when:
+      field: credit_score
+      op: '>='
+      value: 620
+    then:
+    - set: decision
+      value: R
+    id: R2
+  - title: Decline application
+    intent: Decline all other applicants.
+    concepts:
+    - decline
+    - default
+    when: null
+    then:
+    - set: decision
+      value: D
+    id: R3
+  paragraph: 2000-SCORE-DECISION
+  render: else_if
+  compact: true
+style:
+  cryptic_names: false
+  comments: misleading
+  copybook: false
+  replacing: false
+  abbreviated: true
+  use_88: true
+  word_operators: false
+  dead_code: true
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: CR-SCORE
+  pic: 9(3)
+  business: credit_score
+- name: DEBT-RATIO
+  pic: 9V99
+  business: debt_ratio
+- name: RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 18
+names88:
+  CREDIT-APPROVED:
+    field: decision
+    op: ==
+    value: A
+  CREDIT-DECLINED:
+    field: decision
+    op: ==
+    value: D
+expected_rules: 3

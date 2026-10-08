@@ -1,0 +1,83 @@
+program: FEE0043
+program_file: FEE0043.cob
+domain: fee_exemptions
+template: fee_waiver_balance
+seed: 2125752441
+record: IN-RECORD
+out_record: WS-RESULTS
+main: MAINLINE
+copybook: FEE0043C.cpy
+prefix: AC
+inputs:
+- name: AC-A-TY
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: AC-AB-AMT
+  pic: 9(7)V99
+  business: avg_balance
+  comment: AVERAGE MONTHLY BALANCE
+outputs:
+- name: WS-FWV
+  pic: X
+  business: fee_waived
+  init: N
+  comment: FEE WAIVER INDICATOR
+- name: MF-AMT
+  pic: 9(3)V99
+  business: monthly_fee
+  init: 0
+  comment: MONTHLY SERVICE FEE
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Monthly fee waiver
+    intent: Waive the monthly fee for premium or gold accounts and for accounts averaging at least 5,000; charge 7.50 otherwise.
+    concepts:
+    - fee
+    - waiver
+    - account type
+    - balance
+    when:
+      any:
+      - field: account_type
+        op: in
+        value:
+        - G
+        - P
+      - field: avg_balance
+        op: '>='
+        value: 5000
+    then:
+    - set: fee_waived
+      value: Y
+    - set: monthly_fee
+      value: 0
+    else:
+    - set: monthly_fee
+      value: 7.5
+    id: R1
+  paragraph: MONTHLY-FEE-CHECK
+style:
+  cryptic_names: true
+  comments: misleading
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: AC-A-TY
+  pic: X
+  business: account_type
+- name: AC-AB-AMT
+  pic: 9(7)V99
+  business: avg_balance
+record_length: 10
+names88: {}
+expected_rules: 1

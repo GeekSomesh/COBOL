@@ -1,0 +1,105 @@
+program: PEN0026
+program_file: PEN0026.cob
+domain: penalty_assessment
+template: penalty_waiver
+seed: 2029509681
+record: WS-INPUT
+out_record: RESULT-AREA
+main: MAIN-PARA
+copybook: PEN0026C.cpy
+prefix: TX
+inputs:
+- name: TX-FIRST-OFFENSE
+  pic: X
+  business: first_offense
+  comment: FIRST LATE PAYMENT Y/N
+- name: TX-CUSTOMER-TIER
+  pic: X
+  business: customer_tier
+  comment: TIER G=GOLD P=PLATINUM S=SILVER B=BASIC
+- name: TX-DPD-DAYS
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+outputs:
+- name: PEN-WAIVE-FLG
+  pic: X
+  business: penalty_waived
+  init: N
+  comment: PENALTY WAIVER FLAG
+- name: LATE-CHARGE
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Premium first-offence waiver
+    intent: Waive the penalty on a first late payment for gold and platinum customers.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - customer tier
+    when:
+      field: customer_tier
+      op: in
+      value:
+      - G
+      - P
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R1
+  - title: Grace period waiver
+    intent: Waive the penalty on a first late payment made within 7 days.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - grace period
+    when:
+      field: days_late
+      op: <=
+      value: 7
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R2
+  outer:
+    field: first_offense
+    op: ==
+    value: Y
+  paragraph: WAIVE-PENALTY
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: TX-FIRST-OFFENSE
+  pic: X
+  business: first_offense
+- name: TX-CUSTOMER-TIER
+  pic: X
+  business: customer_tier
+- name: TX-DPD-DAYS
+  pic: 9(3)
+  business: days_late
+record_length: 5
+names88: {}
+expected_rules: 2

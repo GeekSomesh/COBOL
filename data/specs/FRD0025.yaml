@@ -1,0 +1,86 @@
+program: FRD0025
+program_file: FRD0025.cob
+domain: fraud_scoring
+template: fraud_minor_high_value
+seed: 1718431488
+record: WS-IN-REC
+out_record: WS-RESULTS
+main: MAINLINE
+copybook: FRD0025C.cpy
+prefix: null
+inputs:
+- name: CLNT-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: TXN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+- name: ORIG-CTRY
+  pic: X(2)
+  business: country_code
+  comment: ORIGIN COUNTRY CODE
+outputs:
+- name: FLAG-REVIEW
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise:
+  date: RUN-DATE
+  filler: 2
+blocks:
+- structure: if
+  rules:
+  - title: High-value transaction by minor
+    intent: Flag transactions over 4,500 made by customers younger than 16 for manual review.
+    concepts:
+    - age
+    - amount
+    - minor
+    - review
+    when:
+      all:
+      - field: customer_age
+        op: <
+        value: 16
+      - field: transaction_amount
+        op: '>'
+        value: 4500
+    then:
+    - set: review_flag
+      value: Y
+    id: R1
+  paragraph: MINOR-TXN-CHECK
+style:
+  cryptic_names: false
+  comments: none
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CLNT-AGE
+  pic: 9(3)
+  business: customer_age
+- name: TXN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+- name: ORIG-CTRY
+  pic: X(2)
+  business: country_code
+- name: RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 24
+names88: {}
+expected_rules: 1

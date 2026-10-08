@@ -1,0 +1,124 @@
+program: INT0013
+program_file: INT0013.cob
+domain: interest_tiers
+template: interest_balance_tiers
+seed: 311697873
+record: INPUT-AREA
+out_record: OUT-RECORD
+main: MAINLINE
+copybook: null
+prefix: null
+inputs:
+- name: ACCT-TYP
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: LEDGER-BAL
+  pic: 9(9)V99
+  business: balance
+  comment: CURRENT LEDGER BALANCE
+outputs:
+- name: INT-RATE
+  pic: 9V9999
+  business: interest_rate
+  init: 0
+  comment: APPLIED INTEREST RATE
+noise:
+  date: PROC-DATE
+  filler: 2
+blocks:
+- structure: chain
+  rules:
+  - title: Top savings tier
+    intent: Pay 4.75% interest on savings accounts with a balance of at least 75,000.
+    concepts:
+    - interest
+    - savings
+    - balance
+    - tier
+    when:
+      all:
+      - field: account_type
+        op: ==
+        value: S
+      - field: balance
+        op: '>='
+        value: 75000
+    then:
+    - set: interest_rate
+      value: 0.0475
+    id: R1
+  - title: Middle savings tier
+    intent: Pay 3.75% interest on savings accounts with a balance of at least 25,000.
+    concepts:
+    - interest
+    - savings
+    - balance
+    - tier
+    when:
+      all:
+      - field: account_type
+        op: ==
+        value: S
+      - field: balance
+        op: '>='
+        value: 25000
+    then:
+    - set: interest_rate
+      value: 0.0375
+    id: R2
+  - title: Base savings rate
+    intent: Pay 3% interest on all other savings accounts.
+    concepts:
+    - interest
+    - savings
+    - account type
+    when:
+      field: account_type
+      op: ==
+      value: S
+    then:
+    - set: interest_rate
+      value: 0.03
+    id: R3
+  - title: Non-savings rate
+    intent: Pay 1% interest on every other account type.
+    concepts:
+    - interest
+    - account type
+    - default
+    when: null
+    then:
+    - set: interest_rate
+      value: 0.01
+    id: R4
+  paragraph: APPLY-INT-TIER
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: true
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: ACCT-TYP
+  pic: X
+  business: account_type
+- name: LEDGER-BAL
+  pic: 9(9)V99
+  business: balance
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 22
+names88: {}
+expected_rules: 4

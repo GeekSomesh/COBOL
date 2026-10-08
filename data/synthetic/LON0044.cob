@@ -1,0 +1,50 @@
+*> ********************************************************
+*> PROGRAM : LON0044
+*> PURPOSE : LOAN LIMITS RULES
+*> AUTHOR  : D.P.
+*> CHANGE LOG:
+*>   1987-04-15 ORIGINAL VERSION
+*>   1998-12-09 THRESHOLDS UPDATED PER AUDIT REQ 882
+*> RUN FROM JCL JOB LONNIGHT STEP030
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. LON0044.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 INPUT-AREA.
+    *> CUSTOMER AGE IN YEARS
+    05 WS-CAGE            PIC 9(3).
+01 WS-OUT-REC.
+    05 WS-MTRM            PIC 9(2) VALUE ZERO.
+    *> LOAN ELIGIBILITY Y/N
+    05 EL-IND             PIC X VALUE 'N'.
+        88 EL-ELIGIBLE VALUE 'Y'.
+PROCEDURE DIVISION.
+0000-MAIN.
+    ACCEPT INPUT-AREA
+    PERFORM 2500-AGE-TERM
+    DISPLAY "WS-MTRM=" WS-MTRM
+    DISPLAY "EL-IND=" EL-IND
+    STOP RUN.
+2500-AGE-TERM.
+    *>  OLD CHECK REMOVED 2001
+    *>  IF WS-CAGE > 48
+    *>      PERFORM 9000-OLD-HANDLING
+    *>  END-IF
+    IF WS-CAGE >= 18
+        EVALUATE TRUE
+            *> SHORT TERM FOR OLDER BORROWERS - LIMIT 90 PER 1998 POLICY
+            WHEN WS-CAGE > 60
+                MOVE 10 TO WS-MTRM
+                MOVE 'Y' TO EL-IND
+            *> MEDIUM TERM CAP - LIMIT 27 PER 1998 POLICY
+            WHEN WS-CAGE > 55
+                MOVE 20 TO WS-MTRM
+                SET EL-ELIGIBLE TO TRUE
+            WHEN OTHER
+                MOVE 30 TO WS-MTRM
+                SET EL-ELIGIBLE TO TRUE
+        END-EVALUATE
+    ELSE
+        MOVE 'N' TO EL-IND
+    END-IF.

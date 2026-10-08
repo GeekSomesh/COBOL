@@ -1,0 +1,4 @@
+    05 CHANNEL-CODE       PIC X.
+       88 CHANNEL-ONLINE VALUE 'O'.
+    05 CARD-PRESENT       PIC X.
+    05 TXN-AMT            PIC 9(7)V99.

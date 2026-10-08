@@ -1,0 +1,196 @@
+{
+  "program": "CRD0040",
+  "program_file": "CRD0040.cob",
+  "domain": "credit_approval",
+  "template": "credit_score_cutoff",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "CRD0040-R001",
+      "version": 1,
+      "title": "Automatic approval",
+      "intent": "Approve applicants with a credit score of 700 or more and a debt-to-income ratio below 0.35.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "field": "credit_score",
+            "source_name": "CR-SCORE",
+            "op": ">=",
+            "value": 700
+          },
+          {
+            "field": "debt_ratio",
+            "source_name": "DTI-RATIO",
+            "op": "<",
+            "value": 0.35
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "APPL-DECISION",
+          "value": "A"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0040.cob",
+        "paragraph": "CREDIT-CUTOFF",
+        "line_start": 32,
+        "line_end": 33,
+        "copybooks": []
+      },
+      "concepts": [
+        "credit score",
+        "debt ratio",
+        "approval"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0040.yaml",
+        "seed": 953660322
+      }
+    },
+    {
+      "rule_id": "CRD0040-R002",
+      "version": 1,
+      "title": "Refer to underwriter",
+      "intent": "Refer applicants scoring 620 or more to an underwriter.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "credit_score",
+                  "source_name": "CR-SCORE",
+                  "op": ">=",
+                  "value": 700
+                },
+                {
+                  "field": "debt_ratio",
+                  "source_name": "DTI-RATIO",
+                  "op": "<",
+                  "value": 0.35
+                }
+              ]
+            }
+          },
+          {
+            "field": "credit_score",
+            "source_name": "CR-SCORE",
+            "op": ">=",
+            "value": 620
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "APPL-DECISION",
+          "value": "R"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0040.cob",
+        "paragraph": "CREDIT-CUTOFF",
+        "line_start": 36,
+        "line_end": 37,
+        "copybooks": []
+      },
+      "concepts": [
+        "credit score",
+        "referral",
+        "underwriting"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0040.yaml",
+        "seed": 953660322
+      }
+    },
+    {
+      "rule_id": "CRD0040-R003",
+      "version": 1,
+      "title": "Decline application",
+      "intent": "Decline all other applicants.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "credit_score",
+                  "source_name": "CR-SCORE",
+                  "op": ">=",
+                  "value": 700
+                },
+                {
+                  "field": "debt_ratio",
+                  "source_name": "DTI-RATIO",
+                  "op": "<",
+                  "value": 0.35
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "credit_score",
+              "source_name": "CR-SCORE",
+              "op": ">=",
+              "value": 620
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "APPL-DECISION",
+          "value": "D"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0040.cob",
+        "paragraph": "CREDIT-CUTOFF",
+        "line_start": 38,
+        "line_end": 39,
+        "copybooks": []
+      },
+      "concepts": [
+        "decline",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0040.yaml",
+        "seed": 953660322
+      }
+    }
+  ]
+}

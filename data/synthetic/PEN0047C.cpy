@@ -1,0 +1,3 @@
+    05 FIRST-OFFENSE      PIC X.
+    05 LOYALTY-TIER       PIC X.
+    05 DAYS-PAST-DUE      PIC 9(3).

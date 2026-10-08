@@ -1,0 +1,251 @@
+{
+  "program": "LON0047",
+  "program_file": "LON0047.cob",
+  "domain": "loan_limits",
+  "template": "loan_age_term",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "LON0047-R001",
+      "version": 1,
+      "title": "Short term for older borrowers",
+      "intent": "Cap the loan term at 10 years for borrowers older than 65.",
+      "domain": "loan_limits",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "CUST-AGE",
+            "op": ">=",
+            "value": 18
+          },
+          {
+            "field": "customer_age",
+            "source_name": "CUST-AGE",
+            "op": ">",
+            "value": 65
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "max_term",
+          "source_name": "MAX-TERM",
+          "value": 10
+        },
+        {
+          "type": "set",
+          "target": "eligible_flag",
+          "source_name": "ELIGIBLE-FLAG",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "LON0047.cob",
+        "paragraph": "LOAN-TERM-RULES",
+        "line_start": 19,
+        "line_end": 21,
+        "copybooks": []
+      },
+      "concepts": [
+        "loan term",
+        "age",
+        "senior"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "loan_age_term",
+        "spec": "data/specs/LON0047.yaml",
+        "seed": 674616721
+      }
+    },
+    {
+      "rule_id": "LON0047-R002",
+      "version": 1,
+      "title": "Medium term cap",
+      "intent": "Cap the loan term at 20 years for borrowers older than 55.",
+      "domain": "loan_limits",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "CUST-AGE",
+            "op": ">=",
+            "value": 18
+          },
+          {
+            "not": {
+              "field": "customer_age",
+              "source_name": "CUST-AGE",
+              "op": ">",
+              "value": 65
+            }
+          },
+          {
+            "field": "customer_age",
+            "source_name": "CUST-AGE",
+            "op": ">",
+            "value": 55
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "max_term",
+          "source_name": "MAX-TERM",
+          "value": 20
+        },
+        {
+          "type": "set",
+          "target": "eligible_flag",
+          "source_name": "ELIGIBLE-FLAG",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "LON0047.cob",
+        "paragraph": "LOAN-TERM-RULES",
+        "line_start": 22,
+        "line_end": 24,
+        "copybooks": []
+      },
+      "concepts": [
+        "loan term",
+        "age"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "loan_age_term",
+        "spec": "data/specs/LON0047.yaml",
+        "seed": 674616721
+      }
+    },
+    {
+      "rule_id": "LON0047-R003",
+      "version": 1,
+      "title": "Full term",
+      "intent": "Allow the full 30-year term for all other adult borrowers.",
+      "domain": "loan_limits",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "CUST-AGE",
+            "op": ">=",
+            "value": 18
+          },
+          {
+            "not": {
+              "field": "customer_age",
+              "source_name": "CUST-AGE",
+              "op": ">",
+              "value": 65
+            }
+          },
+          {
+            "not": {
+              "field": "customer_age",
+              "source_name": "CUST-AGE",
+              "op": ">",
+              "value": 55
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "max_term",
+          "source_name": "MAX-TERM",
+          "value": 30
+        },
+        {
+          "type": "set",
+          "target": "eligible_flag",
+          "source_name": "ELIGIBLE-FLAG",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "LON0047.cob",
+        "paragraph": "LOAN-TERM-RULES",
+        "line_start": 25,
+        "line_end": 27,
+        "copybooks": []
+      },
+      "concepts": [
+        "loan term",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "loan_age_term",
+        "spec": "data/specs/LON0047.yaml",
+        "seed": 674616721
+      }
+    },
+    {
+      "rule_id": "LON0047-R004",
+      "version": 1,
+      "title": "Underage applicant",
+      "intent": "Mark applicants younger than 18 as ineligible.",
+      "domain": "loan_limits",
+      "conditions": {
+        "not": {
+          "field": "customer_age",
+          "source_name": "CUST-AGE",
+          "op": ">=",
+          "value": 18
+        }
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "eligible_flag",
+          "source_name": "ELIGIBLE-FLAG",
+          "value": "N"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "LON0047.cob",
+        "paragraph": "LOAN-TERM-RULES",
+        "line_start": 30,
+        "line_end": 31,
+        "copybooks": []
+      },
+      "concepts": [
+        "eligibility",
+        "age",
+        "minor"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "loan_age_term",
+        "spec": "data/specs/LON0047.yaml",
+        "seed": 674616721
+      }
+    }
+  ]
+}

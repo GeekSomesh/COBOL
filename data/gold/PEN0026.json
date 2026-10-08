@@ -1,0 +1,149 @@
+{
+  "program": "PEN0026",
+  "program_file": "PEN0026.cob",
+  "domain": "penalty_assessment",
+  "template": "penalty_waiver",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "PEN0026-R001",
+      "version": 1,
+      "title": "Premium first-offence waiver",
+      "intent": "Waive the penalty on a first late payment for gold and platinum customers.",
+      "domain": "penalty_assessment",
+      "conditions": {
+        "all": [
+          {
+            "field": "first_offense",
+            "source_name": "TX-FIRST-OFFENSE",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "field": "customer_tier",
+            "source_name": "TX-CUSTOMER-TIER",
+            "op": "in",
+            "value": [
+              "G",
+              "P"
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "penalty_waived",
+          "source_name": "PEN-WAIVE-FLG",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "penalty_amt",
+          "source_name": "LATE-CHARGE",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "PEN0026.cob",
+        "paragraph": "WAIVE-PENALTY",
+        "line_start": 34,
+        "line_end": 36,
+        "copybooks": [
+          "PEN0026C.cpy"
+        ]
+      },
+      "concepts": [
+        "penalty",
+        "waiver",
+        "first offence",
+        "customer tier"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "penalty_waiver",
+        "spec": "data/specs/PEN0026.yaml",
+        "seed": 2029509681
+      }
+    },
+    {
+      "rule_id": "PEN0026-R002",
+      "version": 1,
+      "title": "Grace period waiver",
+      "intent": "Waive the penalty on a first late payment made within 7 days.",
+      "domain": "penalty_assessment",
+      "conditions": {
+        "all": [
+          {
+            "field": "first_offense",
+            "source_name": "TX-FIRST-OFFENSE",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "not": {
+              "field": "customer_tier",
+              "source_name": "TX-CUSTOMER-TIER",
+              "op": "in",
+              "value": [
+                "G",
+                "P"
+              ]
+            }
+          },
+          {
+            "field": "days_late",
+            "source_name": "TX-DPD-DAYS",
+            "op": "<=",
+            "value": 7
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "penalty_waived",
+          "source_name": "PEN-WAIVE-FLG",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "penalty_amt",
+          "source_name": "LATE-CHARGE",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "PEN0026.cob",
+        "paragraph": "WAIVE-PENALTY",
+        "line_start": 37,
+        "line_end": 39,
+        "copybooks": [
+          "PEN0026C.cpy"
+        ]
+      },
+      "concepts": [
+        "penalty",
+        "waiver",
+        "first offence",
+        "grace period"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "penalty_waiver",
+        "spec": "data/specs/PEN0026.yaml",
+        "seed": 2029509681
+      }
+    }
+  ]
+}

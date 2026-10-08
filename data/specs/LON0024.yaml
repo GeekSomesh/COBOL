@@ -1,0 +1,77 @@
+program: LON0024
+program_file: LON0024.cob
+domain: loan_limits
+template: loan_ltv
+seed: 1971171097
+record: WS-IN-REC
+out_record: RESULT-AREA
+main: 0000-MAIN
+copybook: LON0024C.cpy
+prefix: CU
+inputs:
+- name: CU-LTV-PCT
+  pic: 9(3)
+  business: ltv_pct
+  comment: LOAN TO VALUE PERCENT
+outputs:
+- name: MI-REQUIRED
+  pic: X
+  business: mi_required
+  init: N
+  comment: MORTGAGE INSURANCE REQUIRED
+- name: RATE-ADJ
+  pic: 9V9999
+  business: rate_adjustment
+  init: 0
+  comment: RATE ADJUSTMENT
+noise:
+  date: CU-RUN-DATE
+  filler: 2
+blocks:
+- structure: if
+  rules:
+  - title: Mortgage insurance requirement
+    intent: Require mortgage insurance and add 0.5% to the rate when the loan-to-value ratio exceeds 90%.
+    concepts:
+    - loan to value
+    - mortgage insurance
+    - rate
+    when:
+      field: ltv_pct
+      op: '>'
+      value: 90
+    then:
+    - set: mi_required
+      value: Y
+    - set: rate_adjustment
+      value: 0.005
+    else:
+    - set: mi_required
+      value: N
+    id: R1
+  paragraph: CHECK-LTV
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CU-LTV-PCT
+  pic: 9(3)
+  business: ltv_pct
+- name: CU-RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 13
+names88: {}
+expected_rules: 1

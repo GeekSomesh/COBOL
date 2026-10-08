@@ -1,0 +1,7 @@
+    05 :PFX:-CUSTOMER-AGE    PIC 9(3).
+    05 :PFX:-POST-DATE       PIC 9(8).
+    05 :PFX:-POST-DATE-R REDEFINES :PFX:-POST-DATE.
+       10 :PFX:-POST-DATE-YYYY  PIC 9(4).
+       10 :PFX:-POST-DATE-MM    PIC 9(2).
+       10 :PFX:-POST-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(2).

@@ -1,0 +1,53 @@
+*> ********************************************************
+*> PROGRAM : FRD0027
+*> PURPOSE : FRAUD SCORING RULES
+*> AUTHOR  : M.S.
+*> CHANGE LOG:
+*>   1992-01-14 ORIGINAL VERSION
+*>   1998-10-04 THRESHOLDS UPDATED PER AUDIT REQ 292
+*> RUN FROM JCL JOB FRDNIGHT STEP070
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. FRD0027.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 IN-RECORD.
+    *> CHANNEL O=ONLINE B=BRANCH A=ATM
+    05 WS-CHN             PIC X.
+    *> CARD PRESENT Y/N
+    05 WS-CPF             PIC X.
+       88 CPF-NOT-PRESENT VALUE 'N'.
+    *> TRANSACTION AMOUNT
+    05 T-AMT1             PIC 9(7)V99.
+    05 POST-DATE          PIC 9(8).
+    05 POST-DATE-R REDEFINES POST-DATE.
+       10 POST-DATE-YYYY  PIC 9(4).
+       10 POST-DATE-MM    PIC 9(2).
+       10 POST-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(6).
+01 OUT-RECORD.
+    *> HOLD TRANSACTION FLAG
+    05 H-IN               PIC X VALUE 'N'.
+        88 H-ON-HOLD VALUE 'Y'.
+    05 R-IND              PIC X VALUE 'N'.
+PROCEDURE DIVISION.
+MAINLINE.
+    ACCEPT IN-RECORD
+    PERFORM 4000-CHANNEL-RULES
+    DISPLAY "H-IN=" H-IN
+    DISPLAY "R-IND=" R-IND
+    STOP RUN.
+4000-CHANNEL-RULES.
+    IF WS-CHN = 'O'
+        EVALUATE TRUE
+            *> CARD-NOT-PRESENT ONLINE PURCHASE
+            WHEN CPF-NOT-PRESENT AND T-AMT1 > 2250
+                SET H-ON-HOLD TO TRUE
+                MOVE 'Y' TO R-IND
+            *> LARGE ONLINE TRANSACTION
+            WHEN T-AMT1 > 12500
+                MOVE 'Y' TO R-IND
+        END-EVALUATE
+    ELSE
+        MOVE 'N' TO H-IN
+    END-IF.

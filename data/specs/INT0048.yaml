@@ -1,0 +1,113 @@
+program: INT0048
+program_file: INT0048.cob
+domain: interest_tiers
+template: interest_term
+seed: 2117821048
+record: IN-RECORD
+out_record: WS-RESULTS
+main: A000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: TM-MM
+  pic: 9(3)
+  business: term_months
+  comment: DEPOSIT TERM IN MONTHS
+outputs:
+- name: WS-IRT
+  pic: 9V9999
+  business: interest_rate
+  init: 0
+  comment: APPLIED INTEREST RATE
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Short term deposit rate
+    intent: Pay 2.75% on deposits with a term of 1 to 6 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id001
+      - 1
+      - 6
+    then:
+    - set: interest_rate
+      value: 0.0275
+    id: R1
+  - title: Medium term deposit rate
+    intent: Pay 3.5% on deposits with a term of 7 to 12 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value:
+      - 7
+      - 12
+    then:
+    - set: interest_rate
+      value: 0.035
+    id: R2
+  - title: Long term deposit rate
+    intent: Pay 4.25% on deposits with a term of 13 to 60 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id002
+      - 13
+      - 60
+    then:
+    - set: interest_rate
+      value: 0.0425
+    id: R3
+  - title: Other deposit terms
+    intent: Pay 2% on deposits with any other term.
+    concepts:
+    - interest
+    - term
+    - default
+    when: null
+    then:
+    - set: interest_rate
+      value: 0.02
+    id: R4
+  paragraph: SET-TERM-RATE
+  render: evaluate_true
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: TM-MM
+  pic: 9(3)
+  business: term_months
+record_length: 3
+names88:
+  TM-BAND-1-6:
+    field: term_months
+    op: between
+    value: *id001
+  TM-BAND-13-60:
+    field: term_months
+    op: between
+    value: *id002
+expected_rules: 4

@@ -1,0 +1,201 @@
+{
+  "program": "FRD0042",
+  "program_file": "FRD0042.cob",
+  "domain": "fraud_scoring",
+  "template": "fraud_channel",
+  "split": "val",
+  "rules": [
+    {
+      "rule_id": "FRD0042-R001",
+      "version": 1,
+      "title": "Card-not-present online purchase",
+      "intent": "Hold online card-not-present transactions above 750 and send them for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "channel_code",
+            "source_name": "CH-CD",
+            "op": "==",
+            "value": "O"
+          },
+          {
+            "field": "card_present",
+            "source_name": "WS-CPF",
+            "op": "==",
+            "value": "N"
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "T-AMT1",
+            "op": ">",
+            "value": 750
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "hold_flag",
+          "source_name": "WS-HLD",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "WS-RVF",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0042.cob",
+        "paragraph": "CHECK-CHANNEL",
+        "line_start": 35,
+        "line_end": 37,
+        "copybooks": [
+          "FRD0042C.cpy"
+        ]
+      },
+      "concepts": [
+        "channel",
+        "online",
+        "card not present",
+        "amount",
+        "hold"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0042.yaml",
+        "seed": 1309912688
+      }
+    },
+    {
+      "rule_id": "FRD0042-R002",
+      "version": 1,
+      "title": "Large online transaction",
+      "intent": "Send online transactions above 15,000 for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "channel_code",
+            "source_name": "CH-CD",
+            "op": "==",
+            "value": "O"
+          },
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "card_present",
+                  "source_name": "WS-CPF",
+                  "op": "==",
+                  "value": "N"
+                },
+                {
+                  "field": "transaction_amount",
+                  "source_name": "T-AMT1",
+                  "op": ">",
+                  "value": 750
+                }
+              ]
+            }
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "T-AMT1",
+            "op": ">",
+            "value": 15000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "WS-RVF",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0042.cob",
+        "paragraph": "CHECK-CHANNEL",
+        "line_start": 38,
+        "line_end": 39,
+        "copybooks": [
+          "FRD0042C.cpy"
+        ]
+      },
+      "concepts": [
+        "channel",
+        "online",
+        "amount",
+        "review"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0042.yaml",
+        "seed": 1309912688
+      }
+    },
+    {
+      "rule_id": "FRD0042-R003",
+      "version": 1,
+      "title": "Non-online transaction",
+      "intent": "Never hold transactions made outside the online channel.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "not": {
+          "field": "channel_code",
+          "source_name": "CH-CD",
+          "op": "==",
+          "value": "O"
+        }
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "hold_flag",
+          "source_name": "WS-HLD",
+          "value": "N"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0042.cob",
+        "paragraph": "CHECK-CHANNEL",
+        "line_start": 41,
+        "line_end": 42,
+        "copybooks": [
+          "FRD0042C.cpy"
+        ]
+      },
+      "concepts": [
+        "channel",
+        "hold"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0042.yaml",
+        "seed": 1309912688
+      }
+    }
+  ]
+}

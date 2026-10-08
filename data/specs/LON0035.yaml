@@ -1,0 +1,110 @@
+program: LON0035
+program_file: LON0035.cob
+domain: loan_limits
+template: loan_age_term
+seed: 869542058
+record: WS-INPUT
+out_record: WS-OUT-REC
+main: 0000-MAIN
+copybook: LON0035C.cpy
+prefix: null
+inputs:
+- name: CUST-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+outputs:
+- name: TERM-CAP
+  pic: 9(2)
+  business: max_term
+  init: 0
+  comment: MAXIMUM TERM IN YEARS
+- name: ELIG-IND
+  pic: X
+  business: eligible_flag
+  init: N
+  comment: LOAN ELIGIBILITY Y/N
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Short term for older borrowers
+    intent: Cap the loan term at 10 years for borrowers older than 65.
+    concepts:
+    - loan term
+    - age
+    - senior
+    when:
+      field: customer_age
+      op: '>'
+      value: 65
+    then:
+    - set: max_term
+      value: 10
+    - set: eligible_flag
+      value: Y
+    id: R1
+  - title: Medium term cap
+    intent: Cap the loan term at 20 years for borrowers older than 55.
+    concepts:
+    - loan term
+    - age
+    when:
+      field: customer_age
+      op: '>'
+      value: 55
+    then:
+    - set: max_term
+      value: 20
+    - set: eligible_flag
+      value: Y
+    id: R2
+  - title: Full term
+    intent: Allow the full 30-year term for all other adult borrowers.
+    concepts:
+    - loan term
+    - default
+    when: null
+    then:
+    - set: max_term
+      value: 30
+    - set: eligible_flag
+      value: Y
+    id: R3
+  outer:
+    field: customer_age
+    op: '>='
+    value: 18
+  outer_else:
+    title: Underage applicant
+    intent: Mark applicants younger than 18 as ineligible.
+    concepts:
+    - eligibility
+    - age
+    - minor
+    when: null
+    then:
+    - set: eligible_flag
+      value: N
+  paragraph: LOAN-TERM-RULES
+  render: else_if
+  compact: false
+style:
+  cryptic_names: false
+  comments: none
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CUST-AGE
+  pic: 9(3)
+  business: customer_age
+record_length: 3
+names88: {}
+expected_rules: 4

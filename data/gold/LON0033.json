@@ -1,0 +1,72 @@
+{
+  "program": "LON0033",
+  "program_file": "LON0033.cob",
+  "domain": "loan_limits",
+  "template": "loan_ltv",
+  "split": "val",
+  "rules": [
+    {
+      "rule_id": "LON0033-R001",
+      "version": 1,
+      "title": "Mortgage insurance requirement",
+      "intent": "Require mortgage insurance and add 0.5% to the rate when the loan-to-value ratio exceeds 80%.",
+      "domain": "loan_limits",
+      "conditions": {
+        "all": [
+          {
+            "field": "ltv_pct",
+            "source_name": "LV-PC",
+            "op": ">",
+            "value": 80
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "mi_required",
+          "source_name": "WS-MIR",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "rate_adjustment",
+          "source_name": "RA-RT",
+          "value": 0.005
+        }
+      ],
+      "else_actions": [
+        {
+          "type": "set",
+          "target": "mi_required",
+          "source_name": "WS-MIR",
+          "value": "N"
+        }
+      ],
+      "trace": {
+        "program": "LON0033.cob",
+        "paragraph": "CHECK-LTV",
+        "line_start": 34,
+        "line_end": 39,
+        "copybooks": [
+          "LON0033C.cpy"
+        ]
+      },
+      "concepts": [
+        "loan to value",
+        "mortgage insurance",
+        "rate"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "loan_ltv",
+        "spec": "data/specs/LON0033.yaml",
+        "seed": 357130228
+      }
+    }
+  ]
+}

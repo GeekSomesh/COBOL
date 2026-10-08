@@ -1,0 +1,171 @@
+{
+  "program": "LON0040",
+  "program_file": "LON0040.cob",
+  "domain": "loan_limits",
+  "template": "loan_income_multiple",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "LON0040-R001",
+      "version": 1,
+      "title": "Established employment multiple",
+      "intent": "Lend up to 4 times annual income to applicants employed 7 years or more.",
+      "domain": "loan_limits",
+      "conditions": {
+        "all": [
+          {
+            "field": "employment_years",
+            "source_name": "JOB-TENURE",
+            "op": ">=",
+            "value": 7
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "max_loan",
+          "source_name": "MAX-LOAN-AMT",
+          "expr": "ANNUAL-INCOME * 4"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "LON0040.cob",
+        "paragraph": "MAX-LOAN-CALC",
+        "line_start": 32,
+        "line_end": 33,
+        "copybooks": []
+      },
+      "concepts": [
+        "loan limit",
+        "income",
+        "employment"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "loan_income_multiple",
+        "spec": "data/specs/LON0040.yaml",
+        "seed": 285671725
+      }
+    },
+    {
+      "rule_id": "LON0040-R002",
+      "version": 1,
+      "title": "Standard employment multiple",
+      "intent": "Lend up to 3 times annual income to applicants employed 3 years or more.",
+      "domain": "loan_limits",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "employment_years",
+              "source_name": "JOB-TENURE",
+              "op": ">=",
+              "value": 7
+            }
+          },
+          {
+            "field": "employment_years",
+            "source_name": "JOB-TENURE",
+            "op": ">=",
+            "value": 3
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "max_loan",
+          "source_name": "MAX-LOAN-AMT",
+          "expr": "ANNUAL-INCOME * 3"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "LON0040.cob",
+        "paragraph": "MAX-LOAN-CALC",
+        "line_start": 36,
+        "line_end": 37,
+        "copybooks": []
+      },
+      "concepts": [
+        "loan limit",
+        "income",
+        "employment"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "loan_income_multiple",
+        "spec": "data/specs/LON0040.yaml",
+        "seed": 285671725
+      }
+    },
+    {
+      "rule_id": "LON0040-R003",
+      "version": 1,
+      "title": "New employee multiple",
+      "intent": "Lend up to 1.5 times annual income to everyone else.",
+      "domain": "loan_limits",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "employment_years",
+              "source_name": "JOB-TENURE",
+              "op": ">=",
+              "value": 7
+            }
+          },
+          {
+            "not": {
+              "field": "employment_years",
+              "source_name": "JOB-TENURE",
+              "op": ">=",
+              "value": 3
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "max_loan",
+          "source_name": "MAX-LOAN-AMT",
+          "expr": "ANNUAL-INCOME * 1.5"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "LON0040.cob",
+        "paragraph": "MAX-LOAN-CALC",
+        "line_start": 38,
+        "line_end": 39,
+        "copybooks": []
+      },
+      "concepts": [
+        "loan limit",
+        "income",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "loan_income_multiple",
+        "spec": "data/specs/LON0040.yaml",
+        "seed": 285671725
+      }
+    }
+  ]
+}

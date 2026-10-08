@@ -1,0 +1,115 @@
+program: FRD0051
+program_file: FRD0051.cob
+domain: fraud_scoring
+template: fraud_channel
+seed: 284031711
+record: WS-INPUT
+out_record: OUT-RECORD
+main: 0000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: CH-CD
+  pic: X
+  business: channel_code
+  comment: CHANNEL O=ONLINE B=BRANCH A=ATM
+- name: CP-FLG
+  pic: X
+  business: card_present
+  comment: CARD PRESENT Y/N
+- name: TA-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+outputs:
+- name: H-IN
+  pic: X
+  business: hold_flag
+  init: N
+  comment: HOLD TRANSACTION FLAG
+- name: R-IND
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Card-not-present online purchase
+    intent: Hold online card-not-present transactions above 1,750 and send them for review.
+    concepts:
+    - channel
+    - online
+    - card not present
+    - amount
+    - hold
+    when:
+      all:
+      - field: card_present
+        op: ==
+        value: N
+      - field: transaction_amount
+        op: '>'
+        value: 1750
+    then:
+    - set: hold_flag
+      value: Y
+    - set: review_flag
+      value: Y
+    id: R1
+  - title: Large online transaction
+    intent: Send online transactions above 12,500 for review.
+    concepts:
+    - channel
+    - online
+    - amount
+    - review
+    when:
+      field: transaction_amount
+      op: '>'
+      value: 12500
+    then:
+    - set: review_flag
+      value: Y
+    id: R2
+  outer:
+    field: channel_code
+    op: ==
+    value: O
+  paragraph: CHECK-CHANNEL
+  render: else_if
+  compact: true
+style:
+  cryptic_names: true
+  comments: misleading
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: CH-CD
+  pic: X
+  business: channel_code
+- name: CP-FLG
+  pic: X
+  business: card_present
+- name: TA-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+record_length: 11
+names88:
+  CP-NOT-PRESENT:
+    field: card_present
+    op: ==
+    value: N
+  R-REVIEW-NEEDED:
+    field: review_flag
+    op: ==
+    value: Y
+expected_rules: 2

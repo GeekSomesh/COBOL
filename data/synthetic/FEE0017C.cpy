@@ -1,0 +1,3 @@
+    05 ACCT-TYPE          PIC X.
+    *> TRANSACTIONS THIS MONTH
+    05 TXN-COUNT-MTH      PIC 9(3).

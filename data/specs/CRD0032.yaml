@@ -1,0 +1,116 @@
+program: CRD0032
+program_file: CRD0032.cob
+domain: credit_approval
+template: credit_bankruptcy
+seed: 1990059605
+record: WS-INPUT
+out_record: WS-RESULTS
+main: MAINLINE
+copybook: CRD0032C.cpy
+prefix: null
+inputs:
+- name: PRIOR-BK-FLG
+  pic: X
+  business: bankruptcy_flag
+  comment: PRIOR BANKRUPTCY Y/N
+- name: YRS-SINCE-BK
+  pic: 9(2)
+  business: years_since_bk
+  comment: YEARS SINCE BANKRUPTCY DISCHARGE
+- name: CR-SCORE
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+outputs:
+- name: CREDIT-DECN
+  pic: X
+  business: decision
+  init: D
+  comment: A=APPROVE R=REFER D=DECLINE
+- name: DECN-REASON
+  pic: X(3)
+  business: reason_code
+  init: ' '
+  comment: DECISION REASON CODE
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Recent bankruptcy decline
+    intent: Decline applicants with a bankruptcy in the last 10 years.
+    concepts:
+    - bankruptcy
+    - decline
+    - credit history
+    when:
+      field: years_since_bk
+      op: <
+      value: 10
+    then:
+    - set: decision
+      value: D
+    - set: reason_code
+      value: BK1
+    id: R1
+  - title: Older bankruptcy referral
+    intent: Refer applicants whose bankruptcy is 10 or more years old.
+    concepts:
+    - bankruptcy
+    - referral
+    - credit history
+    when: null
+    then:
+    - set: decision
+      value: R
+    - set: reason_code
+      value: BK2
+    id: R2
+  outer:
+    field: bankruptcy_flag
+    op: ==
+    value: Y
+  outer_else:
+    title: No bankruptcy on file
+    intent: Record reason code NA when the applicant has no prior bankruptcy.
+    concepts:
+    - bankruptcy
+    - reason code
+    when: null
+    then:
+    - set: reason_code
+      value: NA
+  paragraph: BANKRUPTCY-CHECK
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: PRIOR-BK-FLG
+  pic: X
+  business: bankruptcy_flag
+- name: YRS-SINCE-BK
+  pic: 9(2)
+  business: years_since_bk
+- name: CR-SCORE
+  pic: 9(3)
+  business: credit_score
+record_length: 6
+names88:
+  CREDIT-DECLINED:
+    field: decision
+    op: ==
+    value: D
+  CREDIT-REFERRED:
+    field: decision
+    op: ==
+    value: R
+expected_rules: 3

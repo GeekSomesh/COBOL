@@ -1,0 +1,100 @@
+program: CRD0018
+program_file: CRD0018.cob
+domain: credit_approval
+template: credit_limit_assign
+seed: 321615896
+record: INPUT-AREA
+out_record: WS-OUT-REC
+main: A000-MAIN
+copybook: CRD0018C.cpy
+prefix: null
+inputs:
+- name: WS-CSCR
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+- name: WS-ANINC
+  pic: 9(7)V99
+  business: annual_income
+  comment: GROSS ANNUAL INCOME
+outputs:
+- name: C-LM
+  pic: 9(7)V99
+  business: credit_limit
+  init: 0
+  comment: ASSIGNED CREDIT LIMIT
+noise:
+  date: POST-DATE
+  filler: 2
+blocks:
+- structure: chain
+  rules:
+  - title: Prime credit limit
+    intent: Set the credit limit to 25% of annual income for scores of 750 or more.
+    concepts:
+    - credit limit
+    - credit score
+    - income
+    when:
+      field: credit_score
+      op: '>='
+      value: 750
+    then:
+    - compute: credit_limit
+      expr: annual_income * 0.25
+    id: R1
+  - title: Standard credit limit
+    intent: Set the credit limit to 15% of annual income for scores of 660 or more.
+    concepts:
+    - credit limit
+    - credit score
+    - income
+    when:
+      field: credit_score
+      op: '>='
+      value: 660
+    then:
+    - compute: credit_limit
+      expr: annual_income * 0.15
+    id: R2
+  - title: Minimum credit limit
+    intent: Give every other approved applicant the minimum limit of 1,000.
+    concepts:
+    - credit limit
+    - default
+    when: null
+    then:
+    - set: credit_limit
+      value: 1000
+    id: R3
+  paragraph: SET-CARD-LIMIT
+  render: else_if
+  compact: false
+style:
+  cryptic_names: true
+  comments: none
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: false
+  dead_code: true
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: WS-CSCR
+  pic: 9(3)
+  business: credit_score
+- name: WS-ANINC
+  pic: 9(7)V99
+  business: annual_income
+- name: POST-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 22
+names88: {}
+expected_rules: 3

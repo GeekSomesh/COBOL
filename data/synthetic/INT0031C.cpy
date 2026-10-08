@@ -1,0 +1,2 @@
+    05 :PFX:-ACCOUNT-TYPE    PIC X.
+    05 :PFX:-ACCT-BALANCE    PIC 9(9)V99.

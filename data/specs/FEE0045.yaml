@@ -1,0 +1,118 @@
+program: FEE0045
+program_file: FEE0045.cob
+domain: fee_exemptions
+template: fee_student_senior
+seed: 758618474
+record: WS-IN-REC
+out_record: WS-RESULTS
+main: A000-MAIN
+copybook: FEE0045C.cpy
+prefix: null
+inputs:
+- name: STUDENT-FLAG
+  pic: X
+  business: student_flag
+  comment: STUDENT INDICATOR Y/N
+- name: CUSTOMER-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+outputs:
+- name: FEE-WAIVED
+  pic: X
+  business: fee_waived
+  init: N
+  comment: FEE WAIVER INDICATOR
+- name: MTH-FEE
+  pic: 9(3)V99
+  business: monthly_fee
+  init: 0
+  comment: MONTHLY SERVICE FEE
+noise:
+  date: POST-DATE
+  filler: 6
+blocks:
+- structure: chain
+  rules:
+  - title: Student fee waiver
+    intent: Waive the monthly fee for students younger than 24.
+    concepts:
+    - fee
+    - waiver
+    - student
+    - age
+    when:
+      all:
+      - field: student_flag
+        op: ==
+        value: Y
+      - field: customer_age
+        op: <
+        value: 24
+    then:
+    - set: fee_waived
+      value: Y
+    - set: monthly_fee
+      value: 0
+    id: R1
+  - title: Senior fee waiver
+    intent: Waive the monthly fee for customers aged 60 or over.
+    concepts:
+    - fee
+    - waiver
+    - senior
+    - age
+    when:
+      field: customer_age
+      op: '>='
+      value: 60
+    then:
+    - set: fee_waived
+      value: Y
+    - set: monthly_fee
+      value: 0
+    id: R2
+  - title: Standard monthly fee
+    intent: Charge everyone else the standard monthly fee of 9.
+    concepts:
+    - fee
+    - default
+    when: null
+    then:
+    - set: monthly_fee
+      value: 9
+    id: R3
+  paragraph: AGE-FEE-RULES
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: misleading
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: STUDENT-FLAG
+  pic: X
+  business: student_flag
+- name: CUSTOMER-AGE
+  pic: 9(3)
+  business: customer_age
+- name: POST-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(6)
+  business: null
+record_length: 18
+names88:
+  FEE-WAIVED-2:
+    field: fee_waived
+    op: ==
+    value: Y
+expected_rules: 3

@@ -1,0 +1,100 @@
+program: FRD0043
+program_file: FRD0043.cob
+domain: fraud_scoring
+template: fraud_minor_high_value
+seed: 2026467433
+record: IN-RECORD
+out_record: WS-RESULTS
+main: 0000-MAIN
+copybook: FRD0043C.cpy
+prefix: null
+inputs:
+- name: WS-CAGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: WS-TXAMT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+- name: WS-CTRY
+  pic: X(2)
+  business: country_code
+  comment: ORIGIN COUNTRY CODE
+outputs:
+- name: FR-FLG
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: High-value transaction by minor
+    intent: Flag transactions over 4,000 made by customers younger than 16 for manual review.
+    concepts:
+    - age
+    - amount
+    - minor
+    - review
+    when:
+      all:
+      - field: customer_age
+        op: <
+        value: 16
+      - field: transaction_amount
+        op: '>'
+        value: 4000
+    then:
+    - set: review_flag
+      value: Y
+    id: R1
+  paragraph: CHECK-TXN
+- structure: if
+  rules:
+  - title: Large transaction from high-risk region
+    intent: Flag transactions over 25,000 that originate from high-risk country codes XA for review.
+    concepts:
+    - amount
+    - geography
+    - country
+    - review
+    when:
+      all:
+      - field: transaction_amount
+        op: '>'
+        value: 25000
+      - field: country_code
+        op: ==
+        value: XA
+    then:
+    - set: review_flag
+      value: Y
+    id: R1
+  paragraph: HIGH-RISK-REGION
+style:
+  cryptic_names: true
+  comments: misleading
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: WS-CAGE
+  pic: 9(3)
+  business: customer_age
+- name: WS-TXAMT
+  pic: 9(7)V99
+  business: transaction_amount
+- name: WS-CTRY
+  pic: X(2)
+  business: country_code
+record_length: 14
+names88: {}
+expected_rules: 2

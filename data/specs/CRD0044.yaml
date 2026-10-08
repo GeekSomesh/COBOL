@@ -1,0 +1,108 @@
+program: CRD0044
+program_file: CRD0044.cob
+domain: credit_approval
+template: credit_bankruptcy
+seed: 492531493
+record: WS-INPUT
+out_record: WS-RESULTS
+main: 0000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: WS-BKF
+  pic: X
+  business: bankruptcy_flag
+  comment: PRIOR BANKRUPTCY Y/N
+- name: YB-YY
+  pic: 9(2)
+  business: years_since_bk
+  comment: YEARS SINCE BANKRUPTCY DISCHARGE
+- name: B-SC
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+outputs:
+- name: DC-CD
+  pic: X
+  business: decision
+  init: D
+  comment: A=APPROVE R=REFER D=DECLINE
+- name: RC-CD
+  pic: X(3)
+  business: reason_code
+  init: ' '
+  comment: DECISION REASON CODE
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Recent bankruptcy decline
+    intent: Decline applicants with a bankruptcy in the last 7 years.
+    concepts:
+    - bankruptcy
+    - decline
+    - credit history
+    when:
+      field: years_since_bk
+      op: <
+      value: 7
+    then:
+    - set: decision
+      value: D
+    - set: reason_code
+      value: BK1
+    id: R1
+  - title: Older bankruptcy referral
+    intent: Refer applicants whose bankruptcy is 7 or more years old.
+    concepts:
+    - bankruptcy
+    - referral
+    - credit history
+    when: null
+    then:
+    - set: decision
+      value: R
+    - set: reason_code
+      value: BK2
+    id: R2
+  outer:
+    field: bankruptcy_flag
+    op: ==
+    value: Y
+  outer_else:
+    title: No bankruptcy on file
+    intent: Record reason code NA when the applicant has no prior bankruptcy.
+    concepts:
+    - bankruptcy
+    - reason code
+    when: null
+    then:
+    - set: reason_code
+      value: NA
+  paragraph: BANKRUPTCY-CHECK
+  render: evaluate_true
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: false
+record_layout:
+- name: WS-BKF
+  pic: X
+  business: bankruptcy_flag
+- name: YB-YY
+  pic: 9(2)
+  business: years_since_bk
+- name: B-SC
+  pic: 9(3)
+  business: credit_score
+record_length: 6
+names88: {}
+expected_rules: 3

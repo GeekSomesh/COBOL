@@ -1,0 +1,4 @@
+    *> CHANNEL O=ONLINE B=BRANCH A=ATM
+    05 TXN-CHANNEL        PIC X.
+    05 CARD-PRESENT       PIC X.
+    05 TXN-AMOUNT         PIC 9(7)V99.

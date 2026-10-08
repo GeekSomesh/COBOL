@@ -1,0 +1,150 @@
+{
+  "program": "FRD0036",
+  "program_file": "FRD0036.cob",
+  "domain": "fraud_scoring",
+  "template": "fraud_channel",
+  "split": "val",
+  "rules": [
+    {
+      "rule_id": "FRD0036-R001",
+      "version": 1,
+      "title": "Card-not-present online purchase",
+      "intent": "Hold online card-not-present transactions above 500 and send them for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "channel_code",
+            "source_name": "TXN-CHANNEL",
+            "op": "==",
+            "value": "O"
+          },
+          {
+            "field": "card_present",
+            "source_name": "CARD-PRES-FLG",
+            "op": "==",
+            "value": "N"
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "TXN-AMT",
+            "op": ">",
+            "value": 500
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "hold_flag",
+          "source_name": "TXN-HOLD-IND",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "REVIEW-FLAG",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0036.cob",
+        "paragraph": "CHECK-CHANNEL",
+        "line_start": 37,
+        "line_end": 39,
+        "copybooks": []
+      },
+      "concepts": [
+        "channel",
+        "online",
+        "card not present",
+        "amount",
+        "hold"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0036.yaml",
+        "seed": 1003799300
+      }
+    },
+    {
+      "rule_id": "FRD0036-R002",
+      "version": 1,
+      "title": "Large online transaction",
+      "intent": "Send online transactions above 5,000 for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "channel_code",
+            "source_name": "TXN-CHANNEL",
+            "op": "==",
+            "value": "O"
+          },
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "card_present",
+                  "source_name": "CARD-PRES-FLG",
+                  "op": "==",
+                  "value": "N"
+                },
+                {
+                  "field": "transaction_amount",
+                  "source_name": "TXN-AMT",
+                  "op": ">",
+                  "value": 500
+                }
+              ]
+            }
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "TXN-AMT",
+            "op": ">",
+            "value": 5000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "REVIEW-FLAG",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0036.cob",
+        "paragraph": "CHECK-CHANNEL",
+        "line_start": 42,
+        "line_end": 43,
+        "copybooks": []
+      },
+      "concepts": [
+        "channel",
+        "online",
+        "amount",
+        "review"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0036.yaml",
+        "seed": 1003799300
+      }
+    }
+  ]
+}

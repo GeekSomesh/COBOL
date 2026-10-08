@@ -1,0 +1,138 @@
+program: FRD0032
+program_file: FRD0032.cob
+domain: fraud_scoring
+template: fraud_velocity
+seed: 1135179888
+record: INPUT-AREA
+out_record: RESULT-AREA
+main: A000-MAIN
+copybook: FRD0032C.cpy
+prefix: AC
+inputs:
+- name: AC-TRAN-CNT-DAY
+  pic: 9(3)
+  business: txn_count_24h
+  comment: TRANSACTIONS IN LAST 24 HOURS
+- name: AC-TXN-AMOUNT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+- name: AC-ACCT-AGE-DAYS
+  pic: 9(5)
+  business: account_age_days
+  comment: DAYS SINCE ACCOUNT OPENED
+outputs:
+- name: RISK-LVL
+  pic: X
+  business: risk_level
+  init: L
+  comment: RISK LEVEL H/M/L
+- name: RISK-SCORE
+  pic: 9(3)
+  business: risk_score
+  init: 0
+  comment: FRAUD RISK SCORE
+noise:
+  date: AC-PROC-DATE
+  filler: 4
+blocks:
+- structure: chain
+  rules:
+  - title: Very high transaction velocity
+    intent: Rate activity as high risk when more than 25 transactions in 24 hours include one above 4,000.
+    concepts:
+    - velocity
+    - transaction count
+    - amount
+    - risk
+    when:
+      all:
+      - field: txn_count_24h
+        op: '>'
+        value: 25
+      - field: transaction_amount
+        op: '>'
+        value: 4000
+    then:
+    - set: risk_level
+      value: H
+    - set: risk_score
+      value: 90
+    id: R1
+  - title: Elevated transaction velocity
+    intent: Rate activity as medium risk when the customer made more than 12 transactions in the last 24 hours.
+    concepts:
+    - velocity
+    - transaction count
+    - risk
+    when:
+      field: txn_count_24h
+      op: '>'
+      value: 12
+    then:
+    - set: risk_level
+      value: M
+    - set: risk_score
+      value: 60
+    id: R2
+  - title: Activity on new account
+    intent: Rate activity on accounts opened less than 90 days ago as medium risk.
+    concepts:
+    - account age
+    - new account
+    - risk
+    when:
+      field: account_age_days
+      op: <
+      value: 90
+    then:
+    - set: risk_level
+      value: M
+    - set: risk_score
+      value: 40
+    id: R3
+  - title: Normal activity
+    intent: Rate all other activity as low risk.
+    concepts:
+    - risk
+    - default
+    when: null
+    then:
+    - set: risk_level
+      value: L
+    - set: risk_score
+      value: 10
+    id: R4
+  paragraph: SCORE-VELOCITY
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: true
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: AC-TRAN-CNT-DAY
+  pic: 9(3)
+  business: txn_count_24h
+- name: AC-TXN-AMOUNT
+  pic: 9(7)V99
+  business: transaction_amount
+- name: AC-ACCT-AGE-DAYS
+  pic: 9(5)
+  business: account_age_days
+- name: AC-PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 29
+names88: {}
+expected_rules: 4

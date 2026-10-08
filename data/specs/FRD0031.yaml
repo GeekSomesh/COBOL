@@ -1,0 +1,86 @@
+program: FRD0031
+program_file: FRD0031.cob
+domain: fraud_scoring
+template: fraud_minor_high_value
+seed: 2004924061
+record: WS-IN-REC
+out_record: RESULT-AREA
+main: 0000-MAIN
+copybook: FRD0031C.cpy
+prefix: CU
+inputs:
+- name: CU-WS-CAGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: CU-T-AMT1
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+- name: CU-WS-CTRY
+  pic: X(2)
+  business: country_code
+  comment: ORIGIN COUNTRY CODE
+outputs:
+- name: FR-FLG
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise:
+  date: CU-POST-DATE
+  filler: 6
+blocks:
+- structure: if
+  rules:
+  - title: High-value transaction by minor
+    intent: Flag transactions over 10,000 made by customers younger than 18 for manual review.
+    concepts:
+    - age
+    - amount
+    - minor
+    - review
+    when:
+      all:
+      - field: customer_age
+        op: <
+        value: 18
+      - field: transaction_amount
+        op: '>'
+        value: 10000
+    then:
+    - set: review_flag
+      value: Y
+    id: R1
+  paragraph: 2000-CHECK-MINOR
+style:
+  cryptic_names: true
+  comments: misleading
+  copybook: true
+  replacing: true
+  abbreviated: true
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CU-WS-CAGE
+  pic: 9(3)
+  business: customer_age
+- name: CU-T-AMT1
+  pic: 9(7)V99
+  business: transaction_amount
+- name: CU-WS-CTRY
+  pic: X(2)
+  business: country_code
+- name: CU-POST-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(6)
+  business: null
+record_length: 28
+names88: {}
+expected_rules: 1

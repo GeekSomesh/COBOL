@@ -1,0 +1,100 @@
+program: CRD0016
+program_file: CRD0016.cob
+domain: credit_approval
+template: credit_score_cutoff
+seed: 2110100607
+record: WS-INPUT
+out_record: OUT-RECORD
+main: A000-MAIN
+copybook: CRD0016C.cpy
+prefix: null
+inputs:
+- name: CS-SCR
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+- name: D-IR
+  pic: 9V99
+  business: debt_ratio
+  comment: DEBT TO INCOME RATIO
+outputs:
+- name: DC-CD
+  pic: X
+  business: decision
+  init: D
+  comment: A=APPROVE R=REFER D=DECLINE
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Automatic approval
+    intent: Approve applicants with a credit score of 720 or more and a debt-to-income ratio below 0.40.
+    concepts:
+    - credit score
+    - debt ratio
+    - approval
+    when:
+      all:
+      - field: credit_score
+        op: '>='
+        value: 720
+      - field: debt_ratio
+        op: <
+        value: 0.4
+    then:
+    - set: decision
+      value: A
+    id: R1
+  - title: Refer to underwriter
+    intent: Refer applicants scoring 680 or more to an underwriter.
+    concepts:
+    - credit score
+    - referral
+    - underwriting
+    when:
+      field: credit_score
+      op: '>='
+      value: 680
+    then:
+    - set: decision
+      value: R
+    id: R2
+  - title: Decline application
+    intent: Decline all other applicants.
+    concepts:
+    - decline
+    - default
+    when: null
+    then:
+    - set: decision
+      value: D
+    id: R3
+  paragraph: DECIDE-APPLICATION
+  render: else_if
+  compact: true
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: CS-SCR
+  pic: 9(3)
+  business: credit_score
+- name: D-IR
+  pic: 9V99
+  business: debt_ratio
+record_length: 6
+names88:
+  DC-APPROVED:
+    field: decision
+    op: ==
+    value: A
+expected_rules: 3

@@ -1,0 +1,51 @@
+*> ********************************************************
+*> PROGRAM : LON0032
+*> PURPOSE : LOAN LIMITS RULES
+*> AUTHOR  : R.T.
+*> CHANGE LOG:
+*>   1987-06-12 ORIGINAL VERSION
+*>   2009-10-09 THRESHOLDS UPDATED PER AUDIT REQ 332
+*> RUN FROM JCL JOB LONNIGHT STEP050
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. LON0032.
+ENVIRONMENT DIVISION.
+CONFIGURATION SECTION.
+SOURCE-COMPUTER. IBM-370.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 IN-RECORD.
+    COPY LON0032C REPLACING ==:PFX:== BY ==CU==.
+01 WS-OUT-REC.
+    *> MAXIMUM TERM IN YEARS
+    05 T-CP               PIC 9(2) VALUE ZERO.
+    *> LOAN ELIGIBILITY Y/N
+    05 WS-ELG             PIC X VALUE 'N'.
+PROCEDURE DIVISION.
+0000-MAIN.
+    ACCEPT IN-RECORD
+    PERFORM LOAN-TERM-RULES
+    DISPLAY "T-CP=" T-CP
+    DISPLAY "WS-ELG=" WS-ELG
+    STOP RUN.
+LOAN-TERM-RULES.
+    *>  OLD CHECK REMOVED 1996
+    *>  IF CU-WS-CAGE > 52
+    *>      PERFORM 9000-OLD-HANDLING
+    *>  END-IF
+    IF CU-WS-CAGE >= 18
+        EVALUATE TRUE
+            WHEN CU-WS-CAGE > 65
+                MOVE 10 TO T-CP
+                MOVE 'Y' TO WS-ELG
+            *> MEDIUM TERM CAP
+            WHEN CU-WS-CAGE > 55
+                MOVE 20 TO T-CP
+                MOVE 'Y' TO WS-ELG
+            WHEN OTHER
+                MOVE 30 TO T-CP
+                MOVE 'Y' TO WS-ELG
+        END-EVALUATE
+    ELSE
+        MOVE 'N' TO WS-ELG
+    END-IF.

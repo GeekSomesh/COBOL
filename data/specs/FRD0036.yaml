@@ -1,0 +1,107 @@
+program: FRD0036
+program_file: FRD0036.cob
+domain: fraud_scoring
+template: fraud_channel
+seed: 1003799300
+record: INPUT-AREA
+out_record: OUT-RECORD
+main: 0000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: TXN-CHANNEL
+  pic: X
+  business: channel_code
+  comment: CHANNEL O=ONLINE B=BRANCH A=ATM
+- name: CARD-PRES-FLG
+  pic: X
+  business: card_present
+  comment: CARD PRESENT Y/N
+- name: TXN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+outputs:
+- name: TXN-HOLD-IND
+  pic: X
+  business: hold_flag
+  init: N
+  comment: HOLD TRANSACTION FLAG
+- name: REVIEW-FLAG
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Card-not-present online purchase
+    intent: Hold online card-not-present transactions above 500 and send them for review.
+    concepts:
+    - channel
+    - online
+    - card not present
+    - amount
+    - hold
+    when:
+      all:
+      - field: card_present
+        op: ==
+        value: N
+      - field: transaction_amount
+        op: '>'
+        value: 500
+    then:
+    - set: hold_flag
+      value: Y
+    - set: review_flag
+      value: Y
+    id: R1
+  - title: Large online transaction
+    intent: Send online transactions above 5,000 for review.
+    concepts:
+    - channel
+    - online
+    - amount
+    - review
+    when:
+      field: transaction_amount
+      op: '>'
+      value: 5000
+    then:
+    - set: review_flag
+      value: Y
+    id: R2
+  outer:
+    field: channel_code
+    op: ==
+    value: O
+  paragraph: CHECK-CHANNEL
+  render: else_if
+  compact: false
+style:
+  cryptic_names: false
+  comments: misleading
+  copybook: false
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: TXN-CHANNEL
+  pic: X
+  business: channel_code
+- name: CARD-PRES-FLG
+  pic: X
+  business: card_present
+- name: TXN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+record_length: 11
+names88: {}
+expected_rules: 2

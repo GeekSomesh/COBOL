@@ -1,0 +1,82 @@
+{
+  "program": "FEE0043",
+  "program_file": "FEE0043.cob",
+  "domain": "fee_exemptions",
+  "template": "fee_waiver_balance",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "FEE0043-R001",
+      "version": 1,
+      "title": "Monthly fee waiver",
+      "intent": "Waive the monthly fee for premium or gold accounts and for accounts averaging at least 5,000; charge 7.50 otherwise.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "any": [
+          {
+            "field": "account_type",
+            "source_name": "AC-A-TY",
+            "op": "in",
+            "value": [
+              "G",
+              "P"
+            ]
+          },
+          {
+            "field": "avg_balance",
+            "source_name": "AC-AB-AMT",
+            "op": ">=",
+            "value": 5000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "fee_waived",
+          "source_name": "WS-FWV",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "MF-AMT",
+          "value": 0
+        }
+      ],
+      "else_actions": [
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "MF-AMT",
+          "value": 7.5
+        }
+      ],
+      "trace": {
+        "program": "FEE0043.cob",
+        "paragraph": "MONTHLY-FEE-CHECK",
+        "line_start": 29,
+        "line_end": 36,
+        "copybooks": [
+          "FEE0043C.cpy"
+        ]
+      },
+      "concepts": [
+        "fee",
+        "waiver",
+        "account type",
+        "balance"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_waiver_balance",
+        "spec": "data/specs/FEE0043.yaml",
+        "seed": 2125752441
+      }
+    }
+  ]
+}

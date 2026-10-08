@@ -1,0 +1,182 @@
+{
+  "program": "CRD0011",
+  "program_file": "CRD0011.cob",
+  "domain": "credit_approval",
+  "template": "credit_bankruptcy",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "CRD0011-R001",
+      "version": 1,
+      "title": "Recent bankruptcy decline",
+      "intent": "Decline applicants with a bankruptcy in the last 7 years.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "field": "bankruptcy_flag",
+            "source_name": "IN-BK-FLG",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "field": "years_since_bk",
+            "source_name": "IN-WS-BKY",
+            "op": "<",
+            "value": 7
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "DC-CD",
+          "value": "D"
+        },
+        {
+          "type": "set",
+          "target": "reason_code",
+          "source_name": "WS-RSN",
+          "value": "BK1"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0011.cob",
+        "paragraph": "2500-BK-RULES",
+        "line_start": 30,
+        "line_end": 32,
+        "copybooks": [
+          "CRD0011C.cpy"
+        ]
+      },
+      "concepts": [
+        "bankruptcy",
+        "decline",
+        "credit history"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_bankruptcy",
+        "spec": "data/specs/CRD0011.yaml",
+        "seed": 556678777
+      }
+    },
+    {
+      "rule_id": "CRD0011-R002",
+      "version": 1,
+      "title": "Older bankruptcy referral",
+      "intent": "Refer applicants whose bankruptcy is 7 or more years old.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "field": "bankruptcy_flag",
+            "source_name": "IN-BK-FLG",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "not": {
+              "field": "years_since_bk",
+              "source_name": "IN-WS-BKY",
+              "op": "<",
+              "value": 7
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "DC-CD",
+          "value": "R"
+        },
+        {
+          "type": "set",
+          "target": "reason_code",
+          "source_name": "WS-RSN",
+          "value": "BK2"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0011.cob",
+        "paragraph": "2500-BK-RULES",
+        "line_start": 33,
+        "line_end": 35,
+        "copybooks": [
+          "CRD0011C.cpy"
+        ]
+      },
+      "concepts": [
+        "bankruptcy",
+        "referral",
+        "credit history"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_bankruptcy",
+        "spec": "data/specs/CRD0011.yaml",
+        "seed": 556678777
+      }
+    },
+    {
+      "rule_id": "CRD0011-R003",
+      "version": 1,
+      "title": "No bankruptcy on file",
+      "intent": "Record reason code NA when the applicant has no prior bankruptcy.",
+      "domain": "credit_approval",
+      "conditions": {
+        "not": {
+          "field": "bankruptcy_flag",
+          "source_name": "IN-BK-FLG",
+          "op": "==",
+          "value": "Y"
+        }
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "reason_code",
+          "source_name": "WS-RSN",
+          "value": "NA"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0011.cob",
+        "paragraph": "2500-BK-RULES",
+        "line_start": 37,
+        "line_end": 38,
+        "copybooks": [
+          "CRD0011C.cpy"
+        ]
+      },
+      "concepts": [
+        "bankruptcy",
+        "reason code"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_bankruptcy",
+        "spec": "data/specs/CRD0011.yaml",
+        "seed": 556678777
+      }
+    }
+  ]
+}

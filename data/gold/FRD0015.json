@@ -1,0 +1,150 @@
+{
+  "program": "FRD0015",
+  "program_file": "FRD0015.cob",
+  "domain": "fraud_scoring",
+  "template": "fraud_channel",
+  "split": "val",
+  "rules": [
+    {
+      "rule_id": "FRD0015-R001",
+      "version": 1,
+      "title": "Card-not-present online purchase",
+      "intent": "Hold online card-not-present transactions above 2,250 and send them for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "channel_code",
+            "source_name": "WS-CHN",
+            "op": "==",
+            "value": "O"
+          },
+          {
+            "field": "card_present",
+            "source_name": "WS-CPF",
+            "op": "==",
+            "value": "N"
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "WS-TXAMT",
+            "op": ">",
+            "value": 2250
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "hold_flag",
+          "source_name": "WS-HLD",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "FR-FLG",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0015.cob",
+        "paragraph": "ONLINE-SCREEN",
+        "line_start": 30,
+        "line_end": 32,
+        "copybooks": []
+      },
+      "concepts": [
+        "channel",
+        "online",
+        "card not present",
+        "amount",
+        "hold"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0015.yaml",
+        "seed": 303243348
+      }
+    },
+    {
+      "rule_id": "FRD0015-R002",
+      "version": 1,
+      "title": "Large online transaction",
+      "intent": "Send online transactions above 17,500 for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "channel_code",
+            "source_name": "WS-CHN",
+            "op": "==",
+            "value": "O"
+          },
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "card_present",
+                  "source_name": "WS-CPF",
+                  "op": "==",
+                  "value": "N"
+                },
+                {
+                  "field": "transaction_amount",
+                  "source_name": "WS-TXAMT",
+                  "op": ">",
+                  "value": 2250
+                }
+              ]
+            }
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "WS-TXAMT",
+            "op": ">",
+            "value": 17500
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "FR-FLG",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0015.cob",
+        "paragraph": "ONLINE-SCREEN",
+        "line_start": 34,
+        "line_end": 35,
+        "copybooks": []
+      },
+      "concepts": [
+        "channel",
+        "online",
+        "amount",
+        "review"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0015.yaml",
+        "seed": 303243348
+      }
+    }
+  ]
+}

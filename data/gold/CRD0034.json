@@ -1,0 +1,196 @@
+{
+  "program": "CRD0034",
+  "program_file": "CRD0034.cob",
+  "domain": "credit_approval",
+  "template": "credit_score_cutoff",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "CRD0034-R001",
+      "version": 1,
+      "title": "Automatic approval",
+      "intent": "Approve applicants with a credit score of 740 or more and a debt-to-income ratio below 0.35.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "field": "credit_score",
+            "source_name": "CS-SCR",
+            "op": ">=",
+            "value": 740
+          },
+          {
+            "field": "debt_ratio",
+            "source_name": "D-IR",
+            "op": "<",
+            "value": 0.35
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "A-DC",
+          "value": "A"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0034.cob",
+        "paragraph": "CREDIT-CUTOFF",
+        "line_start": 17,
+        "line_end": 18,
+        "copybooks": []
+      },
+      "concepts": [
+        "credit score",
+        "debt ratio",
+        "approval"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0034.yaml",
+        "seed": 779828596
+      }
+    },
+    {
+      "rule_id": "CRD0034-R002",
+      "version": 1,
+      "title": "Refer to underwriter",
+      "intent": "Refer applicants scoring 680 or more to an underwriter.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "credit_score",
+                  "source_name": "CS-SCR",
+                  "op": ">=",
+                  "value": 740
+                },
+                {
+                  "field": "debt_ratio",
+                  "source_name": "D-IR",
+                  "op": "<",
+                  "value": 0.35
+                }
+              ]
+            }
+          },
+          {
+            "field": "credit_score",
+            "source_name": "CS-SCR",
+            "op": ">=",
+            "value": 680
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "A-DC",
+          "value": "R"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0034.cob",
+        "paragraph": "CREDIT-CUTOFF",
+        "line_start": 20,
+        "line_end": 21,
+        "copybooks": []
+      },
+      "concepts": [
+        "credit score",
+        "referral",
+        "underwriting"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0034.yaml",
+        "seed": 779828596
+      }
+    },
+    {
+      "rule_id": "CRD0034-R003",
+      "version": 1,
+      "title": "Decline application",
+      "intent": "Decline all other applicants.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "credit_score",
+                  "source_name": "CS-SCR",
+                  "op": ">=",
+                  "value": 740
+                },
+                {
+                  "field": "debt_ratio",
+                  "source_name": "D-IR",
+                  "op": "<",
+                  "value": 0.35
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "credit_score",
+              "source_name": "CS-SCR",
+              "op": ">=",
+              "value": 680
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "A-DC",
+          "value": "D"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0034.cob",
+        "paragraph": "CREDIT-CUTOFF",
+        "line_start": 22,
+        "line_end": 23,
+        "copybooks": []
+      },
+      "concepts": [
+        "decline",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0034.yaml",
+        "seed": 779828596
+      }
+    }
+  ]
+}

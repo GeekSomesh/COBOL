@@ -1,0 +1,270 @@
+{
+  "program": "INT0045",
+  "program_file": "INT0045.cob",
+  "domain": "interest_tiers",
+  "template": "interest_term",
+  "split": "test",
+  "rules": [
+    {
+      "rule_id": "INT0045-R001",
+      "version": 1,
+      "title": "Short term deposit rate",
+      "intent": "Pay 3% on deposits with a term of 1 to 3 months.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "term_months",
+            "source_name": "DEPOSIT-TERM",
+            "op": "between",
+            "value": [
+              1,
+              3
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "INT-RATE",
+          "value": 0.03
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0045.cob",
+        "paragraph": "3000-TERM-RATE",
+        "line_start": 27,
+        "line_end": 28,
+        "copybooks": []
+      },
+      "concepts": [
+        "interest",
+        "term",
+        "deposit"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_term",
+        "spec": "data/specs/INT0045.yaml",
+        "seed": 387518739
+      }
+    },
+    {
+      "rule_id": "INT0045-R002",
+      "version": 1,
+      "title": "Medium term deposit rate",
+      "intent": "Pay 3.75% on deposits with a term of 4 to 18 months.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "term_months",
+              "source_name": "DEPOSIT-TERM",
+              "op": "between",
+              "value": [
+                1,
+                3
+              ]
+            }
+          },
+          {
+            "field": "term_months",
+            "source_name": "DEPOSIT-TERM",
+            "op": "between",
+            "value": [
+              4,
+              18
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "INT-RATE",
+          "value": 0.0375
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0045.cob",
+        "paragraph": "3000-TERM-RATE",
+        "line_start": 30,
+        "line_end": 31,
+        "copybooks": []
+      },
+      "concepts": [
+        "interest",
+        "term",
+        "deposit"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_term",
+        "spec": "data/specs/INT0045.yaml",
+        "seed": 387518739
+      }
+    },
+    {
+      "rule_id": "INT0045-R003",
+      "version": 1,
+      "title": "Long term deposit rate",
+      "intent": "Pay 4.5% on deposits with a term of 19 to 60 months.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "term_months",
+              "source_name": "DEPOSIT-TERM",
+              "op": "between",
+              "value": [
+                1,
+                3
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "term_months",
+              "source_name": "DEPOSIT-TERM",
+              "op": "between",
+              "value": [
+                4,
+                18
+              ]
+            }
+          },
+          {
+            "field": "term_months",
+            "source_name": "DEPOSIT-TERM",
+            "op": "between",
+            "value": [
+              19,
+              60
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "INT-RATE",
+          "value": 0.045
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0045.cob",
+        "paragraph": "3000-TERM-RATE",
+        "line_start": 33,
+        "line_end": 34,
+        "copybooks": []
+      },
+      "concepts": [
+        "interest",
+        "term",
+        "deposit"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_term",
+        "spec": "data/specs/INT0045.yaml",
+        "seed": 387518739
+      }
+    },
+    {
+      "rule_id": "INT0045-R004",
+      "version": 1,
+      "title": "Other deposit terms",
+      "intent": "Pay 1.5% on deposits with any other term.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "term_months",
+              "source_name": "DEPOSIT-TERM",
+              "op": "between",
+              "value": [
+                1,
+                3
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "term_months",
+              "source_name": "DEPOSIT-TERM",
+              "op": "between",
+              "value": [
+                4,
+                18
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "term_months",
+              "source_name": "DEPOSIT-TERM",
+              "op": "between",
+              "value": [
+                19,
+                60
+              ]
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "interest_rate",
+          "source_name": "INT-RATE",
+          "value": 0.015
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0045.cob",
+        "paragraph": "3000-TERM-RATE",
+        "line_start": 35,
+        "line_end": 36,
+        "copybooks": []
+      },
+      "concepts": [
+        "interest",
+        "term",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_term",
+        "spec": "data/specs/INT0045.yaml",
+        "seed": 387518739
+      }
+    }
+  ]
+}

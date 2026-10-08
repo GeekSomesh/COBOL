@@ -1,0 +1,50 @@
+*> ********************************************************
+*> PROGRAM : FRD0041
+*> PURPOSE : FRAUD SCORING RULES
+*> AUTHOR  : A.W.
+*> CHANGE LOG:
+*>   1989-07-18 ORIGINAL VERSION
+*>   2003-11-07 THRESHOLDS UPDATED PER AUDIT REQ 607
+*> RUN FROM JCL JOB FRDNIGHT STEP050
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. FRD0041.
+ENVIRONMENT DIVISION.
+CONFIGURATION SECTION.
+SOURCE-COMPUTER. IBM-370.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 WS-IN-REC.
+    COPY FRD0041C.
+01 OUT-RECORD.
+    *> RISK LEVEL H/M/L
+    05 RL-CD              PIC X VALUE 'L'.
+    05 RS-SC              PIC 9(3) VALUE ZERO.
+PROCEDURE DIVISION.
+MAINLINE.
+    ACCEPT WS-IN-REC
+    PERFORM RATE-ACTIVITY
+    DISPLAY "RL-CD=" RL-CD
+    DISPLAY "RS-SC=" RS-SC
+    STOP RUN.
+RATE-ACTIVITY.
+    IF D-TC > 15
+       AND T-AMT1 > 2000
+        MOVE 'H' TO RL-CD
+        MOVE 90 TO RS-SC
+    ELSE
+        *> ELEVATED TRANSACTION VELOCITY - LIMIT 5 PER 1998 POLICY
+        IF D-TC > 10
+            MOVE 'M' TO RL-CD
+            MOVE 60 TO RS-SC
+        ELSE
+            *> ACTIVITY ON NEW ACCOUNT - LIMIT 30 PER 1998 POLICY
+            IF A-OD < 60
+                MOVE 'M' TO RL-CD
+                MOVE 40 TO RS-SC
+            ELSE
+                MOVE 'L' TO RL-CD
+                MOVE 10 TO RS-SC
+            END-IF
+        END-IF
+    END-IF.

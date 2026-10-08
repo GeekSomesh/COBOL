@@ -97,8 +97,9 @@ def compile_and_smoke(programs: list[dict]) -> list[str]:
     errors = [f"{r.source.name}: {r.output}" for r in tc.compile_many(jobs) if not r.ok]
     if errors:
         return errors
-    for p in programs:
-        out = parse_display(tc.run(syn / "bin" / p["program"], "0" * p["record_length"]))
+    runs = tc.run_batch([(syn / "bin" / p["program"], "0" * p["record_length"]) for p in programs])
+    for p, raw in zip(programs, runs):
+        out = parse_display(raw)
         missing = [o for o in p["outputs"] if o not in out]
         if missing:
             errors.append(f"{p['program']}: smoke run missing outputs {missing}")

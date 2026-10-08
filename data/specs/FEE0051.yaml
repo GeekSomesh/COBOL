@@ -1,0 +1,106 @@
+program: FEE0051
+program_file: FEE0051.cob
+domain: fee_exemptions
+template: fee_student_senior
+seed: 412108995
+record: INPUT-AREA
+out_record: WS-OUT-REC
+main: 0000-MAIN
+copybook: FEE0051C.cpy
+prefix: null
+inputs:
+- name: STUDENT-FLAG
+  pic: X
+  business: student_flag
+  comment: STUDENT INDICATOR Y/N
+- name: CUST-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+outputs:
+- name: WAIVE-IND
+  pic: X
+  business: fee_waived
+  init: N
+  comment: FEE WAIVER INDICATOR
+- name: MONTHLY-FEE
+  pic: 9(3)V99
+  business: monthly_fee
+  init: 0
+  comment: MONTHLY SERVICE FEE
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Student fee waiver
+    intent: Waive the monthly fee for students younger than 24.
+    concepts:
+    - fee
+    - waiver
+    - student
+    - age
+    when:
+      all:
+      - field: student_flag
+        op: ==
+        value: Y
+      - field: customer_age
+        op: <
+        value: 24
+    then:
+    - set: fee_waived
+      value: Y
+    - set: monthly_fee
+      value: 0
+    id: R1
+  - title: Senior fee waiver
+    intent: Waive the monthly fee for customers aged 65 or over.
+    concepts:
+    - fee
+    - waiver
+    - senior
+    - age
+    when:
+      field: customer_age
+      op: '>='
+      value: 65
+    then:
+    - set: fee_waived
+      value: Y
+    - set: monthly_fee
+      value: 0
+    id: R2
+  - title: Standard monthly fee
+    intent: Charge everyone else the standard monthly fee of 4.
+    concepts:
+    - fee
+    - default
+    when: null
+    then:
+    - set: monthly_fee
+      value: 4
+    id: R3
+  paragraph: 2200-CONCESSIONS
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: true
+  dead_code: true
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: STUDENT-FLAG
+  pic: X
+  business: student_flag
+- name: CUST-AGE
+  pic: 9(3)
+  business: customer_age
+record_length: 4
+names88: {}
+expected_rules: 3

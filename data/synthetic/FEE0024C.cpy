@@ -1,0 +1,3 @@
+    05 STUDENT-FLAG       PIC X.
+    *> CUSTOMER AGE IN YEARS
+    05 CUSTOMER-AGE       PIC 9(3).

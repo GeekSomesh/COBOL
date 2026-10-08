@@ -91,16 +91,20 @@ class Toolchain:
         return _to_wsl_path(p) if self.backend == "wsl" else Path(p).resolve().as_posix()
 
     def _shell(self, script: str, stdin: str | None = None, timeout: float = 600) -> str:
-        """Run a bash script and return stdout. ``stdin`` is fed to the script's stdin."""
-        if self.backend == "wsl":
-            cmd = ["wsl.exe", "-d", self.distro, "-e", "bash", "-c", script]
-        else:
-            cmd = ["bash", "-c", script]
-        proc = subprocess.run(cmd, input=stdin, capture_output=True, text=True,
-                              timeout=timeout, encoding="utf-8", errors="replace")
+        """Run a bash script and return stdout. ``stdin`` is fed to the script's stdin.
+
+        Without ``stdin`` the script itself goes through stdin (``bash -s``), so long
+        batch scripts do not hit the Windows command-line length limit.
+        """
+        args = ["bash", "-s"] if stdin is None else ["bash", "-c", script]
+        cmd = (["wsl.exe", "-d", self.distro, "-e"] if self.backend == "wsl" else []) + args
+        data = (script if stdin is None else stdin).encode("utf-8")   # bytes: no CRLF translation
+        proc = subprocess.run(cmd, input=data, capture_output=True, timeout=timeout)
+        out = proc.stdout.decode("utf-8", errors="replace").replace("\r\n", "\n")
         if proc.returncode != 0:
-            raise ToolchainError(f"toolchain shell failed ({proc.returncode}): {proc.stderr.strip()}")
-        return proc.stdout
+            err = proc.stderr.decode("utf-8", errors="replace").strip()
+            raise ToolchainError(f"toolchain shell failed ({proc.returncode}): {err}")
+        return out
 
     # ---- compile ---------------------------------------------------------
     def compile_many(self, jobs: Iterable[CompileJob], free: bool = True) -> list[CompileResult]:
@@ -138,21 +142,21 @@ class Toolchain:
         return self.compile_many([CompileJob(Path(source), Path(exe), copy_dirs)], free=free)[0]
 
     # ---- run -------------------------------------------------------------
-    def run_many(self, exe: Path, records: Sequence[str], timeout_each: float = 5) -> list[str]:
-        """Run ``exe`` once per input record; return each run's stdout.
+    def run_batch(self, jobs: Sequence[tuple[Path, str]], timeout_each: float = 5) -> list[str]:
+        """Run each (exe, input record) pair once, all inside one shell; return each stdout.
 
-        All runs happen inside one shell. Records must not contain newlines.
+        Records must not contain newlines or tabs.
         """
-        if not records:
+        if not jobs:
             return []
         script = (
-            f"exe={shlex.quote(self.path(exe))}; i=0; "
-            "while IFS= read -r rec; do "
+            "i=0; while IFS=$'\\t' read -r exe rec; do "
             f"printf '@@BEGIN %d\\n' $i; printf '%s\\n' \"$rec\" | timeout {timeout_each} \"$exe\" 2>&1; "
             "printf '\\n@@END %d %d\\n' $i $?; i=$((i+1)); done"
         )
-        stdout = self._shell(script, stdin="\n".join(records) + "\n",
-                             timeout=30 + (timeout_each + 1) * len(records))
+        stdin = "".join(f"{self.path(exe)}\t{rec}\n" for exe, rec in jobs)
+        stdout = self._shell(script, stdin=stdin, timeout=30 + (timeout_each + 1) * len(jobs))
+        records = jobs
         outputs: list[str] = []
         current: list[str] | None = None
         for line in stdout.splitlines():
@@ -166,6 +170,10 @@ class Toolchain:
         if len(outputs) != len(records):
             raise ToolchainError(f"expected {len(records)} outputs, got {len(outputs)}")
         return outputs
+
+    def run_many(self, exe: Path, records: Sequence[str], timeout_each: float = 5) -> list[str]:
+        """Run ``exe`` once per input record."""
+        return self.run_batch([(exe, r) for r in records], timeout_each)
 
     def run(self, exe: Path, record: str, timeout: float = 5) -> str:
         return self.run_many(exe, [record], timeout_each=timeout)[0]

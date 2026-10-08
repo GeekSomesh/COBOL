@@ -1,0 +1,95 @@
+program: FEE0010
+program_file: FEE0010.cob
+domain: fee_exemptions
+template: fee_waiver_balance
+seed: 794514931
+record: IN-RECORD
+out_record: OUT-RECORD
+main: MAIN-PARA
+copybook: null
+prefix: null
+inputs:
+- name: ACCOUNT-TYPE
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: AVG-BALANCE
+  pic: 9(7)V99
+  business: avg_balance
+  comment: AVERAGE MONTHLY BALANCE
+outputs:
+- name: WAIVE-IND
+  pic: X
+  business: fee_waived
+  init: N
+  comment: FEE WAIVER INDICATOR
+- name: MTH-FEE
+  pic: 9(3)V99
+  business: monthly_fee
+  init: 0
+  comment: MONTHLY SERVICE FEE
+noise:
+  date: RUN-DATE
+  filler: 4
+blocks:
+- structure: if
+  rules:
+  - title: Monthly fee waiver
+    intent: Waive the monthly fee for premium or gold accounts and for accounts averaging at least 2,500; charge 5 otherwise.
+    concepts:
+    - fee
+    - waiver
+    - account type
+    - balance
+    when:
+      any:
+      - field: account_type
+        op: in
+        value:
+        - G
+        - P
+      - field: avg_balance
+        op: '>='
+        value: 2500
+    then:
+    - set: fee_waived
+      value: Y
+    - set: monthly_fee
+      value: 0
+    else:
+    - set: monthly_fee
+      value: 5
+    id: R1
+  paragraph: MONTHLY-FEE-CHECK
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: true
+  use_88: true
+  word_operators: false
+  dead_code: true
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: ACCOUNT-TYPE
+  pic: X
+  business: account_type
+- name: AVG-BALANCE
+  pic: 9(7)V99
+  business: avg_balance
+- name: RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 22
+names88:
+  WAIVE-WAIVED:
+    field: fee_waived
+    op: ==
+    value: Y
+expected_rules: 1

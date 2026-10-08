@@ -1,0 +1,90 @@
+program: INT0023
+program_file: INT0023.cob
+domain: interest_tiers
+template: interest_senior_bonus
+seed: 420820580
+record: IN-RECORD
+out_record: WS-RESULTS
+main: MAINLINE
+copybook: null
+prefix: null
+inputs:
+- name: CUSTOMER-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: LEDGER-BAL
+  pic: 9(9)V99
+  business: balance
+  comment: CURRENT LEDGER BALANCE
+- name: ACCT-TYP
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: BASE-INT-RATE
+  pic: 9V9999
+  business: base_rate
+  comment: BASE INTEREST RATE
+outputs:
+- name: BONUS-RATE
+  pic: 9V9999
+  business: bonus_rate
+  init: 0
+  comment: RATE AFTER BONUS
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Senior saver bonus
+    intent: Add 0.5% to the base rate for customers aged 55 or over with at least 25,000 on deposit; everyone else gets the
+      base rate.
+    concepts:
+    - interest
+    - age
+    - senior
+    - balance
+    - bonus
+    when:
+      all:
+      - field: customer_age
+        op: '>='
+        value: 55
+      - field: balance
+        op: '>='
+        value: 25000
+    then:
+    - compute: bonus_rate
+      expr: base_rate + 0.0050
+    else:
+    - set: bonus_rate
+      from: base_rate
+    id: R1
+  paragraph: SENIOR-BONUS
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CUSTOMER-AGE
+  pic: 9(3)
+  business: customer_age
+- name: LEDGER-BAL
+  pic: 9(9)V99
+  business: balance
+- name: ACCT-TYP
+  pic: X
+  business: account_type
+- name: BASE-INT-RATE
+  pic: 9V9999
+  business: base_rate
+record_length: 20
+names88: {}
+expected_rules: 1

@@ -21,3 +21,11 @@ models/
 
 # the docs are committed extracted under docs/
 cobol-to-decision-docs.zip
+
+# runtime state (local database, uploads, compile cache, dev tokens)
+data/rules.db
+data/uploads/
+data/cache/
+data/dev_tokens.json
+.claude/
+.venv-train/

@@ -1,0 +1,45 @@
+*> ********************************************************
+*> PROGRAM : CRD0044
+*> PURPOSE : CREDIT APPROVAL RULES
+*> AUTHOR  : M.S.
+*> CHANGE LOG:
+*>   1987-06-17 ORIGINAL VERSION
+*>   2009-10-07 THRESHOLDS UPDATED PER AUDIT REQ 341
+*> RUN FROM JCL JOB CRDNIGHT STEP080
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. CRD0044.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 WS-INPUT.
+    *> PRIOR BANKRUPTCY Y/N
+    05 WS-BKF             PIC X.
+    05 YB-YY              PIC 9(2).
+    *> BUREAU CREDIT SCORE
+    05 B-SC               PIC 9(3).
+01 WS-RESULTS.
+    *> A=APPROVE R=REFER D=DECLINE
+    05 DC-CD              PIC X VALUE 'D'.
+    *> DECISION REASON CODE
+    05 RC-CD              PIC X(3) VALUE SPACES.
+PROCEDURE DIVISION.
+0000-MAIN.
+    ACCEPT WS-INPUT
+    PERFORM BANKRUPTCY-CHECK
+    DISPLAY "DC-CD=" DC-CD
+    DISPLAY "RC-CD=" RC-CD
+    STOP RUN.
+BANKRUPTCY-CHECK.
+    IF WS-BKF = 'Y'
+        EVALUATE TRUE
+            *> RECENT BANKRUPTCY DECLINE
+            WHEN YB-YY < 7
+                MOVE 'D' TO DC-CD
+                MOVE 'BK1' TO RC-CD
+            WHEN OTHER
+                MOVE 'R' TO DC-CD
+                MOVE 'BK2' TO RC-CD
+        END-EVALUATE
+    ELSE
+        MOVE 'NA' TO RC-CD
+    END-IF.

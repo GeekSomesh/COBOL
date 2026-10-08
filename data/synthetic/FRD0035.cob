@@ -1,0 +1,55 @@
+*> ********************************************************
+*> PROGRAM : FRD0035
+*> PURPOSE : FRAUD SCORING RULES
+*> AUTHOR  : L.B.
+*> CHANGE LOG:
+*>   1992-01-16 ORIGINAL VERSION
+*>   2003-10-05 THRESHOLDS UPDATED PER AUDIT REQ 926
+*> RUN FROM JCL JOB FRDNIGHT STEP090
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. FRD0035.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 INPUT-AREA.
+    05 TC-24              PIC 9(3).
+    *> TRANSACTION AMOUNT
+    05 T-AMT1             PIC 9(7)V99.
+    *> DAYS SINCE ACCOUNT OPENED
+    05 WS-AGEDD           PIC 9(5).
+    05 PROC-DATE          PIC 9(8).
+    05 PROC-DATE-R REDEFINES PROC-DATE.
+       10 PROC-DATE-YYYY  PIC 9(4).
+       10 PROC-DATE-MM    PIC 9(2).
+       10 PROC-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(2).
+01 WS-RESULTS.
+    *> RISK LEVEL H/M/L
+    05 R-GR               PIC X VALUE 'L'.
+    05 RS-SC              PIC 9(3) VALUE ZERO.
+PROCEDURE DIVISION.
+MAINLINE.
+    ACCEPT INPUT-AREA
+    PERFORM SCORE-VELOCITY
+    DISPLAY "R-GR=" R-GR
+    DISPLAY "RS-SC=" RS-SC
+    STOP RUN.
+SCORE-VELOCITY.
+    EVALUATE TRUE
+        *> VERY HIGH TRANSACTION VELOCITY
+        WHEN TC-24 > 15
+           AND T-AMT1 > 4000
+            MOVE 'H' TO R-GR
+            MOVE 90 TO RS-SC
+        *> ELEVATED TRANSACTION VELOCITY
+        WHEN TC-24 > 10
+            MOVE 'M' TO R-GR
+            MOVE 60 TO RS-SC
+        *> ACTIVITY ON NEW ACCOUNT
+        WHEN WS-AGEDD < 30
+            MOVE 'M' TO R-GR
+            MOVE 40 TO RS-SC
+        WHEN OTHER
+            MOVE 'L' TO R-GR
+            MOVE 10 TO RS-SC
+    END-EVALUATE.

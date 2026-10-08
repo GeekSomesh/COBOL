@@ -1,0 +1,8 @@
+    *> CUSTOMER AGE IN YEARS
+    05 CA-AGE             PIC 9(3).
+    05 WS-BAL             PIC 9(9)V99.
+    *> ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+    05 AT-CD              PIC X.
+       88 AT-FIXED VALUE 'F'.
+    *> BASE INTEREST RATE
+    05 WS-BRT             PIC 9V9999.

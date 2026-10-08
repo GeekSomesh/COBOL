@@ -1,0 +1,2 @@
+    *> LOAN TO VALUE PERCENT
+    05 LOAN-TO-VALUE      PIC 9(3).

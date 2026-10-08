@@ -1,0 +1,100 @@
+program: CRD0045
+program_file: CRD0045.cob
+domain: credit_approval
+template: credit_limit_assign
+seed: 1550045141
+record: WS-IN-REC
+out_record: WS-RESULTS
+main: MAINLINE
+copybook: CRD0045C.cpy
+prefix: null
+inputs:
+- name: CR-SCORE
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+- name: GROSS-INCOME
+  pic: 9(7)V99
+  business: annual_income
+  comment: GROSS ANNUAL INCOME
+outputs:
+- name: CREDIT-LIMIT
+  pic: 9(7)V99
+  business: credit_limit
+  init: 0
+  comment: ASSIGNED CREDIT LIMIT
+noise:
+  date: PROC-DATE
+  filler: 4
+blocks:
+- structure: chain
+  rules:
+  - title: Prime credit limit
+    intent: Set the credit limit to 30% of annual income for scores of 760 or more.
+    concepts:
+    - credit limit
+    - credit score
+    - income
+    when:
+      field: credit_score
+      op: '>='
+      value: 760
+    then:
+    - compute: credit_limit
+      expr: annual_income * 0.30
+    id: R1
+  - title: Standard credit limit
+    intent: Set the credit limit to 20% of annual income for scores of 680 or more.
+    concepts:
+    - credit limit
+    - credit score
+    - income
+    when:
+      field: credit_score
+      op: '>='
+      value: 680
+    then:
+    - compute: credit_limit
+      expr: annual_income * 0.20
+    id: R2
+  - title: Minimum credit limit
+    intent: Give every other approved applicant the minimum limit of 1,000.
+    concepts:
+    - credit limit
+    - default
+    when: null
+    then:
+    - set: credit_limit
+      value: 1000
+    id: R3
+  paragraph: SET-CARD-LIMIT
+  render: else_if
+  compact: true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CR-SCORE
+  pic: 9(3)
+  business: credit_score
+- name: GROSS-INCOME
+  pic: 9(7)V99
+  business: annual_income
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 24
+names88: {}
+expected_rules: 3

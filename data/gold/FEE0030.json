@@ -1,0 +1,210 @@
+{
+  "program": "FEE0030",
+  "program_file": "FEE0030.cob",
+  "domain": "fee_exemptions",
+  "template": "fee_student_senior",
+  "split": "val",
+  "rules": [
+    {
+      "rule_id": "FEE0030-R001",
+      "version": 1,
+      "title": "Student fee waiver",
+      "intent": "Waive the monthly fee for students younger than 26.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "field": "student_flag",
+            "source_name": "STUDENT-IND",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "field": "customer_age",
+            "source_name": "CUSTOMER-AGE",
+            "op": "<",
+            "value": 26
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "fee_waived",
+          "source_name": "FEE-WAIVER-FLG",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "SVC-CHARGE",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0030.cob",
+        "paragraph": "FEE-CONCESSION",
+        "line_start": 40,
+        "line_end": 42,
+        "copybooks": []
+      },
+      "concepts": [
+        "fee",
+        "waiver",
+        "student",
+        "age"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_student_senior",
+        "spec": "data/specs/FEE0030.yaml",
+        "seed": 1793485583
+      }
+    },
+    {
+      "rule_id": "FEE0030-R002",
+      "version": 1,
+      "title": "Senior fee waiver",
+      "intent": "Waive the monthly fee for customers aged 65 or over.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "student_flag",
+                  "source_name": "STUDENT-IND",
+                  "op": "==",
+                  "value": "Y"
+                },
+                {
+                  "field": "customer_age",
+                  "source_name": "CUSTOMER-AGE",
+                  "op": "<",
+                  "value": 26
+                }
+              ]
+            }
+          },
+          {
+            "field": "customer_age",
+            "source_name": "CUSTOMER-AGE",
+            "op": ">=",
+            "value": 65
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "fee_waived",
+          "source_name": "FEE-WAIVER-FLG",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "SVC-CHARGE",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0030.cob",
+        "paragraph": "FEE-CONCESSION",
+        "line_start": 44,
+        "line_end": 46,
+        "copybooks": []
+      },
+      "concepts": [
+        "fee",
+        "waiver",
+        "senior",
+        "age"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_student_senior",
+        "spec": "data/specs/FEE0030.yaml",
+        "seed": 1793485583
+      }
+    },
+    {
+      "rule_id": "FEE0030-R003",
+      "version": 1,
+      "title": "Standard monthly fee",
+      "intent": "Charge everyone else the standard monthly fee of 6.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "student_flag",
+                  "source_name": "STUDENT-IND",
+                  "op": "==",
+                  "value": "Y"
+                },
+                {
+                  "field": "customer_age",
+                  "source_name": "CUSTOMER-AGE",
+                  "op": "<",
+                  "value": 26
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "customer_age",
+              "source_name": "CUSTOMER-AGE",
+              "op": ">=",
+              "value": 65
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "SVC-CHARGE",
+          "value": 6
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0030.cob",
+        "paragraph": "FEE-CONCESSION",
+        "line_start": 47,
+        "line_end": 48,
+        "copybooks": []
+      },
+      "concepts": [
+        "fee",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_student_senior",
+        "spec": "data/specs/FEE0030.yaml",
+        "seed": 1793485583
+      }
+    }
+  ]
+}

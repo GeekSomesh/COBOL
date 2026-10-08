@@ -1,0 +1,4 @@
+    *> STUDENT INDICATOR Y/N
+    05 :PFX:-STUDENT-IND     PIC X.
+    *> CUSTOMER AGE IN YEARS
+    05 :PFX:-CUST-AGE        PIC 9(3).

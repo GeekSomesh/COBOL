@@ -1,0 +1,119 @@
+{
+  "program": "FRD0046",
+  "program_file": "FRD0046.cob",
+  "domain": "fraud_scoring",
+  "template": "fraud_minor_high_value",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "FRD0046-R001",
+      "version": 1,
+      "title": "High-value transaction by minor",
+      "intent": "Flag transactions over 3,500 made by customers younger than 18 for manual review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "CUST-AGE",
+            "op": "<",
+            "value": 18
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "TXN-AMT",
+            "op": ">",
+            "value": 3500
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "RVW-IND",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0046.cob",
+        "paragraph": "MINOR-TXN-CHECK",
+        "line_start": 25,
+        "line_end": 27,
+        "copybooks": []
+      },
+      "concepts": [
+        "age",
+        "amount",
+        "minor",
+        "review"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_minor_high_value",
+        "spec": "data/specs/FRD0046.yaml",
+        "seed": 1681768424
+      }
+    },
+    {
+      "rule_id": "FRD0046-R002",
+      "version": 1,
+      "title": "Large transaction from high-risk region",
+      "intent": "Flag transactions over 90,000 that originate from high-risk country codes XA for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "transaction_amount",
+            "source_name": "TXN-AMT",
+            "op": ">",
+            "value": 90000
+          },
+          {
+            "field": "country_code",
+            "source_name": "COUNTRY-CD",
+            "op": "==",
+            "value": "XA"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "RVW-IND",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0046.cob",
+        "paragraph": "2100-REGION-CHECK",
+        "line_start": 29,
+        "line_end": 31,
+        "copybooks": []
+      },
+      "concepts": [
+        "amount",
+        "geography",
+        "country",
+        "review"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_minor_high_value",
+        "spec": "data/specs/FRD0046.yaml",
+        "seed": 1681768424
+      }
+    }
+  ]
+}

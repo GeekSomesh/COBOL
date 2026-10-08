@@ -1,0 +1,210 @@
+{
+  "program": "FEE0033",
+  "program_file": "FEE0033.cob",
+  "domain": "fee_exemptions",
+  "template": "fee_student_senior",
+  "split": "val",
+  "rules": [
+    {
+      "rule_id": "FEE0033-R001",
+      "version": 1,
+      "title": "Student fee waiver",
+      "intent": "Waive the monthly fee for students younger than 24.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "field": "student_flag",
+            "source_name": "SF-IND",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "field": "customer_age",
+            "source_name": "WS-CAGE",
+            "op": "<",
+            "value": 24
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "fee_waived",
+          "source_name": "FW-IND",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "WS-MFEE",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0033.cob",
+        "paragraph": "2200-CONCESSIONS",
+        "line_start": 33,
+        "line_end": 35,
+        "copybooks": []
+      },
+      "concepts": [
+        "fee",
+        "waiver",
+        "student",
+        "age"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_student_senior",
+        "spec": "data/specs/FEE0033.yaml",
+        "seed": 525202112
+      }
+    },
+    {
+      "rule_id": "FEE0033-R002",
+      "version": 1,
+      "title": "Senior fee waiver",
+      "intent": "Waive the monthly fee for customers aged 65 or over.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "student_flag",
+                  "source_name": "SF-IND",
+                  "op": "==",
+                  "value": "Y"
+                },
+                {
+                  "field": "customer_age",
+                  "source_name": "WS-CAGE",
+                  "op": "<",
+                  "value": 24
+                }
+              ]
+            }
+          },
+          {
+            "field": "customer_age",
+            "source_name": "WS-CAGE",
+            "op": ">=",
+            "value": 65
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "fee_waived",
+          "source_name": "FW-IND",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "WS-MFEE",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0033.cob",
+        "paragraph": "2200-CONCESSIONS",
+        "line_start": 37,
+        "line_end": 39,
+        "copybooks": []
+      },
+      "concepts": [
+        "fee",
+        "waiver",
+        "senior",
+        "age"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_student_senior",
+        "spec": "data/specs/FEE0033.yaml",
+        "seed": 525202112
+      }
+    },
+    {
+      "rule_id": "FEE0033-R003",
+      "version": 1,
+      "title": "Standard monthly fee",
+      "intent": "Charge everyone else the standard monthly fee of 4.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "student_flag",
+                  "source_name": "SF-IND",
+                  "op": "==",
+                  "value": "Y"
+                },
+                {
+                  "field": "customer_age",
+                  "source_name": "WS-CAGE",
+                  "op": "<",
+                  "value": 24
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "customer_age",
+              "source_name": "WS-CAGE",
+              "op": ">=",
+              "value": 65
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "monthly_fee",
+          "source_name": "WS-MFEE",
+          "value": 4
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0033.cob",
+        "paragraph": "2200-CONCESSIONS",
+        "line_start": 40,
+        "line_end": 41,
+        "copybooks": []
+      },
+      "concepts": [
+        "fee",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_student_senior",
+        "spec": "data/specs/FEE0033.yaml",
+        "seed": 525202112
+      }
+    }
+  ]
+}

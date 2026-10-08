@@ -1,0 +1,96 @@
+program: PEN0030
+program_file: PEN0030.cob
+domain: penalty_assessment
+template: penalty_repeat
+seed: 724209360
+record: WS-INPUT
+out_record: WS-OUT-REC
+main: 0000-MAIN
+copybook: PEN0030C.cpy
+prefix: IN
+inputs:
+- name: IN-LATE-CNT-12M
+  pic: 9(2)
+  business: late_count_12m
+  comment: LATE PAYMENTS IN LAST 12 MONTHS
+- name: IN-DAYS-LATE
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+outputs:
+- name: ACCT-STATUS
+  pic: X
+  business: account_status
+  init: A
+  comment: A=ACTIVE S=SUSPENDED C=COLLECTIONS
+- name: PENALTY-AMT
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Repeat late payer suspension
+    intent: Suspend the account and add a 100 penalty when a customer with 3 or more late payments in 12 months is over 30
+      days late.
+    concepts:
+    - penalty
+    - repeat
+    - suspension
+    - days late
+    when:
+      all:
+      - field: late_count_12m
+        op: '>='
+        value: 3
+      - field: days_late
+        op: '>'
+        value: 30
+    then:
+    - set: account_status
+      value: S
+    - add: penalty_amt
+      value: 100
+    id: R1
+  paragraph: 4000-REPEAT-LATE
+- structure: if
+  rules:
+  - title: Collections referral
+    intent: Move accounts more than 60 days late to collections.
+    concepts:
+    - collections
+    - days late
+    - account status
+    when:
+      field: days_late
+      op: '>'
+      value: 60
+    then:
+    - set: account_status
+      value: C
+    id: R1
+  paragraph: COLLECTIONS-CHECK
+style:
+  cryptic_names: false
+  comments: none
+  copybook: true
+  replacing: true
+  abbreviated: true
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: IN-LATE-CNT-12M
+  pic: 9(2)
+  business: late_count_12m
+- name: IN-DAYS-LATE
+  pic: 9(3)
+  business: days_late
+record_length: 5
+names88: {}
+expected_rules: 2

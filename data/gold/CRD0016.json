@@ -1,0 +1,202 @@
+{
+  "program": "CRD0016",
+  "program_file": "CRD0016.cob",
+  "domain": "credit_approval",
+  "template": "credit_score_cutoff",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "CRD0016-R001",
+      "version": 1,
+      "title": "Automatic approval",
+      "intent": "Approve applicants with a credit score of 720 or more and a debt-to-income ratio below 0.40.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "field": "credit_score",
+            "source_name": "CS-SCR",
+            "op": ">=",
+            "value": 720
+          },
+          {
+            "field": "debt_ratio",
+            "source_name": "D-IR",
+            "op": "<",
+            "value": 0.4
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "DC-CD",
+          "value": "A"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0016.cob",
+        "paragraph": "DECIDE-APPLICATION",
+        "line_start": 30,
+        "line_end": 31,
+        "copybooks": [
+          "CRD0016C.cpy"
+        ]
+      },
+      "concepts": [
+        "credit score",
+        "debt ratio",
+        "approval"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0016.yaml",
+        "seed": 2110100607
+      }
+    },
+    {
+      "rule_id": "CRD0016-R002",
+      "version": 1,
+      "title": "Refer to underwriter",
+      "intent": "Refer applicants scoring 680 or more to an underwriter.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "credit_score",
+                  "source_name": "CS-SCR",
+                  "op": ">=",
+                  "value": 720
+                },
+                {
+                  "field": "debt_ratio",
+                  "source_name": "D-IR",
+                  "op": "<",
+                  "value": 0.4
+                }
+              ]
+            }
+          },
+          {
+            "field": "credit_score",
+            "source_name": "CS-SCR",
+            "op": ">=",
+            "value": 680
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "DC-CD",
+          "value": "R"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0016.cob",
+        "paragraph": "DECIDE-APPLICATION",
+        "line_start": 33,
+        "line_end": 34,
+        "copybooks": [
+          "CRD0016C.cpy"
+        ]
+      },
+      "concepts": [
+        "credit score",
+        "referral",
+        "underwriting"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0016.yaml",
+        "seed": 2110100607
+      }
+    },
+    {
+      "rule_id": "CRD0016-R003",
+      "version": 1,
+      "title": "Decline application",
+      "intent": "Decline all other applicants.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "credit_score",
+                  "source_name": "CS-SCR",
+                  "op": ">=",
+                  "value": 720
+                },
+                {
+                  "field": "debt_ratio",
+                  "source_name": "D-IR",
+                  "op": "<",
+                  "value": 0.4
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "credit_score",
+              "source_name": "CS-SCR",
+              "op": ">=",
+              "value": 680
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "DC-CD",
+          "value": "D"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0016.cob",
+        "paragraph": "DECIDE-APPLICATION",
+        "line_start": 35,
+        "line_end": 36,
+        "copybooks": [
+          "CRD0016C.cpy"
+        ]
+      },
+      "concepts": [
+        "decline",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0016.yaml",
+        "seed": 2110100607
+      }
+    }
+  ]
+}

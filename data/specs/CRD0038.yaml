@@ -1,0 +1,102 @@
+program: CRD0038
+program_file: CRD0038.cob
+domain: credit_approval
+template: credit_bankruptcy
+seed: 1606808197
+record: IN-RECORD
+out_record: WS-RESULTS
+main: MAINLINE
+copybook: null
+prefix: null
+inputs:
+- name: BANKRUPTCY-FLAG
+  pic: X
+  business: bankruptcy_flag
+  comment: PRIOR BANKRUPTCY Y/N
+- name: BK-YEARS
+  pic: 9(2)
+  business: years_since_bk
+  comment: YEARS SINCE BANKRUPTCY DISCHARGE
+- name: CR-SCORE
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+outputs:
+- name: CREDIT-DECN
+  pic: X
+  business: decision
+  init: D
+  comment: A=APPROVE R=REFER D=DECLINE
+- name: DECN-REASON
+  pic: X(3)
+  business: reason_code
+  init: ' '
+  comment: DECISION REASON CODE
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Recent bankruptcy decline
+    intent: Decline applicants with a bankruptcy in the last 10 years.
+    concepts:
+    - bankruptcy
+    - decline
+    - credit history
+    when:
+      field: years_since_bk
+      op: <
+      value: 10
+    then:
+    - set: decision
+      value: D
+    - set: reason_code
+      value: BK1
+    id: R1
+  - title: Older bankruptcy referral
+    intent: Refer applicants whose bankruptcy is 10 or more years old.
+    concepts:
+    - bankruptcy
+    - referral
+    - credit history
+    when: null
+    then:
+    - set: decision
+      value: R
+    - set: reason_code
+      value: BK2
+    id: R2
+  outer:
+    field: bankruptcy_flag
+    op: ==
+    value: Y
+  paragraph: BANKRUPTCY-CHECK
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: true
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: BANKRUPTCY-FLAG
+  pic: X
+  business: bankruptcy_flag
+- name: BK-YEARS
+  pic: 9(2)
+  business: years_since_bk
+- name: CR-SCORE
+  pic: 9(3)
+  business: credit_score
+record_length: 6
+names88:
+  BANKRUPTCY-BANKRUPT:
+    field: bankruptcy_flag
+    op: ==
+    value: Y
+expected_rules: 2

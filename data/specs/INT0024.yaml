@@ -1,0 +1,126 @@
+program: INT0024
+program_file: INT0024.cob
+domain: interest_tiers
+template: interest_term
+seed: 678240356
+record: IN-RECORD
+out_record: RESULT-AREA
+main: MAINLINE
+copybook: INT0024C.cpy
+prefix: null
+inputs:
+- name: DEPOSIT-TERM
+  pic: 9(3)
+  business: term_months
+  comment: DEPOSIT TERM IN MONTHS
+outputs:
+- name: INTEREST-RATE
+  pic: 9V9999
+  business: interest_rate
+  init: 0
+  comment: APPLIED INTEREST RATE
+noise:
+  date: PROC-DATE
+  filler: 6
+blocks:
+- structure: chain
+  rules:
+  - title: Short term deposit rate
+    intent: Pay 2.75% on deposits with a term of 1 to 6 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id001
+      - 1
+      - 6
+    then:
+    - set: interest_rate
+      value: 0.0275
+    id: R1
+  - title: Medium term deposit rate
+    intent: Pay 3.5% on deposits with a term of 7 to 18 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id002
+      - 7
+      - 18
+    then:
+    - set: interest_rate
+      value: 0.035
+    id: R2
+  - title: Long term deposit rate
+    intent: Pay 4.25% on deposits with a term of 19 to 60 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id003
+      - 19
+      - 60
+    then:
+    - set: interest_rate
+      value: 0.0425
+    id: R3
+  - title: Other deposit terms
+    intent: Pay 2% on deposits with any other term.
+    concepts:
+    - interest
+    - term
+    - default
+    when: null
+    then:
+    - set: interest_rate
+      value: 0.02
+    id: R4
+  paragraph: SET-TERM-RATE
+  render: else_if
+  compact: false
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: DEPOSIT-TERM
+  pic: 9(3)
+  business: term_months
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(6)
+  business: null
+record_length: 17
+names88:
+  DEPOSIT-BAND-1-6:
+    field: term_months
+    op: between
+    value: *id001
+  DEPOSIT-BAND-7-18:
+    field: term_months
+    op: between
+    value: *id002
+  DEPOSIT-BAND-19-60:
+    field: term_months
+    op: between
+    value: *id003
+expected_rules: 4

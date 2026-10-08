@@ -1,0 +1,103 @@
+program: CRD0019
+program_file: CRD0019.cob
+domain: credit_approval
+template: credit_score_cutoff
+seed: 1854210367
+record: INPUT-AREA
+out_record: WS-RESULTS
+main: 0000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: CREDIT-SCORE
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+- name: DEBT-INC-RATIO
+  pic: 9V99
+  business: debt_ratio
+  comment: DEBT TO INCOME RATIO
+outputs:
+- name: APPL-DECISION
+  pic: X
+  business: decision
+  init: D
+  comment: A=APPROVE R=REFER D=DECLINE
+noise:
+  date: POST-DATE
+  filler: 2
+blocks:
+- structure: chain
+  rules:
+  - title: Automatic approval
+    intent: Approve applicants with a credit score of 740 or more and a debt-to-income ratio below 0.43.
+    concepts:
+    - credit score
+    - debt ratio
+    - approval
+    when:
+      all:
+      - field: credit_score
+        op: '>='
+        value: 740
+      - field: debt_ratio
+        op: <
+        value: 0.43
+    then:
+    - set: decision
+      value: A
+    id: R1
+  - title: Refer to underwriter
+    intent: Refer applicants scoring 640 or more to an underwriter.
+    concepts:
+    - credit score
+    - referral
+    - underwriting
+    when:
+      field: credit_score
+      op: '>='
+      value: 640
+    then:
+    - set: decision
+      value: R
+    id: R2
+  - title: Decline application
+    intent: Decline all other applicants.
+    concepts:
+    - decline
+    - default
+    when: null
+    then:
+    - set: decision
+      value: D
+    id: R3
+  paragraph: DECIDE-APPLICATION
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CREDIT-SCORE
+  pic: 9(3)
+  business: credit_score
+- name: DEBT-INC-RATIO
+  pic: 9V99
+  business: debt_ratio
+- name: POST-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 16
+names88: {}
+expected_rules: 3

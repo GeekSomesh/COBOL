@@ -1,0 +1,116 @@
+program: INT0016
+program_file: INT0016.cob
+domain: interest_tiers
+template: interest_balance_tiers
+seed: 492954018
+record: IN-RECORD
+out_record: RESULT-AREA
+main: A000-MAIN
+copybook: INT0016C.cpy
+prefix: IN
+inputs:
+- name: IN-A-TY
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: IN-L-BL
+  pic: 9(9)V99
+  business: balance
+  comment: CURRENT LEDGER BALANCE
+outputs:
+- name: IR-RT
+  pic: 9V9999
+  business: interest_rate
+  init: 0
+  comment: APPLIED INTEREST RATE
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Top savings tier
+    intent: Pay 4.75% interest on savings accounts with a balance of at least 100,000.
+    concepts:
+    - interest
+    - savings
+    - balance
+    - tier
+    when:
+      all:
+      - field: account_type
+        op: ==
+        value: S
+      - field: balance
+        op: '>='
+        value: 100000
+    then:
+    - set: interest_rate
+      value: 0.0475
+    id: R1
+  - title: Middle savings tier
+    intent: Pay 3.75% interest on savings accounts with a balance of at least 20,000.
+    concepts:
+    - interest
+    - savings
+    - balance
+    - tier
+    when:
+      all:
+      - field: account_type
+        op: ==
+        value: S
+      - field: balance
+        op: '>='
+        value: 20000
+    then:
+    - set: interest_rate
+      value: 0.0375
+    id: R2
+  - title: Base savings rate
+    intent: Pay 3% interest on all other savings accounts.
+    concepts:
+    - interest
+    - savings
+    - account type
+    when:
+      field: account_type
+      op: ==
+      value: S
+    then:
+    - set: interest_rate
+      value: 0.03
+    id: R3
+  - title: Non-savings rate
+    intent: Pay 0.5% interest on every other account type.
+    concepts:
+    - interest
+    - account type
+    - default
+    when: null
+    then:
+    - set: interest_rate
+      value: 0.005
+    id: R4
+  paragraph: 2000-RATE-TIER
+  render: evaluate_true
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: false
+record_layout:
+- name: IN-A-TY
+  pic: X
+  business: account_type
+- name: IN-L-BL
+  pic: 9(9)V99
+  business: balance
+record_length: 12
+names88: {}
+expected_rules: 4

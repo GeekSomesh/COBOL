@@ -1,0 +1,74 @@
+{
+  "program": "INT0044",
+  "program_file": "INT0044.cob",
+  "domain": "interest_tiers",
+  "template": "interest_senior_bonus",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "INT0044-R001",
+      "version": 1,
+      "title": "Senior saver bonus",
+      "intent": "Add 0.5% to the base rate for customers aged 55 or over with at least 25,000 on deposit; everyone else gets the base rate.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "CUSTOMER-AGE",
+            "op": ">=",
+            "value": 55
+          },
+          {
+            "field": "balance",
+            "source_name": "CURR-BAL",
+            "op": ">=",
+            "value": 25000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "bonus_rate",
+          "source_name": "FINAL-RATE",
+          "expr": "STD-RATE + 0.0050"
+        }
+      ],
+      "else_actions": [
+        {
+          "type": "set",
+          "target": "bonus_rate",
+          "source_name": "FINAL-RATE",
+          "expr": "STD-RATE"
+        }
+      ],
+      "trace": {
+        "program": "INT0044.cob",
+        "paragraph": "2500-SENIOR-RATE",
+        "line_start": 27,
+        "line_end": 31,
+        "copybooks": [
+          "INT0044C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "age",
+        "senior",
+        "balance",
+        "bonus"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_senior_bonus",
+        "spec": "data/specs/INT0044.yaml",
+        "seed": 2139879550
+      }
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+program: INT0027
+program_file: INT0027.cob
+domain: interest_tiers
+template: interest_term
+seed: 108689120
+record: IN-RECORD
+out_record: WS-RESULTS
+main: 0000-MAIN
+copybook: INT0027C.cpy
+prefix: null
+inputs:
+- name: D-TM
+  pic: 9(3)
+  business: term_months
+  comment: DEPOSIT TERM IN MONTHS
+outputs:
+- name: WS-IRT
+  pic: 9V9999
+  business: interest_rate
+  init: 0
+  comment: APPLIED INTEREST RATE
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Short term deposit rate
+    intent: Pay 2.75% on deposits with a term of 1 to 3 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value:
+      - 1
+      - 3
+    then:
+    - set: interest_rate
+      value: 0.0275
+    id: R1
+  - title: Medium term deposit rate
+    intent: Pay 3.5% on deposits with a term of 4 to 12 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value:
+      - 4
+      - 12
+    then:
+    - set: interest_rate
+      value: 0.035
+    id: R2
+  - title: Long term deposit rate
+    intent: Pay 4.25% on deposits with a term of 13 to 60 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value:
+      - 13
+      - 60
+    then:
+    - set: interest_rate
+      value: 0.0425
+    id: R3
+  - title: Other deposit terms
+    intent: Pay 2% on deposits with any other term.
+    concepts:
+    - interest
+    - term
+    - default
+    when: null
+    then:
+    - set: interest_rate
+      value: 0.02
+    id: R4
+  paragraph: 3000-TERM-RATE
+  render: else_if
+  compact: false
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: false
+  dead_code: true
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: D-TM
+  pic: 9(3)
+  business: term_months
+record_length: 3
+names88: {}
+expected_rules: 4

@@ -1,0 +1,113 @@
+program: PEN0029
+program_file: PEN0029.cob
+domain: penalty_assessment
+template: penalty_waiver
+seed: 996220494
+record: IN-RECORD
+out_record: RESULT-AREA
+main: MAIN-PARA
+copybook: PEN0029C.cpy
+prefix: null
+inputs:
+- name: FIRST-OFFENSE
+  pic: X
+  business: first_offense
+  comment: FIRST LATE PAYMENT Y/N
+- name: CUST-TIER
+  pic: X
+  business: customer_tier
+  comment: TIER G=GOLD P=PLATINUM S=SILVER B=BASIC
+- name: DAYS-PAST-DUE
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+outputs:
+- name: PENALTY-WAIVED
+  pic: X
+  business: penalty_waived
+  init: N
+  comment: PENALTY WAIVER FLAG
+- name: LATE-CHARGE
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise:
+  date: PROC-DATE
+  filler: 2
+blocks:
+- structure: nested
+  rules:
+  - title: Premium first-offence waiver
+    intent: Waive the penalty on a first late payment for gold and platinum customers.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - customer tier
+    when:
+      field: customer_tier
+      op: in
+      value:
+      - G
+      - P
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R1
+  - title: Grace period waiver
+    intent: Waive the penalty on a first late payment made within 5 days.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - grace period
+    when:
+      field: days_late
+      op: <=
+      value: 5
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R2
+  outer:
+    field: first_offense
+    op: ==
+    value: Y
+  paragraph: FIRST-OFFENSE-WAIVER
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: none
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: true
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: FIRST-OFFENSE
+  pic: X
+  business: first_offense
+- name: CUST-TIER
+  pic: X
+  business: customer_tier
+- name: DAYS-PAST-DUE
+  pic: 9(3)
+  business: days_late
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 15
+names88: {}
+expected_rules: 2

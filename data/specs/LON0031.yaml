@@ -1,0 +1,92 @@
+program: LON0031
+program_file: LON0031.cob
+domain: loan_limits
+template: loan_income_multiple
+seed: 1937639702
+record: WS-IN-REC
+out_record: RESULT-AREA
+main: MAINLINE
+copybook: LON0031C.cpy
+prefix: TX
+inputs:
+- name: TX-EMPLOY-YEARS
+  pic: 9(2)
+  business: employment_years
+  comment: YEARS WITH CURRENT EMPLOYER
+- name: TX-ANNUAL-INCOME
+  pic: 9(7)V99
+  business: annual_income
+  comment: GROSS ANNUAL INCOME
+outputs:
+- name: MAX-LOAN-AMT
+  pic: 9(9)V99
+  business: max_loan
+  init: 0
+  comment: MAXIMUM LOAN AMOUNT
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Established employment multiple
+    intent: Lend up to 4 times annual income to applicants employed 5 years or more.
+    concepts:
+    - loan limit
+    - income
+    - employment
+    when:
+      field: employment_years
+      op: '>='
+      value: 5
+    then:
+    - compute: max_loan
+      expr: annual_income * 4
+    id: R1
+  - title: Standard employment multiple
+    intent: Lend up to 3 times annual income to applicants employed 2 years or more.
+    concepts:
+    - loan limit
+    - income
+    - employment
+    when:
+      field: employment_years
+      op: '>='
+      value: 2
+    then:
+    - compute: max_loan
+      expr: annual_income * 3
+    id: R2
+  - title: New employee multiple
+    intent: Lend up to 2 times annual income to everyone else.
+    concepts:
+    - loan limit
+    - income
+    - default
+    when: null
+    then:
+    - compute: max_loan
+      expr: annual_income * 2
+    id: R3
+  paragraph: MAX-LOAN-CALC
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: none
+  copybook: true
+  replacing: true
+  abbreviated: true
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: TX-EMPLOY-YEARS
+  pic: 9(2)
+  business: employment_years
+- name: TX-ANNUAL-INCOME
+  pic: 9(7)V99
+  business: annual_income
+record_length: 11
+names88: {}
+expected_rules: 3

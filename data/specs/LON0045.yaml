@@ -1,0 +1,69 @@
+program: LON0045
+program_file: LON0045.cob
+domain: loan_limits
+template: loan_ltv
+seed: 9520644
+record: WS-IN-REC
+out_record: WS-OUT-REC
+main: A000-MAIN
+copybook: LON0045C.cpy
+prefix: null
+inputs:
+- name: LTV-RATIO
+  pic: 9(3)
+  business: ltv_pct
+  comment: LOAN TO VALUE PERCENT
+outputs:
+- name: MORT-INS-IND
+  pic: X
+  business: mi_required
+  init: N
+  comment: MORTGAGE INSURANCE REQUIRED
+- name: RATE-LOAD
+  pic: 9V9999
+  business: rate_adjustment
+  init: 0
+  comment: RATE ADJUSTMENT
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Mortgage insurance requirement
+    intent: Require mortgage insurance and add 0.5% to the rate when the loan-to-value ratio exceeds 80%.
+    concepts:
+    - loan to value
+    - mortgage insurance
+    - rate
+    when:
+      field: ltv_pct
+      op: '>'
+      value: 80
+    then:
+    - set: mi_required
+      value: Y
+    - set: rate_adjustment
+      value: 0.005
+    else:
+    - set: mi_required
+      value: N
+    id: R1
+  paragraph: 3000-LTV-RULES
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: true
+  noise_fields: false
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: LTV-RATIO
+  pic: 9(3)
+  business: ltv_pct
+record_length: 3
+names88: {}
+expected_rules: 1

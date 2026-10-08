@@ -1,0 +1,41 @@
+*> ********************************************************
+*> PROGRAM : INT0027
+*> PURPOSE : INTEREST TIERS RULES
+*> AUTHOR  : J.K.
+*> CHANGE LOG:
+*>   1992-05-15 ORIGINAL VERSION
+*>   2003-10-06 THRESHOLDS UPDATED PER AUDIT REQ 783
+*> RUN FROM JCL JOB INTNIGHT STEP080
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. INT0027.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 IN-RECORD.
+    COPY INT0027C.
+01 WS-RESULTS.
+    *> APPLIED INTEREST RATE
+    05 WS-IRT             PIC 9V9999 VALUE ZERO.
+PROCEDURE DIVISION.
+0000-MAIN.
+    ACCEPT IN-RECORD
+    PERFORM 3000-TERM-RATE
+    DISPLAY "WS-IRT=" WS-IRT
+    STOP RUN.
+3000-TERM-RATE.
+    *> SHORT TERM DEPOSIT RATE
+    IF D-TM >= 1 AND <= 3
+        MOVE 0.0275 TO WS-IRT
+    ELSE
+        *> MEDIUM TERM DEPOSIT RATE
+        IF D-TM >= 4 AND <= 12
+            MOVE 0.0350 TO WS-IRT
+        ELSE
+            *> LONG TERM DEPOSIT RATE
+            IF D-TM >= 13 AND <= 60
+                MOVE 0.0425 TO WS-IRT
+            ELSE
+                MOVE 0.0200 TO WS-IRT
+            END-IF
+        END-IF
+    END-IF.

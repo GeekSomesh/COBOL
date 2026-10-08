@@ -1,0 +1,125 @@
+{
+  "program": "INT0014",
+  "program_file": "INT0014.cob",
+  "domain": "interest_tiers",
+  "template": "interest_senior_bonus",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "INT0014-R001",
+      "version": 1,
+      "title": "Senior saver bonus",
+      "intent": "Add 0.5% to the base rate for customers aged 55 or over with at least 5,000 on deposit; everyone else gets the base rate.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "CLNT-AGE",
+            "op": ">=",
+            "value": 55
+          },
+          {
+            "field": "balance",
+            "source_name": "LEDGER-BAL",
+            "op": ">=",
+            "value": 5000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "bonus_rate",
+          "source_name": "EFFECTIVE-RATE",
+          "expr": "BASE-INT-RATE + 0.0050"
+        }
+      ],
+      "else_actions": [
+        {
+          "type": "set",
+          "target": "bonus_rate",
+          "source_name": "EFFECTIVE-RATE",
+          "expr": "BASE-INT-RATE"
+        }
+      ],
+      "trace": {
+        "program": "INT0014.cob",
+        "paragraph": "APPLY-BONUS",
+        "line_start": 27,
+        "line_end": 32,
+        "copybooks": [
+          "INT0014C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "age",
+        "senior",
+        "balance",
+        "bonus"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_senior_bonus",
+        "spec": "data/specs/INT0014.yaml",
+        "seed": 281836518
+      }
+    },
+    {
+      "rule_id": "INT0014-R002",
+      "version": 1,
+      "title": "Fixed deposit uplift",
+      "intent": "Add a further 0.1% to the rate for fixed deposit accounts.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "account_type",
+            "source_name": "ACCT-TYP",
+            "op": "==",
+            "value": "F"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "bonus_rate",
+          "source_name": "EFFECTIVE-RATE",
+          "expr": "EFFECTIVE-RATE + 0.0010"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0014.cob",
+        "paragraph": "2600-FIXED-DEP",
+        "line_start": 35,
+        "line_end": 37,
+        "copybooks": [
+          "INT0014C.cpy"
+        ]
+      },
+      "concepts": [
+        "interest",
+        "fixed deposit",
+        "account type",
+        "bonus"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_senior_bonus",
+        "spec": "data/specs/INT0014.yaml",
+        "seed": 281836518
+      }
+    }
+  ]
+}

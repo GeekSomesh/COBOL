@@ -1,0 +1,116 @@
+{
+  "program": "FEE0041",
+  "program_file": "FEE0041.cob",
+  "domain": "fee_exemptions",
+  "template": "fee_transaction_count",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "FEE0041-R001",
+      "version": 1,
+      "title": "Excess transaction fee",
+      "intent": "Charge 0.75 for each transaction above 25 in the month.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "field": "txn_count_month",
+            "source_name": "MONTHLY-TXNS",
+            "op": ">",
+            "value": 25
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "excess_fee",
+          "source_name": "EXTRA-TXN-FEE",
+          "expr": "(MONTHLY-TXNS - 25) * 0.75"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0041.cob",
+        "paragraph": "3000-COUNT-FEE",
+        "line_start": 28,
+        "line_end": 30,
+        "copybooks": [
+          "FEE0041C.cpy"
+        ]
+      },
+      "concepts": [
+        "fee",
+        "transaction count",
+        "excess"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_transaction_count",
+        "spec": "data/specs/FEE0041.yaml",
+        "seed": 876012448
+      }
+    },
+    {
+      "rule_id": "FEE0041-R002",
+      "version": 1,
+      "title": "Business high-volume surcharge",
+      "intent": "Add a 10 surcharge for business accounts with more than 45 transactions in the month.",
+      "domain": "fee_exemptions",
+      "conditions": {
+        "all": [
+          {
+            "field": "account_type",
+            "source_name": "ACCT-TYPE",
+            "op": "==",
+            "value": "B"
+          },
+          {
+            "field": "txn_count_month",
+            "source_name": "MONTHLY-TXNS",
+            "op": ">",
+            "value": 45
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "excess_fee",
+          "source_name": "EXTRA-TXN-FEE",
+          "expr": "EXTRA-TXN-FEE + 10"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FEE0041.cob",
+        "paragraph": "HIGH-VOLUME-FEE",
+        "line_start": 33,
+        "line_end": 36,
+        "copybooks": [
+          "FEE0041C.cpy"
+        ]
+      },
+      "concepts": [
+        "fee",
+        "business",
+        "account type",
+        "transaction count"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fee_transaction_count",
+        "spec": "data/specs/FEE0041.yaml",
+        "seed": 876012448
+      }
+    }
+  ]
+}

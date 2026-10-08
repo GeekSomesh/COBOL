@@ -1,0 +1,33 @@
+# Zero-egress deployment (security.md T1, 4.3): the model server sits on an internal
+# network with no route to the internet. Load models into the "ollama" volume beforehand,
+# for example by copying ~/.ollama/models from a machine that already has them.
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      COBOL_LLM_MODEL: cobol-enrich:1.5b
+      COBOL_DB: /app/data/state/rules.db
+      COBOL_API_TOKENS: ${COBOL_API_TOKENS:?set COBOL_API_TOKENS="token:role:user,..."}
+    volumes:
+      - rules:/app/data/state
+    networks: [frontend, backend]
+    depends_on: [ollama]
+
+  ollama:
+    image: ollama/ollama:0.35.0
+    volumes:
+      - ollama:/root/.ollama
+    networks: [backend]
+    # GPU: uncomment on hosts with the NVIDIA container toolkit
+    # deploy: {resources: {reservations: {devices: [{driver: nvidia, count: 1, capabilities: [gpu]}]}}}
+
+networks:
+  frontend: {}
+  backend:
+    internal: true
+
+volumes:
+  rules: {}
+  ollama: {}

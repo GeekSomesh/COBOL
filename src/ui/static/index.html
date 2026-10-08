@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>COBOL-to-Decision Explorer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">⟨/⟩</span> COBOL <span class="arrow">→</span> Decision</div>
+  <form id="searchForm" class="search" role="search">
+    <input id="q" type="search" placeholder="Search by business concept, e.g. “customers under 18”" autocomplete="off">
+    <button type="submit">Search</button>
+  </form>
+  <div class="who">
+    <span id="health" class="health" title="Service status"></span>
+    <button id="loginBtn" class="ghost">Sign in</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="rules" class="active">Rules</button>
+  <button data-tab="review">Review queue <span id="reviewCount" class="pill"></span></button>
+  <button data-tab="programs">Programs</button>
+  <button data-tab="export">Export</button>
+  <button data-tab="score">Score</button>
+  <button data-tab="insights">Insights</button>
+  <button data-tab="audit">Audit log</button>
+</nav>
+
+<main>
+  <!-- Rules -->
+  <section id="tab-rules" class="tab active">
+    <div class="filters">
+      <label>Status <select id="fStatus"><option value="">any</option><option>candidate</option><option>needs_review</option><option>approved</option><option>rejected</option><option>superseded</option></select></label>
+      <label>Domain <select id="fDomain"><option value="">any</option></select></label>
+      <label>Program <select id="fProgram"><option value="">any</option></select></label>
+      <label>Min confidence <input id="fConf" type="range" min="0" max="1" step="0.05" value="0"><output id="fConfOut">0.00</output></label>
+      <span id="resultCount" class="muted"></span>
+    </div>
+    <div class="split">
+      <div class="list" id="ruleList"></div>
+      <div class="detail" id="ruleDetail"><div class="empty">Select a rule to see its source, logic and confidence.</div></div>
+    </div>
+  </section>
+
+  <!-- Review -->
+  <section id="tab-review" class="tab">
+    <p class="muted">Rules waiting for a decision, lowest confidence first. Only a reviewer can approve.</p>
+    <div class="split">
+      <div class="list" id="reviewList"></div>
+      <div class="detail" id="reviewDetail"><div class="empty">Select a rule to review it.</div></div>
+    </div>
+  </section>
+
+  <!-- Programs -->
+  <section id="tab-programs" class="tab">
+    <form id="uploadForm" class="card upload">
+      <h3>Upload a program</h3>
+      <label>COBOL program <input type="file" id="upProgram" accept=".cob,.cbl,.cobol,.txt" required></label>
+      <label>Copybooks (optional) <input type="file" id="upCopybooks" multiple accept=".cpy,.cob,.cbl,.txt"></label>
+      <button type="submit">Upload and extract</button>
+      <div id="uploadStatus" class="muted"></div>
+    </form>
+    <div id="programList"></div>
+  </section>
+
+  <!-- Export -->
+  <section id="tab-export" class="tab">
+    <div class="card">
+      <h3>Export rules</h3>
+      <div class="filters">
+        <label>Program <select id="exProgram"><option value="">all</option></select></label>
+        <label>Status <select id="exStatus"><option value="">any</option><option>approved</option><option>candidate</option><option>needs_review</option></select></label>
+      </div>
+      <div class="row">
+        <button data-export="json">Rules JSON</button>
+        <button data-export="tree">Decision-tree JSON</button>
+        <button data-export="pmml">PMML</button>
+      </div>
+      <pre id="exportPreview" class="preview"></pre>
+    </div>
+  </section>
+
+  <!-- Score -->
+  <section id="tab-score" class="tab">
+    <div class="card">
+      <h3>Score with approved rules</h3>
+      <p class="muted">Stateless: inputs are not stored or logged.</p>
+      <label>Rule set <select id="scSet"></select></label>
+      <form id="scoreForm" class="grid"></form>
+      <div id="scoreResult"></div>
+    </div>
+  </section>
+
+  <!-- Insights -->
+  <section id="tab-insights" class="tab">
+    <div class="card">
+      <h3>Feature influence (SHAP)</h3>
+      <p class="muted">A surrogate model trained on decisions replayed through the rules. The rules are already explicit; this shows which inputs drive them.</p>
+      <label>Rule set <select id="inSet"></select></label>
+      <div id="shap"></div>
+    </div>
+    <div class="card">
+      <h3>Duplicates and conflicts</h3>
+      <button id="conflictBtn">Check all rules</button>
+      <div id="conflicts"></div>
+    </div>
+  </section>
+
+  <!-- Audit -->
+  <section id="tab-audit" class="tab">
+    <div id="auditList"></div>
+  </section>
+</main>
+
+<dialog id="loginDialog">
+  <form method="dialog" id="loginForm">
+    <h3>Sign in</h3>
+    <p class="muted">Paste an API token (viewer, reviewer or admin). Development tokens are in <code>data/dev_tokens.json</code>.</p>
+    <input id="tokenInput" type="password" placeholder="Bearer token" autocomplete="off">
+    <div class="row"><button value="ok">Sign in</button><button value="cancel" class="ghost">Cancel</button></div>
+  </form>
+</dialog>
+<div id="toast" class="toast" role="status"></div>
+<script src="app.js"></script>
+</body>
+</html>

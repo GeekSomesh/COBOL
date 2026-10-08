@@ -1,0 +1,3 @@
+    *> LATE PAYMENTS IN LAST 12 MONTHS
+    05 LATE-PMTS-YR       PIC 9(2).
+    05 DAYS-LATE          PIC 9(3).

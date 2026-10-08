@@ -1,0 +1,6 @@
+    *> FIRST LATE PAYMENT Y/N
+    05 :PFX:-FO-IND          PIC X.
+    *> TIER G=GOLD P=PLATINUM S=SILVER B=BASIC
+    05 :PFX:-WS-TIER         PIC X.
+    *> DAYS PAYMENT IS LATE
+    05 :PFX:-WS-DLT          PIC 9(3).

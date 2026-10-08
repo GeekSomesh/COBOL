@@ -1,0 +1,126 @@
+program: INT0033
+program_file: INT0033.cob
+domain: interest_tiers
+template: interest_term
+seed: 958490662
+record: INPUT-AREA
+out_record: RESULT-AREA
+main: MAIN-PARA
+copybook: INT0033C.cpy
+prefix: null
+inputs:
+- name: WS-TRM
+  pic: 9(3)
+  business: term_months
+  comment: DEPOSIT TERM IN MONTHS
+outputs:
+- name: I-RT1
+  pic: 9V9999
+  business: interest_rate
+  init: 0
+  comment: APPLIED INTEREST RATE
+noise:
+  date: RUN-DATE
+  filler: 2
+blocks:
+- structure: chain
+  rules:
+  - title: Short term deposit rate
+    intent: Pay 3% on deposits with a term of 1 to 6 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id001
+      - 1
+      - 6
+    then:
+    - set: interest_rate
+      value: 0.03
+    id: R1
+  - title: Medium term deposit rate
+    intent: Pay 3.75% on deposits with a term of 7 to 12 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id002
+      - 7
+      - 12
+    then:
+    - set: interest_rate
+      value: 0.0375
+    id: R2
+  - title: Long term deposit rate
+    intent: Pay 4.5% on deposits with a term of 13 to 36 months.
+    concepts:
+    - interest
+    - term
+    - deposit
+    when:
+      field: term_months
+      op: between
+      value: &id003
+      - 13
+      - 36
+    then:
+    - set: interest_rate
+      value: 0.045
+    id: R3
+  - title: Other deposit terms
+    intent: Pay 1.5% on deposits with any other term.
+    concepts:
+    - interest
+    - term
+    - default
+    when: null
+    then:
+    - set: interest_rate
+      value: 0.015
+    id: R4
+  paragraph: TERM-DEPOSIT-RATE
+  render: else_if
+  compact: true
+style:
+  cryptic_names: true
+  comments: none
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: true
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: WS-TRM
+  pic: 9(3)
+  business: term_months
+- name: RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 13
+names88:
+  TRM-BAND-1-6:
+    field: term_months
+    op: between
+    value: *id001
+  TRM-BAND-7-12:
+    field: term_months
+    op: between
+    value: *id002
+  TRM-BAND-13-36:
+    field: term_months
+    op: between
+    value: *id003
+expected_rules: 4

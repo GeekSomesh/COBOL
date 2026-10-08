@@ -1,0 +1,92 @@
+program: LON0037
+program_file: LON0037.cob
+domain: loan_limits
+template: loan_income_multiple
+seed: 1862846906
+record: WS-IN-REC
+out_record: RESULT-AREA
+main: 0000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: EMPLOY-YEARS
+  pic: 9(2)
+  business: employment_years
+  comment: YEARS WITH CURRENT EMPLOYER
+- name: GROSS-INCOME
+  pic: 9(7)V99
+  business: annual_income
+  comment: GROSS ANNUAL INCOME
+outputs:
+- name: MAX-LOAN-AMT
+  pic: 9(9)V99
+  business: max_loan
+  init: 0
+  comment: MAXIMUM LOAN AMOUNT
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Established employment multiple
+    intent: Lend up to 5 times annual income to applicants employed 5 years or more.
+    concepts:
+    - loan limit
+    - income
+    - employment
+    when:
+      field: employment_years
+      op: '>='
+      value: 5
+    then:
+    - compute: max_loan
+      expr: annual_income * 5
+    id: R1
+  - title: Standard employment multiple
+    intent: Lend up to 3 times annual income to applicants employed 2 years or more.
+    concepts:
+    - loan limit
+    - income
+    - employment
+    when:
+      field: employment_years
+      op: '>='
+      value: 2
+    then:
+    - compute: max_loan
+      expr: annual_income * 3
+    id: R2
+  - title: New employee multiple
+    intent: Lend up to 1.5 times annual income to everyone else.
+    concepts:
+    - loan limit
+    - income
+    - default
+    when: null
+    then:
+    - compute: max_loan
+      expr: annual_income * 1.5
+    id: R3
+  paragraph: MAX-LOAN-CALC
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: none
+  copybook: false
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: EMPLOY-YEARS
+  pic: 9(2)
+  business: employment_years
+- name: GROSS-INCOME
+  pic: 9(7)V99
+  business: annual_income
+record_length: 11
+names88: {}
+expected_rules: 3

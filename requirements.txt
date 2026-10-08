@@ -1,4 +1,14 @@
-# Phases 0-3. Later phases add fastapi, uvicorn, streamlit, ollama, scikit-learn, shap.
+# Runtime: parser, pipeline, verification, API, UI, evaluation. Python 3.11.
 pydantic==2.13.5
 PyYAML==6.0.3
+requests==2.34.2
+fastapi==0.142.4
+starlette==1.7.0
+uvicorn==0.54.0
+python-multipart==0.0.32
+numpy==2.4.6
+scikit-learn==1.9.1
+shap==0.51.0
+# tests
 pytest==9.1.1
+httpx==0.28.1

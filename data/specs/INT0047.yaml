@@ -1,0 +1,116 @@
+program: INT0047
+program_file: INT0047.cob
+domain: interest_tiers
+template: interest_senior_bonus
+seed: 328636478
+record: WS-INPUT
+out_record: OUT-RECORD
+main: MAIN-PARA
+copybook: null
+prefix: null
+inputs:
+- name: CLNT-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: ACCT-BALANCE
+  pic: 9(9)V99
+  business: balance
+  comment: CURRENT LEDGER BALANCE
+- name: ACCT-TYP
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: BASE-INT-RATE
+  pic: 9V9999
+  business: base_rate
+  comment: BASE INTEREST RATE
+outputs:
+- name: EFFECTIVE-RATE
+  pic: 9V9999
+  business: bonus_rate
+  init: 0
+  comment: RATE AFTER BONUS
+noise:
+  date: PROC-DATE
+  filler: 2
+blocks:
+- structure: if
+  rules:
+  - title: Senior saver bonus
+    intent: Add 0.5% to the base rate for customers aged 65 or over with at least 5,000 on deposit; everyone else gets the
+      base rate.
+    concepts:
+    - interest
+    - age
+    - senior
+    - balance
+    - bonus
+    when:
+      all:
+      - field: customer_age
+        op: '>='
+        value: 65
+      - field: balance
+        op: '>='
+        value: 5000
+    then:
+    - compute: bonus_rate
+      expr: base_rate + 0.0050
+    else:
+    - set: bonus_rate
+      from: base_rate
+    id: R1
+  paragraph: APPLY-BONUS
+- structure: if
+  rules:
+  - title: Fixed deposit uplift
+    intent: Add a further 0.15% to the rate for fixed deposit accounts.
+    concepts:
+    - interest
+    - fixed deposit
+    - account type
+    - bonus
+    when:
+      field: account_type
+      op: ==
+      value: F
+    then:
+    - compute: bonus_rate
+      expr: bonus_rate + 0.0015
+    id: R1
+  paragraph: 2600-FIXED-DEP
+style:
+  cryptic_names: false
+  comments: misleading
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: CLNT-AGE
+  pic: 9(3)
+  business: customer_age
+- name: ACCT-BALANCE
+  pic: 9(9)V99
+  business: balance
+- name: ACCT-TYP
+  pic: X
+  business: account_type
+- name: BASE-INT-RATE
+  pic: 9V9999
+  business: base_rate
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 30
+names88: {}
+expected_rules: 2

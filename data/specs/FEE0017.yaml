@@ -1,0 +1,88 @@
+program: FEE0017
+program_file: FEE0017.cob
+domain: fee_exemptions
+template: fee_transaction_count
+seed: 729229712
+record: WS-INPUT
+out_record: WS-RESULTS
+main: MAIN-PARA
+copybook: FEE0017C.cpy
+prefix: null
+inputs:
+- name: ACCT-TYPE
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: TXN-COUNT-MTH
+  pic: 9(3)
+  business: txn_count_month
+  comment: TRANSACTIONS THIS MONTH
+outputs:
+- name: EXCESS-FEE
+  pic: 9(5)V99
+  business: excess_fee
+  init: 0
+  comment: EXCESS TRANSACTION FEE
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Excess transaction fee
+    intent: Charge 0.50 for each transaction above 10 in the month.
+    concepts:
+    - fee
+    - transaction count
+    - excess
+    when:
+      field: txn_count_month
+      op: '>'
+      value: 10
+    then:
+    - compute: excess_fee
+      expr: (txn_count_month - 10) * 0.50
+    id: R1
+  paragraph: CHARGE-EXCESS
+- structure: if
+  rules:
+  - title: Business high-volume surcharge
+    intent: Add a 25 surcharge for business accounts with more than 30 transactions in the month.
+    concepts:
+    - fee
+    - business
+    - account type
+    - transaction count
+    when:
+      all:
+      - field: account_type
+        op: ==
+        value: B
+      - field: txn_count_month
+        op: '>'
+        value: 30
+    then:
+    - add: excess_fee
+      value: 25
+    id: R1
+  paragraph: BUSINESS-SURCHARGE
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: ACCT-TYPE
+  pic: X
+  business: account_type
+- name: TXN-COUNT-MTH
+  pic: 9(3)
+  business: txn_count_month
+record_length: 4
+names88: {}
+expected_rules: 2

@@ -1,0 +1,122 @@
+{
+  "program": "PEN0048",
+  "program_file": "PEN0048.cob",
+  "domain": "penalty_assessment",
+  "template": "penalty_repeat",
+  "split": "test",
+  "rules": [
+    {
+      "rule_id": "PEN0048-R001",
+      "version": 1,
+      "title": "Repeat late payer suspension",
+      "intent": "Suspend the account and add a 50 penalty when a customer with 4 or more late payments in 12 months is over 45 days late.",
+      "domain": "penalty_assessment",
+      "conditions": {
+        "all": [
+          {
+            "field": "late_count_12m",
+            "source_name": "TX-LATE-CNT-12M",
+            "op": ">=",
+            "value": 4
+          },
+          {
+            "field": "days_late",
+            "source_name": "TX-DAYS-LATE",
+            "op": ">",
+            "value": 45
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "account_status",
+          "source_name": "ACCOUNT-STAT",
+          "value": "S"
+        },
+        {
+          "type": "compute",
+          "target": "penalty_amt",
+          "source_name": "LATE-FEE",
+          "expr": "LATE-FEE + 50"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "PEN0048.cob",
+        "paragraph": "4000-REPEAT-LATE",
+        "line_start": 19,
+        "line_end": 22,
+        "copybooks": [
+          "PEN0048C.cpy"
+        ]
+      },
+      "concepts": [
+        "penalty",
+        "repeat",
+        "suspension",
+        "days late"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "penalty_repeat",
+        "spec": "data/specs/PEN0048.yaml",
+        "seed": 1466849708
+      }
+    },
+    {
+      "rule_id": "PEN0048-R002",
+      "version": 1,
+      "title": "Collections referral",
+      "intent": "Move accounts more than 60 days late to collections.",
+      "domain": "penalty_assessment",
+      "conditions": {
+        "all": [
+          {
+            "field": "days_late",
+            "source_name": "TX-DAYS-LATE",
+            "op": ">",
+            "value": 60
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "account_status",
+          "source_name": "ACCOUNT-STAT",
+          "value": "C"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "PEN0048.cob",
+        "paragraph": "COLLECTIONS-CHECK",
+        "line_start": 24,
+        "line_end": 26,
+        "copybooks": [
+          "PEN0048C.cpy"
+        ]
+      },
+      "concepts": [
+        "collections",
+        "days late",
+        "account status"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "penalty_repeat",
+        "spec": "data/specs/PEN0048.yaml",
+        "seed": 1466849708
+      }
+    }
+  ]
+}

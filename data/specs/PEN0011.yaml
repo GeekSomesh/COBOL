@@ -1,0 +1,113 @@
+program: PEN0011
+program_file: PEN0011.cob
+domain: penalty_assessment
+template: penalty_waiver
+seed: 985633529
+record: INPUT-AREA
+out_record: RESULT-AREA
+main: A000-MAIN
+copybook: PEN0011C.cpy
+prefix: AC
+inputs:
+- name: AC-WS-FOF
+  pic: X
+  business: first_offense
+  comment: FIRST LATE PAYMENT Y/N
+- name: AC-L-TR
+  pic: X
+  business: customer_tier
+  comment: TIER G=GOLD P=PLATINUM S=SILVER B=BASIC
+- name: AC-D-PD
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+outputs:
+- name: PW-IND
+  pic: X
+  business: penalty_waived
+  init: N
+  comment: PENALTY WAIVER FLAG
+- name: L-CG
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise:
+  date: AC-RUN-DATE
+  filler: 2
+blocks:
+- structure: nested
+  rules:
+  - title: Premium first-offence waiver
+    intent: Waive the penalty on a first late payment for gold and platinum customers.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - customer tier
+    when:
+      field: customer_tier
+      op: in
+      value:
+      - G
+      - P
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R1
+  - title: Grace period waiver
+    intent: Waive the penalty on a first late payment made within 3 days.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - grace period
+    when:
+      field: days_late
+      op: <=
+      value: 3
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R2
+  outer:
+    field: first_offense
+    op: ==
+    value: Y
+  paragraph: FIRST-OFFENSE-WAIVER
+  render: evaluate_true
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: AC-WS-FOF
+  pic: X
+  business: first_offense
+- name: AC-L-TR
+  pic: X
+  business: customer_tier
+- name: AC-D-PD
+  pic: 9(3)
+  business: days_late
+- name: AC-RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 15
+names88: {}
+expected_rules: 2

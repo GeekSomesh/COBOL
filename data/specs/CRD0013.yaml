@@ -1,0 +1,103 @@
+program: CRD0013
+program_file: CRD0013.cob
+domain: credit_approval
+template: credit_score_cutoff
+seed: 934867680
+record: INPUT-AREA
+out_record: OUT-RECORD
+main: MAIN-PARA
+copybook: null
+prefix: null
+inputs:
+- name: B-SC
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+- name: WS-DTI
+  pic: 9V99
+  business: debt_ratio
+  comment: DEBT TO INCOME RATIO
+outputs:
+- name: DC-CD
+  pic: X
+  business: decision
+  init: D
+  comment: A=APPROVE R=REFER D=DECLINE
+noise:
+  date: RUN-DATE
+  filler: 6
+blocks:
+- structure: chain
+  rules:
+  - title: Automatic approval
+    intent: Approve applicants with a credit score of 700 or more and a debt-to-income ratio below 0.40.
+    concepts:
+    - credit score
+    - debt ratio
+    - approval
+    when:
+      all:
+      - field: credit_score
+        op: '>='
+        value: 700
+      - field: debt_ratio
+        op: <
+        value: 0.4
+    then:
+    - set: decision
+      value: A
+    id: R1
+  - title: Refer to underwriter
+    intent: Refer applicants scoring 620 or more to an underwriter.
+    concepts:
+    - credit score
+    - referral
+    - underwriting
+    when:
+      field: credit_score
+      op: '>='
+      value: 620
+    then:
+    - set: decision
+      value: R
+    id: R2
+  - title: Decline application
+    intent: Decline all other applicants.
+    concepts:
+    - decline
+    - default
+    when: null
+    then:
+    - set: decision
+      value: D
+    id: R3
+  paragraph: CREDIT-CUTOFF
+  render: evaluate_true
+style:
+  cryptic_names: true
+  comments: none
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: true
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: B-SC
+  pic: 9(3)
+  business: credit_score
+- name: WS-DTI
+  pic: 9V99
+  business: debt_ratio
+- name: RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(6)
+  business: null
+record_length: 20
+names88: {}
+expected_rules: 3
