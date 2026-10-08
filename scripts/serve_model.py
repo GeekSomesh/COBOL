@@ -66,7 +66,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--merged", default=str(ROOT / "models" / "cobol-enrich-1.5b" / "merged"))
     ap.add_argument("--name", default="cobol-enrich:1.5b")
-    ap.add_argument("--base", default="qwen2.5-coder:1.5b", help="Ollama model whose chat template is reused")
+    ap.add_argument("--base", default="qwen2.5-coder:7b", help="Ollama Qwen2.5-Coder model whose chat template is reused (same template for 1.5B and 7B)")
     ap.add_argument("--outtype", default="q8_0")
     ap.add_argument("--also-base", default="", help="HF base model dir to import the same way (fair baseline)")
     args = ap.parse_args()
