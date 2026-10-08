@@ -1,0 +1,64 @@
+{
+  "program": "FRD0004",
+  "program_file": "FRD0004.cob",
+  "domain": "fraud_scoring",
+  "template": "fraud_minor_high_value",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "FRD0004-R001",
+      "version": 1,
+      "title": "High-value transaction by minor",
+      "intent": "Flag transactions over 7,500 made by customers younger than 16 for manual review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "CUST-AGE",
+            "op": "<",
+            "value": 16
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "TXN-AMOUNT",
+            "op": ">",
+            "value": 7500
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "FLAG-REVIEW",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0004.cob",
+        "paragraph": "MINOR-TXN-CHECK",
+        "line_start": 40,
+        "line_end": 42,
+        "copybooks": []
+      },
+      "concepts": [
+        "age",
+        "amount",
+        "minor",
+        "review"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_minor_high_value",
+        "spec": "data/specs/FRD0004.yaml",
+        "seed": 368952893
+      }
+    }
+  ]
+}

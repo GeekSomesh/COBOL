@@ -1,0 +1,96 @@
+program: PEN0003
+program_file: PEN0003.cob
+domain: penalty_assessment
+template: penalty_repeat
+seed: 23966709
+record: WS-IN-REC
+out_record: OUT-RECORD
+main: A000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: L-PY
+  pic: 9(2)
+  business: late_count_12m
+  comment: LATE PAYMENTS IN LAST 12 MONTHS
+- name: WS-DLT
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+outputs:
+- name: AS-CD
+  pic: X
+  business: account_status
+  init: A
+  comment: A=ACTIVE S=SUSPENDED C=COLLECTIONS
+- name: PA-AMT
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Repeat late payer suspension
+    intent: Suspend the account and add a 100 penalty when a customer with 3 or more late payments in 12 months is over 45
+      days late.
+    concepts:
+    - penalty
+    - repeat
+    - suspension
+    - days late
+    when:
+      all:
+      - field: late_count_12m
+        op: '>='
+        value: 3
+      - field: days_late
+        op: '>'
+        value: 45
+    then:
+    - set: account_status
+      value: S
+    - add: penalty_amt
+      value: 100
+    id: R1
+  paragraph: REPEAT-OFFENDER
+- structure: if
+  rules:
+  - title: Collections referral
+    intent: Move accounts more than 90 days late to collections.
+    concepts:
+    - collections
+    - days late
+    - account status
+    when:
+      field: days_late
+      op: '>'
+      value: 90
+    then:
+    - set: account_status
+      value: C
+    id: R1
+  paragraph: 4100-TO-COLLECTIONS
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: true
+  dead_code: true
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: L-PY
+  pic: 9(2)
+  business: late_count_12m
+- name: WS-DLT
+  pic: 9(3)
+  business: days_late
+record_length: 5
+names88: {}
+expected_rules: 2

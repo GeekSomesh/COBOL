@@ -1,0 +1,111 @@
+program: PEN0004
+program_file: PEN0004.cob
+domain: penalty_assessment
+template: penalty_days_late
+seed: 529000335
+record: IN-RECORD
+out_record: RESULT-AREA
+main: MAIN-PARA
+copybook: null
+prefix: null
+inputs:
+- name: DAYS-LATE
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+- name: AMT-DUE
+  pic: 9(7)V99
+  business: balance_due
+  comment: STATEMENT AMOUNT DUE
+outputs:
+- name: PENALTY-AMT
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Early late payment fee
+    intent: Charge 25 when a payment is 1 to 10 days late.
+    concepts:
+    - penalty
+    - days late
+    - late fee
+    when:
+      field: days_late
+      op: between
+      value:
+      - 1
+      - 10
+    then:
+    - set: penalty_amt
+      value: 25
+    id: R1
+  - title: Late payment fee
+    intent: Charge 35 when a payment is 11 to 30 days late.
+    concepts:
+    - penalty
+    - days late
+    - late fee
+    when:
+      field: days_late
+      op: between
+      value:
+      - 11
+      - 30
+    then:
+    - set: penalty_amt
+      value: 35
+    id: R2
+  - title: Seriously late payment penalty
+    intent: Charge 8% of the amount due when a payment is more than 30 days late.
+    concepts:
+    - penalty
+    - days late
+    - amount due
+    when:
+      field: days_late
+      op: between
+      value:
+      - 31
+      - 999
+    then:
+    - compute: penalty_amt
+      expr: balance_due * 0.08
+    id: R3
+  - title: No penalty
+    intent: Charge no penalty when the payment is not late.
+    concepts:
+    - penalty
+    - default
+    when: null
+    then:
+    - set: penalty_amt
+      value: 0
+    id: R4
+  paragraph: 2000-LATE-PENALTY
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: injection
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: true
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: DAYS-LATE
+  pic: 9(3)
+  business: days_late
+- name: AMT-DUE
+  pic: 9(7)V99
+  business: balance_due
+record_length: 12
+names88: {}
+expected_rules: 4

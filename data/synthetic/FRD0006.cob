@@ -1,0 +1,54 @@
+*> ********************************************************
+*> PROGRAM : FRD0006
+*> PURPOSE : FRAUD SCORING RULES
+*> AUTHOR  : L.B.
+*> CHANGE LOG:
+*>   1987-02-16 ORIGINAL VERSION
+*>   1998-12-08 THRESHOLDS UPDATED PER AUDIT REQ 169
+*> RUN FROM JCL JOB FRDNIGHT STEP010
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. FRD0006.
+ENVIRONMENT DIVISION.
+CONFIGURATION SECTION.
+SOURCE-COMPUTER. IBM-370.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 IN-RECORD.
+    05 WS-CHN             PIC X.
+    *> CARD PRESENT Y/N
+    05 C-PR               PIC X.
+    *> TRANSACTION AMOUNT
+    05 TA-AMT             PIC 9(7)V99.
+    05 POST-DATE          PIC 9(8).
+    05 POST-DATE-R REDEFINES POST-DATE.
+       10 POST-DATE-YYYY  PIC 9(4).
+       10 POST-DATE-MM    PIC 9(2).
+       10 POST-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(2).
+01 WS-RESULTS.
+    05 WS-HLD             PIC X VALUE 'N'.
+    *> MANUAL REVIEW FLAG
+    05 WS-RVF             PIC X VALUE 'N'.
+PROCEDURE DIVISION.
+0000-MAIN.
+    ACCEPT IN-RECORD
+    PERFORM CHECK-CHANNEL
+    DISPLAY "WS-HLD=" WS-HLD
+    DISPLAY "WS-RVF=" WS-RVF
+    STOP RUN.
+CHECK-CHANNEL.
+    IF WS-CHN = 'O'
+        EVALUATE TRUE
+            *> CARD-NOT-PRESENT ONLINE PURCHASE
+            WHEN C-PR = 'N'
+               AND TA-AMT > 3000
+                MOVE 'Y' TO WS-HLD
+                MOVE 'Y' TO WS-RVF
+            *> LARGE ONLINE TRANSACTION
+            WHEN TA-AMT > 5000
+                MOVE 'Y' TO WS-RVF
+        END-EVALUATE
+    ELSE
+        MOVE 'N' TO WS-HLD
+    END-IF.

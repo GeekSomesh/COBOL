@@ -1,0 +1,96 @@
+program: FEE0008
+program_file: FEE0008.cob
+domain: fee_exemptions
+template: fee_transaction_count
+seed: 1049643462
+record: WS-INPUT
+out_record: WS-RESULTS
+main: A000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: ACCT-TYP
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: TXN-COUNT-MTH
+  pic: 9(3)
+  business: txn_count_month
+  comment: TRANSACTIONS THIS MONTH
+outputs:
+- name: EXTRA-TXN-FEE
+  pic: 9(5)V99
+  business: excess_fee
+  init: 0
+  comment: EXCESS TRANSACTION FEE
+noise:
+  date: RUN-DATE
+  filler: 6
+blocks:
+- structure: if
+  rules:
+  - title: Excess transaction fee
+    intent: Charge 0.75 for each transaction above 15 in the month.
+    concepts:
+    - fee
+    - transaction count
+    - excess
+    when:
+      field: txn_count_month
+      op: '>'
+      value: 15
+    then:
+    - compute: excess_fee
+      expr: (txn_count_month - 15) * 0.75
+    id: R1
+  paragraph: EXCESS-TXN-FEE
+- structure: if
+  rules:
+  - title: Business high-volume surcharge
+    intent: Add a 15 surcharge for business accounts with more than 45 transactions in the month.
+    concepts:
+    - fee
+    - business
+    - account type
+    - transaction count
+    when:
+      all:
+      - field: account_type
+        op: ==
+        value: B
+      - field: txn_count_month
+        op: '>'
+        value: 45
+    then:
+    - add: excess_fee
+      value: 15
+    id: R1
+  paragraph: 3100-BUS-SURCHG
+style:
+  cryptic_names: false
+  comments: injection
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: ACCT-TYP
+  pic: X
+  business: account_type
+- name: TXN-COUNT-MTH
+  pic: 9(3)
+  business: txn_count_month
+- name: RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(6)
+  business: null
+record_length: 18
+names88: {}
+expected_rules: 2

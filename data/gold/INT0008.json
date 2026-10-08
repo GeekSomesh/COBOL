@@ -1,0 +1,121 @@
+{
+  "program": "INT0008",
+  "program_file": "INT0008.cob",
+  "domain": "interest_tiers",
+  "template": "interest_senior_bonus",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "INT0008-R001",
+      "version": 1,
+      "title": "Senior saver bonus",
+      "intent": "Add 0.5% to the base rate for customers aged 60 or over with at least 25,000 on deposit; everyone else gets the base rate.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "customer_age",
+            "source_name": "CLNT-AGE",
+            "op": ">=",
+            "value": 60
+          },
+          {
+            "field": "balance",
+            "source_name": "LEDGER-BAL",
+            "op": ">=",
+            "value": 25000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "bonus_rate",
+          "source_name": "FINAL-RATE",
+          "expr": "STD-RATE + 0.0050"
+        }
+      ],
+      "else_actions": [
+        {
+          "type": "set",
+          "target": "bonus_rate",
+          "source_name": "FINAL-RATE",
+          "expr": "STD-RATE"
+        }
+      ],
+      "trace": {
+        "program": "INT0008.cob",
+        "paragraph": "SENIOR-BONUS",
+        "line_start": 26,
+        "line_end": 30,
+        "copybooks": []
+      },
+      "concepts": [
+        "interest",
+        "age",
+        "senior",
+        "balance",
+        "bonus"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_senior_bonus",
+        "spec": "data/specs/INT0008.yaml",
+        "seed": 165313052
+      }
+    },
+    {
+      "rule_id": "INT0008-R002",
+      "version": 1,
+      "title": "Fixed deposit uplift",
+      "intent": "Add a further 0.1% to the rate for fixed deposit accounts.",
+      "domain": "interest_tiers",
+      "conditions": {
+        "all": [
+          {
+            "field": "account_type",
+            "source_name": "ACCT-TYPE",
+            "op": "==",
+            "value": "F"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "bonus_rate",
+          "source_name": "FINAL-RATE",
+          "expr": "FINAL-RATE + 0.0010"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "INT0008.cob",
+        "paragraph": "2600-FIXED-DEP",
+        "line_start": 32,
+        "line_end": 34,
+        "copybooks": []
+      },
+      "concepts": [
+        "interest",
+        "fixed deposit",
+        "account type",
+        "bonus"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "interest_senior_bonus",
+        "spec": "data/specs/INT0008.yaml",
+        "seed": 165313052
+      }
+    }
+  ]
+}

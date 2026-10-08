@@ -1,0 +1,2 @@
+    *> DEPOSIT TERM IN MONTHS
+    05 DEPOSIT-TERM       PIC 9(3).

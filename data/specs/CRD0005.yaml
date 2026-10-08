@@ -1,0 +1,111 @@
+program: CRD0005
+program_file: CRD0005.cob
+domain: credit_approval
+template: credit_bankruptcy
+seed: 419167570
+record: INPUT-AREA
+out_record: WS-RESULTS
+main: MAINLINE
+copybook: CRD0005C.cpy
+prefix: null
+inputs:
+- name: BK-FLG
+  pic: X
+  business: bankruptcy_flag
+  comment: PRIOR BANKRUPTCY Y/N
+- name: WS-BKY
+  pic: 9(2)
+  business: years_since_bk
+  comment: YEARS SINCE BANKRUPTCY DISCHARGE
+- name: CS-SCR
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+outputs:
+- name: A-DC
+  pic: X
+  business: decision
+  init: D
+  comment: A=APPROVE R=REFER D=DECLINE
+- name: RC-CD
+  pic: X(3)
+  business: reason_code
+  init: ' '
+  comment: DECISION REASON CODE
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Recent bankruptcy decline
+    intent: Decline applicants with a bankruptcy in the last 5 years.
+    concepts:
+    - bankruptcy
+    - decline
+    - credit history
+    when:
+      field: years_since_bk
+      op: <
+      value: 5
+    then:
+    - set: decision
+      value: D
+    - set: reason_code
+      value: BK1
+    id: R1
+  - title: Older bankruptcy referral
+    intent: Refer applicants whose bankruptcy is 5 or more years old.
+    concepts:
+    - bankruptcy
+    - referral
+    - credit history
+    when: null
+    then:
+    - set: decision
+      value: R
+    - set: reason_code
+      value: BK2
+    id: R2
+  outer:
+    field: bankruptcy_flag
+    op: ==
+    value: Y
+  paragraph: 2500-BK-RULES
+  render: else_if
+  compact: false
+style:
+  cryptic_names: true
+  comments: none
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: BK-FLG
+  pic: X
+  business: bankruptcy_flag
+- name: WS-BKY
+  pic: 9(2)
+  business: years_since_bk
+- name: CS-SCR
+  pic: 9(3)
+  business: credit_score
+record_length: 6
+names88:
+  BK-BANKRUPT:
+    field: bankruptcy_flag
+    op: ==
+    value: Y
+  A-DECLINED:
+    field: decision
+    op: ==
+    value: D
+  A-REFERRED:
+    field: decision
+    op: ==
+    value: R
+expected_rules: 2

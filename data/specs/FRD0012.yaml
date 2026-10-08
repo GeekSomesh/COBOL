@@ -1,0 +1,124 @@
+program: FRD0012
+program_file: FRD0012.cob
+domain: fraud_scoring
+template: fraud_channel
+seed: 162963425
+record: WS-IN-REC
+out_record: WS-OUT-REC
+main: MAINLINE
+copybook: FRD0012C.cpy
+prefix: TX
+inputs:
+- name: TX-TXN-CHANNEL
+  pic: X
+  business: channel_code
+  comment: CHANNEL O=ONLINE B=BRANCH A=ATM
+- name: TX-CARD-PRESENT
+  pic: X
+  business: card_present
+  comment: CARD PRESENT Y/N
+- name: TX-TXN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+outputs:
+- name: HOLD-FLAG
+  pic: X
+  business: hold_flag
+  init: N
+  comment: HOLD TRANSACTION FLAG
+- name: REVIEW-FLAG
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise:
+  date: TX-RUN-DATE
+  filler: 2
+blocks:
+- structure: nested
+  rules:
+  - title: Card-not-present online purchase
+    intent: Hold online card-not-present transactions above 750 and send them for review.
+    concepts:
+    - channel
+    - online
+    - card not present
+    - amount
+    - hold
+    when:
+      all:
+      - field: card_present
+        op: ==
+        value: N
+      - field: transaction_amount
+        op: '>'
+        value: 750
+    then:
+    - set: hold_flag
+      value: Y
+    - set: review_flag
+      value: Y
+    id: R1
+  - title: Large online transaction
+    intent: Send online transactions above 15,000 for review.
+    concepts:
+    - channel
+    - online
+    - amount
+    - review
+    when:
+      field: transaction_amount
+      op: '>'
+      value: 15000
+    then:
+    - set: review_flag
+      value: Y
+    id: R2
+  outer:
+    field: channel_code
+    op: ==
+    value: O
+  outer_else:
+    title: Non-online transaction
+    intent: Never hold transactions made outside the online channel.
+    concepts:
+    - channel
+    - hold
+    when: null
+    then:
+    - set: hold_flag
+      value: N
+  paragraph: ONLINE-SCREEN
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: injection
+  copybook: true
+  replacing: true
+  abbreviated: true
+  use_88: false
+  word_operators: true
+  dead_code: true
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: TX-TXN-CHANNEL
+  pic: X
+  business: channel_code
+- name: TX-CARD-PRESENT
+  pic: X
+  business: card_present
+- name: TX-TXN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+- name: TX-RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 21
+names88: {}
+expected_rules: 3

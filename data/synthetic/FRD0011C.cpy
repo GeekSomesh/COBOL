@@ -1,0 +1,12 @@
+    *> TRANSACTIONS IN LAST 24 HOURS
+    05 TXN-COUNT-24H      PIC 9(3).
+    *> TRANSACTION AMOUNT
+    05 TXN-AMT            PIC 9(7)V99.
+    *> DAYS SINCE ACCOUNT OPENED
+    05 ACCT-AGE-DAYS      PIC 9(5).
+    05 RUN-DATE           PIC 9(8).
+    05 RUN-DATE-R REDEFINES RUN-DATE.
+       10 RUN-DATE-YYYY  PIC 9(4).
+       10 RUN-DATE-MM    PIC 9(2).
+       10 RUN-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(2).

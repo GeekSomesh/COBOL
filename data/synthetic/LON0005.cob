@@ -1,0 +1,53 @@
+*> ********************************************************
+*> PROGRAM : LON0005
+*> PURPOSE : LOAN LIMITS RULES
+*> AUTHOR  : D.P.
+*> CHANGE LOG:
+*>   1992-02-18 ORIGINAL VERSION
+*>   2003-11-06 THRESHOLDS UPDATED PER AUDIT REQ 778
+*> RUN FROM JCL JOB LONNIGHT STEP030
+*> ********************************************************
+IDENTIFICATION DIVISION.
+PROGRAM-ID. LON0005.
+ENVIRONMENT DIVISION.
+CONFIGURATION SECTION.
+SOURCE-COMPUTER. IBM-370.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 INPUT-AREA.
+    *> CUSTOMER AGE IN YEARS
+    05 WS-CAGE            PIC 9(3).
+    05 RUN-DATE           PIC 9(8).
+    05 RUN-DATE-R REDEFINES RUN-DATE.
+       10 RUN-DATE-YYYY  PIC 9(4).
+       10 RUN-DATE-MM    PIC 9(2).
+       10 RUN-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(6).
+01 RESULT-AREA.
+    *> MAXIMUM TERM IN YEARS
+    05 T-CP               PIC 9(2) VALUE ZERO.
+    05 EL-IND             PIC X VALUE 'N'.
+PROCEDURE DIVISION.
+0000-MAIN.
+    ACCEPT INPUT-AREA
+    PERFORM TERM-BY-AGE
+    DISPLAY "T-CP=" T-CP
+    DISPLAY "EL-IND=" EL-IND
+    STOP RUN.
+TERM-BY-AGE.
+    IF WS-CAGE >= 18
+        EVALUATE TRUE
+            WHEN WS-CAGE > 60
+                MOVE 10 TO T-CP
+                MOVE 'Y' TO EL-IND
+            *> MEDIUM TERM CAP
+            WHEN WS-CAGE > 50
+                MOVE 20 TO T-CP
+                MOVE 'Y' TO EL-IND
+            WHEN OTHER
+                MOVE 30 TO T-CP
+                MOVE 'Y' TO EL-IND
+        END-EVALUATE
+    ELSE
+        MOVE 'N' TO EL-IND
+    END-IF.

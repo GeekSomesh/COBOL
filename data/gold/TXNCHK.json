@@ -1,0 +1,38 @@
+{
+  "program": "TXNCHK",
+  "program_file": "TXNCHK.cob",
+  "domain": "fraud_scoring",
+  "template": "hand_made",
+  "rules": [
+    {
+      "rule_id": "TXNCHK-R001",
+      "version": 1,
+      "title": "High-value transaction by minor",
+      "intent": "Flag high-value transactions made by minors for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {"field": "customer_age", "source_name": "CUST-AGE", "op": "<", "value": 18},
+          {"field": "transaction_amount", "source_name": "TXN-AMOUNT", "op": ">", "value": 5000}
+        ]
+      },
+      "actions": [
+        {"type": "set", "target": "review_flag", "source_name": "FLAG-REVIEW", "value": "Y"}
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "TXNCHK.cob",
+        "paragraph": "CHECK-TXN",
+        "line_start": 16,
+        "line_end": 18,
+        "copybooks": []
+      },
+      "concepts": ["age", "amount", "minor", "review"],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {"source": "gold:hand"}
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+program: LON0006
+program_file: LON0006.cob
+domain: loan_limits
+template: loan_ltv
+seed: 1172697581
+record: WS-IN-REC
+out_record: OUT-RECORD
+main: MAINLINE
+copybook: null
+prefix: null
+inputs:
+- name: LOAN-TO-VALUE
+  pic: 9(3)
+  business: ltv_pct
+  comment: LOAN TO VALUE PERCENT
+outputs:
+- name: MORT-INS-IND
+  pic: X
+  business: mi_required
+  init: N
+  comment: MORTGAGE INSURANCE REQUIRED
+- name: RATE-ADJ
+  pic: 9V9999
+  business: rate_adjustment
+  init: 0
+  comment: RATE ADJUSTMENT
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Mortgage insurance requirement
+    intent: Require mortgage insurance and add 0.5% to the rate when the loan-to-value ratio exceeds 90%.
+    concepts:
+    - loan to value
+    - mortgage insurance
+    - rate
+    when:
+      field: ltv_pct
+      op: '>'
+      value: 90
+    then:
+    - set: mi_required
+      value: Y
+    - set: rate_adjustment
+      value: 0.005
+    else:
+    - set: mi_required
+      value: N
+    id: R1
+  paragraph: MORTGAGE-INS-CHECK
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: LOAN-TO-VALUE
+  pic: 9(3)
+  business: ltv_pct
+record_length: 3
+names88: {}
+expected_rules: 1

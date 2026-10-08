@@ -1,0 +1,6 @@
+    *> TRANSACTIONS IN LAST 24 HOURS
+    05 :PFX:-D-TC            PIC 9(3).
+    *> TRANSACTION AMOUNT
+    05 :PFX:-TA-AMT          PIC 9(7)V99.
+    *> DAYS SINCE ACCOUNT OPENED
+    05 :PFX:-WS-AGEDD        PIC 9(5).

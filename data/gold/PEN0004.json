@@ -1,0 +1,269 @@
+{
+  "program": "PEN0004",
+  "program_file": "PEN0004.cob",
+  "domain": "penalty_assessment",
+  "template": "penalty_days_late",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "PEN0004-R001",
+      "version": 1,
+      "title": "Early late payment fee",
+      "intent": "Charge 25 when a payment is 1 to 10 days late.",
+      "domain": "penalty_assessment",
+      "conditions": {
+        "all": [
+          {
+            "field": "days_late",
+            "source_name": "DAYS-LATE",
+            "op": "between",
+            "value": [
+              1,
+              10
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "penalty_amt",
+          "source_name": "PENALTY-AMT",
+          "value": 25
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "PEN0004.cob",
+        "paragraph": "2000-LATE-PENALTY",
+        "line_start": 34,
+        "line_end": 35,
+        "copybooks": []
+      },
+      "concepts": [
+        "penalty",
+        "days late",
+        "late fee"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "penalty_days_late",
+        "spec": "data/specs/PEN0004.yaml",
+        "seed": 529000335
+      }
+    },
+    {
+      "rule_id": "PEN0004-R002",
+      "version": 1,
+      "title": "Late payment fee",
+      "intent": "Charge 35 when a payment is 11 to 30 days late.",
+      "domain": "penalty_assessment",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "days_late",
+              "source_name": "DAYS-LATE",
+              "op": "between",
+              "value": [
+                1,
+                10
+              ]
+            }
+          },
+          {
+            "field": "days_late",
+            "source_name": "DAYS-LATE",
+            "op": "between",
+            "value": [
+              11,
+              30
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "penalty_amt",
+          "source_name": "PENALTY-AMT",
+          "value": 35
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "PEN0004.cob",
+        "paragraph": "2000-LATE-PENALTY",
+        "line_start": 37,
+        "line_end": 38,
+        "copybooks": []
+      },
+      "concepts": [
+        "penalty",
+        "days late",
+        "late fee"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "penalty_days_late",
+        "spec": "data/specs/PEN0004.yaml",
+        "seed": 529000335
+      }
+    },
+    {
+      "rule_id": "PEN0004-R003",
+      "version": 1,
+      "title": "Seriously late payment penalty",
+      "intent": "Charge 8% of the amount due when a payment is more than 30 days late.",
+      "domain": "penalty_assessment",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "days_late",
+              "source_name": "DAYS-LATE",
+              "op": "between",
+              "value": [
+                1,
+                10
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "days_late",
+              "source_name": "DAYS-LATE",
+              "op": "between",
+              "value": [
+                11,
+                30
+              ]
+            }
+          },
+          {
+            "field": "days_late",
+            "source_name": "DAYS-LATE",
+            "op": "between",
+            "value": [
+              31,
+              999
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "penalty_amt",
+          "source_name": "PENALTY-AMT",
+          "expr": "AMT-DUE * 0.08"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "PEN0004.cob",
+        "paragraph": "2000-LATE-PENALTY",
+        "line_start": 40,
+        "line_end": 41,
+        "copybooks": []
+      },
+      "concepts": [
+        "penalty",
+        "days late",
+        "amount due"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "penalty_days_late",
+        "spec": "data/specs/PEN0004.yaml",
+        "seed": 529000335
+      }
+    },
+    {
+      "rule_id": "PEN0004-R004",
+      "version": 1,
+      "title": "No penalty",
+      "intent": "Charge no penalty when the payment is not late.",
+      "domain": "penalty_assessment",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "days_late",
+              "source_name": "DAYS-LATE",
+              "op": "between",
+              "value": [
+                1,
+                10
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "days_late",
+              "source_name": "DAYS-LATE",
+              "op": "between",
+              "value": [
+                11,
+                30
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "days_late",
+              "source_name": "DAYS-LATE",
+              "op": "between",
+              "value": [
+                31,
+                999
+              ]
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "penalty_amt",
+          "source_name": "PENALTY-AMT",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "PEN0004.cob",
+        "paragraph": "2000-LATE-PENALTY",
+        "line_start": 42,
+        "line_end": 43,
+        "copybooks": []
+      },
+      "concepts": [
+        "penalty",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "penalty_days_late",
+        "spec": "data/specs/PEN0004.yaml",
+        "seed": 529000335
+      }
+    }
+  ]
+}

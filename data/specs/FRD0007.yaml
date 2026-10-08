@@ -1,0 +1,118 @@
+program: FRD0007
+program_file: FRD0007.cob
+domain: fraud_scoring
+template: fraud_minor_high_value
+seed: 978998483
+record: INPUT-AREA
+out_record: WS-OUT-REC
+main: MAIN-PARA
+copybook: null
+prefix: null
+inputs:
+- name: CLNT-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: TXN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+- name: ORIG-CTRY
+  pic: X(2)
+  business: country_code
+  comment: ORIGIN COUNTRY CODE
+outputs:
+- name: RVW-IND
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise:
+  date: PROC-DATE
+  filler: 4
+blocks:
+- structure: if
+  rules:
+  - title: High-value transaction by minor
+    intent: Flag transactions over 8,000 made by customers younger than 18 for manual review.
+    concepts:
+    - age
+    - amount
+    - minor
+    - review
+    when:
+      all:
+      - field: customer_age
+        op: <
+        value: 18
+      - field: transaction_amount
+        op: '>'
+        value: 8000
+    then:
+    - set: review_flag
+      value: Y
+    id: R1
+  paragraph: MINOR-TXN-CHECK
+- structure: if
+  rules:
+  - title: Large transaction from high-risk region
+    intent: Flag transactions over 60,000 that originate from high-risk country codes XE and raise a fraud alert.
+    concepts:
+    - amount
+    - geography
+    - country
+    - review
+    - alert
+    when:
+      all:
+      - field: transaction_amount
+        op: '>'
+        value: 60000
+      - field: country_code
+        op: ==
+        value: XE
+    then:
+    - set: review_flag
+      value: Y
+    - call: FRDALERT
+    id: R1
+  paragraph: HIGH-RISK-REGION
+style:
+  cryptic_names: false
+  comments: none
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: CLNT-AGE
+  pic: 9(3)
+  business: customer_age
+- name: TXN-AMT
+  pic: 9(7)V99
+  business: transaction_amount
+- name: ORIG-CTRY
+  pic: X(2)
+  business: country_code
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 26
+names88:
+  ORIG-IS-XE:
+    field: country_code
+    op: ==
+    value: XE
+  RVW-REVIEW-NEEDED:
+    field: review_flag
+    op: ==
+    value: Y
+expected_rules: 2

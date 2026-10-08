@@ -1,0 +1,13 @@
+[project]
+name = "cobol-to-decision"
+version = "0.1.0"
+description = "Extract source-traceable decision rules from COBOL programs"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
+markers = [
+    "cobol: needs a working GnuCOBOL toolchain (cobc), skipped otherwise",
+]

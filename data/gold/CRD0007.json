@@ -1,0 +1,202 @@
+{
+  "program": "CRD0007",
+  "program_file": "CRD0007.cob",
+  "domain": "credit_approval",
+  "template": "credit_score_cutoff",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "CRD0007-R001",
+      "version": 1,
+      "title": "Automatic approval",
+      "intent": "Approve applicants with a credit score of 720 or more and a debt-to-income ratio below 0.35.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "field": "credit_score",
+            "source_name": "TX-CREDIT-SCORE",
+            "op": ">=",
+            "value": 720
+          },
+          {
+            "field": "debt_ratio",
+            "source_name": "TX-DTI-RATIO",
+            "op": "<",
+            "value": 0.35
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "CREDIT-DECN",
+          "value": "A"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0007.cob",
+        "paragraph": "CREDIT-CUTOFF",
+        "line_start": 21,
+        "line_end": 23,
+        "copybooks": [
+          "CRD0007C.cpy"
+        ]
+      },
+      "concepts": [
+        "credit score",
+        "debt ratio",
+        "approval"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0007.yaml",
+        "seed": 419615019
+      }
+    },
+    {
+      "rule_id": "CRD0007-R002",
+      "version": 1,
+      "title": "Refer to underwriter",
+      "intent": "Refer applicants scoring 680 or more to an underwriter.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "credit_score",
+                  "source_name": "TX-CREDIT-SCORE",
+                  "op": ">=",
+                  "value": 720
+                },
+                {
+                  "field": "debt_ratio",
+                  "source_name": "TX-DTI-RATIO",
+                  "op": "<",
+                  "value": 0.35
+                }
+              ]
+            }
+          },
+          {
+            "field": "credit_score",
+            "source_name": "TX-CREDIT-SCORE",
+            "op": ">=",
+            "value": 680
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "CREDIT-DECN",
+          "value": "R"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0007.cob",
+        "paragraph": "CREDIT-CUTOFF",
+        "line_start": 24,
+        "line_end": 25,
+        "copybooks": [
+          "CRD0007C.cpy"
+        ]
+      },
+      "concepts": [
+        "credit score",
+        "referral",
+        "underwriting"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0007.yaml",
+        "seed": 419615019
+      }
+    },
+    {
+      "rule_id": "CRD0007-R003",
+      "version": 1,
+      "title": "Decline application",
+      "intent": "Decline all other applicants.",
+      "domain": "credit_approval",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "credit_score",
+                  "source_name": "TX-CREDIT-SCORE",
+                  "op": ">=",
+                  "value": 720
+                },
+                {
+                  "field": "debt_ratio",
+                  "source_name": "TX-DTI-RATIO",
+                  "op": "<",
+                  "value": 0.35
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "credit_score",
+              "source_name": "TX-CREDIT-SCORE",
+              "op": ">=",
+              "value": 680
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "decision",
+          "source_name": "CREDIT-DECN",
+          "value": "D"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "CRD0007.cob",
+        "paragraph": "CREDIT-CUTOFF",
+        "line_start": 26,
+        "line_end": 27,
+        "copybooks": [
+          "CRD0007C.cpy"
+        ]
+      },
+      "concepts": [
+        "decline",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "credit_score_cutoff",
+        "spec": "data/specs/CRD0007.yaml",
+        "seed": 419615019
+      }
+    }
+  ]
+}

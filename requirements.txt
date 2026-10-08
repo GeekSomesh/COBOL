@@ -1,0 +1,4 @@
+# Phases 0-3. Later phases add fastapi, uvicorn, streamlit, ollama, scikit-learn, shap.
+pydantic==2.13.5
+PyYAML==6.0.3
+pytest==9.1.1

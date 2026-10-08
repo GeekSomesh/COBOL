@@ -1,0 +1,91 @@
+program: FEE0001
+program_file: FEE0001.cob
+domain: fee_exemptions
+template: fee_waiver_balance
+seed: 138004943
+record: WS-IN-REC
+out_record: RESULT-AREA
+main: A000-MAIN
+copybook: FEE0001C.cpy
+prefix: CU
+inputs:
+- name: CU-ACCOUNT-TYPE
+  pic: X
+  business: account_type
+  comment: ACCOUNT TYPE S=SAVINGS C=CHECKING P=PREMIUM G=GOLD B=BUSINESS F=FIXED
+- name: CU-AVG-BALANCE
+  pic: 9(7)V99
+  business: avg_balance
+  comment: AVERAGE MONTHLY BALANCE
+outputs:
+- name: FEE-WAIVER-FLG
+  pic: X
+  business: fee_waived
+  init: N
+  comment: FEE WAIVER INDICATOR
+- name: SVC-CHARGE
+  pic: 9(3)V99
+  business: monthly_fee
+  init: 0
+  comment: MONTHLY SERVICE FEE
+noise:
+  date: CU-RUN-DATE
+  filler: 2
+blocks:
+- structure: if
+  rules:
+  - title: Monthly fee waiver
+    intent: Waive the monthly fee for premium or gold accounts and for accounts averaging at least 1,500; charge 10 otherwise.
+    concepts:
+    - fee
+    - waiver
+    - account type
+    - balance
+    when:
+      any:
+      - field: account_type
+        op: in
+        value:
+        - G
+        - P
+      - field: avg_balance
+        op: '>='
+        value: 1500
+    then:
+    - set: fee_waived
+      value: Y
+    - set: monthly_fee
+      value: 0
+    else:
+    - set: monthly_fee
+      value: 10
+    id: R1
+  paragraph: 2000-FEE-WAIVER
+style:
+  cryptic_names: false
+  comments: none
+  copybook: true
+  replacing: true
+  abbreviated: true
+  use_88: false
+  word_operators: false
+  dead_code: true
+  noise_fields: true
+  decimal_literals: true
+  environment_division: false
+record_layout:
+- name: CU-ACCOUNT-TYPE
+  pic: X
+  business: account_type
+- name: CU-AVG-BALANCE
+  pic: 9(7)V99
+  business: avg_balance
+- name: CU-RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 20
+names88: {}
+expected_rules: 1

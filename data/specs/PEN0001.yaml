@@ -1,0 +1,120 @@
+program: PEN0001
+program_file: PEN0001.cob
+domain: penalty_assessment
+template: penalty_days_late
+seed: 1582950554
+record: WS-INPUT
+out_record: WS-RESULTS
+main: MAIN-PARA
+copybook: PEN0001C.cpy
+prefix: null
+inputs:
+- name: DAYS-PAST-DUE
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+- name: BALANCE-DUE
+  pic: 9(7)V99
+  business: balance_due
+  comment: STATEMENT AMOUNT DUE
+outputs:
+- name: LATE-CHARGE
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise:
+  date: RUN-DATE
+  filler: 2
+blocks:
+- structure: chain
+  rules:
+  - title: Early late payment fee
+    intent: Charge 15 when a payment is 1 to 15 days late.
+    concepts:
+    - penalty
+    - days late
+    - late fee
+    when:
+      field: days_late
+      op: between
+      value:
+      - 1
+      - 15
+    then:
+    - set: penalty_amt
+      value: 15
+    id: R1
+  - title: Late payment fee
+    intent: Charge 35 when a payment is 16 to 30 days late.
+    concepts:
+    - penalty
+    - days late
+    - late fee
+    when:
+      field: days_late
+      op: between
+      value:
+      - 16
+      - 30
+    then:
+    - set: penalty_amt
+      value: 35
+    id: R2
+  - title: Seriously late payment penalty
+    intent: Charge 5% of the amount due when a payment is more than 30 days late.
+    concepts:
+    - penalty
+    - days late
+    - amount due
+    when:
+      field: days_late
+      op: between
+      value:
+      - 31
+      - 999
+    then:
+    - compute: penalty_amt
+      expr: balance_due * 0.05
+    id: R3
+  - title: No penalty
+    intent: Charge no penalty when the payment is not late.
+    concepts:
+    - penalty
+    - default
+    when: null
+    then:
+    - set: penalty_amt
+      value: 0
+    id: R4
+  paragraph: ASSESS-PENALTY
+  render: evaluate_subject
+  subject: days_late
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: true
+  dead_code: true
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: DAYS-PAST-DUE
+  pic: 9(3)
+  business: days_late
+- name: BALANCE-DUE
+  pic: 9(7)V99
+  business: balance_due
+- name: RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 22
+names88: {}
+expected_rules: 4

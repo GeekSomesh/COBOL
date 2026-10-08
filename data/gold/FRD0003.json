@@ -1,0 +1,195 @@
+{
+  "program": "FRD0003",
+  "program_file": "FRD0003.cob",
+  "domain": "fraud_scoring",
+  "template": "fraud_channel",
+  "split": "val",
+  "rules": [
+    {
+      "rule_id": "FRD0003-R001",
+      "version": 1,
+      "title": "Card-not-present online purchase",
+      "intent": "Hold online card-not-present transactions above 1,000 and send them for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "channel_code",
+            "source_name": "CHNL-CD",
+            "op": "==",
+            "value": "O"
+          },
+          {
+            "field": "card_present",
+            "source_name": "CARD-PRES-FLG",
+            "op": "==",
+            "value": "N"
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "TXN-AMT",
+            "op": ">",
+            "value": 1000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "hold_flag",
+          "source_name": "TXN-HOLD-IND",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "REVIEW-FLAG",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0003.cob",
+        "paragraph": "ONLINE-SCREEN",
+        "line_start": 37,
+        "line_end": 39,
+        "copybooks": []
+      },
+      "concepts": [
+        "channel",
+        "online",
+        "card not present",
+        "amount",
+        "hold"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0003.yaml",
+        "seed": 1230876705
+      }
+    },
+    {
+      "rule_id": "FRD0003-R002",
+      "version": 1,
+      "title": "Large online transaction",
+      "intent": "Send online transactions above 17,500 for review.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "all": [
+          {
+            "field": "channel_code",
+            "source_name": "CHNL-CD",
+            "op": "==",
+            "value": "O"
+          },
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "card_present",
+                  "source_name": "CARD-PRES-FLG",
+                  "op": "==",
+                  "value": "N"
+                },
+                {
+                  "field": "transaction_amount",
+                  "source_name": "TXN-AMT",
+                  "op": ">",
+                  "value": 1000
+                }
+              ]
+            }
+          },
+          {
+            "field": "transaction_amount",
+            "source_name": "TXN-AMT",
+            "op": ">",
+            "value": 17500
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "review_flag",
+          "source_name": "REVIEW-FLAG",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0003.cob",
+        "paragraph": "ONLINE-SCREEN",
+        "line_start": 41,
+        "line_end": 42,
+        "copybooks": []
+      },
+      "concepts": [
+        "channel",
+        "online",
+        "amount",
+        "review"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0003.yaml",
+        "seed": 1230876705
+      }
+    },
+    {
+      "rule_id": "FRD0003-R003",
+      "version": 1,
+      "title": "Non-online transaction",
+      "intent": "Never hold transactions made outside the online channel.",
+      "domain": "fraud_scoring",
+      "conditions": {
+        "not": {
+          "field": "channel_code",
+          "source_name": "CHNL-CD",
+          "op": "==",
+          "value": "O"
+        }
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "hold_flag",
+          "source_name": "TXN-HOLD-IND",
+          "value": "N"
+        }
+      ],
+      "else_actions": [],
+      "trace": {
+        "program": "FRD0003.cob",
+        "paragraph": "ONLINE-SCREEN",
+        "line_start": 45,
+        "line_end": 46,
+        "copybooks": []
+      },
+      "concepts": [
+        "channel",
+        "hold"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "fraud_channel",
+        "spec": "data/specs/FRD0003.yaml",
+        "seed": 1230876705
+      }
+    }
+  ]
+}

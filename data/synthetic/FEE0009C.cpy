@@ -1,0 +1,4 @@
+    *> STUDENT INDICATOR Y/N
+    05 STUDENT-FLAG       PIC X.
+    *> CUSTOMER AGE IN YEARS
+    05 CLNT-AGE           PIC 9(3).

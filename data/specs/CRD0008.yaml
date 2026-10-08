@@ -1,0 +1,98 @@
+program: CRD0008
+program_file: CRD0008.cob
+domain: credit_approval
+template: credit_bankruptcy
+seed: 528766666
+record: INPUT-AREA
+out_record: RESULT-AREA
+main: 0000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: BKRPT-IND
+  pic: X
+  business: bankruptcy_flag
+  comment: PRIOR BANKRUPTCY Y/N
+- name: BK-YEARS
+  pic: 9(2)
+  business: years_since_bk
+  comment: YEARS SINCE BANKRUPTCY DISCHARGE
+- name: BUREAU-SCORE
+  pic: 9(3)
+  business: credit_score
+  comment: BUREAU CREDIT SCORE
+outputs:
+- name: APPL-DECISION
+  pic: X
+  business: decision
+  init: D
+  comment: A=APPROVE R=REFER D=DECLINE
+- name: DECLINE-RSN
+  pic: X(3)
+  business: reason_code
+  init: ' '
+  comment: DECISION REASON CODE
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Recent bankruptcy decline
+    intent: Decline applicants with a bankruptcy in the last 5 years.
+    concepts:
+    - bankruptcy
+    - decline
+    - credit history
+    when:
+      field: years_since_bk
+      op: <
+      value: 5
+    then:
+    - set: decision
+      value: D
+    - set: reason_code
+      value: BK1
+    id: R1
+  - title: Older bankruptcy referral
+    intent: Refer applicants whose bankruptcy is 5 or more years old.
+    concepts:
+    - bankruptcy
+    - referral
+    - credit history
+    when: null
+    then:
+    - set: decision
+      value: R
+    - set: reason_code
+      value: BK2
+    id: R2
+  outer:
+    field: bankruptcy_flag
+    op: ==
+    value: Y
+  paragraph: BANKRUPTCY-CHECK
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: misleading
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: BKRPT-IND
+  pic: X
+  business: bankruptcy_flag
+- name: BK-YEARS
+  pic: 9(2)
+  business: years_since_bk
+- name: BUREAU-SCORE
+  pic: 9(3)
+  business: credit_score
+record_length: 6
+names88: {}
+expected_rules: 2

@@ -1,0 +1,30 @@
+IDENTIFICATION DIVISION.
+PROGRAM-ID. PEN0008.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 IN-RECORD.
+    05 FO-IND             PIC X.
+    05 CT-CD              PIC X.
+    05 DL-DD              PIC 9(3).
+01 WS-RESULTS.
+    05 WS-PWV             PIC X VALUE 'N'.
+        88 PWV-WAIVED VALUE 'Y'.
+    05 WS-PEN             PIC 9(5)V99 VALUE ZERO.
+PROCEDURE DIVISION.
+MAIN-PARA.
+    ACCEPT IN-RECORD
+    PERFORM 3000-WAIVER-RULES
+    DISPLAY "WS-PWV=" WS-PWV
+    DISPLAY "WS-PEN=" WS-PEN
+    STOP RUN.
+3000-WAIVER-RULES.
+    IF FO-IND = 'Y'
+        EVALUATE TRUE
+            WHEN CT-CD = 'G' OR CT-CD = 'P'
+                MOVE 'Y' TO WS-PWV
+                MOVE 0 TO WS-PEN
+            WHEN DL-DD <= 7
+                SET PWV-WAIVED TO TRUE
+                MOVE 0 TO WS-PEN
+        END-EVALUATE
+    END-IF.

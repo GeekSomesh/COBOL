@@ -1,0 +1,2 @@
+    *> LOAN TO VALUE PERCENT
+    05 :PFX:-LTV-RATIO       PIC 9(3).

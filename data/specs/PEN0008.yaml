@@ -1,0 +1,109 @@
+program: PEN0008
+program_file: PEN0008.cob
+domain: penalty_assessment
+template: penalty_waiver
+seed: 1832917499
+record: IN-RECORD
+out_record: WS-RESULTS
+main: MAIN-PARA
+copybook: null
+prefix: null
+inputs:
+- name: FO-IND
+  pic: X
+  business: first_offense
+  comment: FIRST LATE PAYMENT Y/N
+- name: CT-CD
+  pic: X
+  business: customer_tier
+  comment: TIER G=GOLD P=PLATINUM S=SILVER B=BASIC
+- name: DL-DD
+  pic: 9(3)
+  business: days_late
+  comment: DAYS PAYMENT IS LATE
+outputs:
+- name: WS-PWV
+  pic: X
+  business: penalty_waived
+  init: N
+  comment: PENALTY WAIVER FLAG
+- name: WS-PEN
+  pic: 9(5)V99
+  business: penalty_amt
+  init: 0
+  comment: LATE PAYMENT PENALTY
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Premium first-offence waiver
+    intent: Waive the penalty on a first late payment for gold and platinum customers.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - customer tier
+    when:
+      field: customer_tier
+      op: in
+      value:
+      - G
+      - P
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R1
+  - title: Grace period waiver
+    intent: Waive the penalty on a first late payment made within 7 days.
+    concepts:
+    - penalty
+    - waiver
+    - first offence
+    - grace period
+    when:
+      field: days_late
+      op: <=
+      value: 7
+    then:
+    - set: penalty_waived
+      value: Y
+    - set: penalty_amt
+      value: 0
+    id: R2
+  outer:
+    field: first_offense
+    op: ==
+    value: Y
+  paragraph: 3000-WAIVER-RULES
+  render: evaluate_true
+style:
+  cryptic_names: true
+  comments: none
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: FO-IND
+  pic: X
+  business: first_offense
+- name: CT-CD
+  pic: X
+  business: customer_tier
+- name: DL-DD
+  pic: 9(3)
+  business: days_late
+record_length: 5
+names88:
+  PWV-WAIVED:
+    field: penalty_waived
+    op: ==
+    value: Y
+expected_rules: 2

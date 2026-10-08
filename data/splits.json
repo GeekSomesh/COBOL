@@ -1,0 +1,97 @@
+{
+  "train": [
+    "FRD0001",
+    "FRD0002",
+    "INT0001",
+    "INT0002",
+    "FEE0001",
+    "FEE0002",
+    "CRD0001",
+    "CRD0002",
+    "LON0001",
+    "LON0002",
+    "PEN0001",
+    "PEN0002",
+    "FRD0004",
+    "FRD0005",
+    "INT0004",
+    "INT0005",
+    "FEE0004",
+    "FEE0005",
+    "CRD0004",
+    "CRD0005",
+    "LON0004",
+    "LON0005",
+    "PEN0004",
+    "PEN0005",
+    "FRD0007",
+    "FRD0008",
+    "INT0007",
+    "INT0008",
+    "FEE0007",
+    "FEE0008",
+    "CRD0007",
+    "CRD0008",
+    "LON0007",
+    "LON0008",
+    "PEN0007",
+    "PEN0008",
+    "FRD0010",
+    "FRD0011",
+    "INT0010",
+    "INT0011"
+  ],
+  "val": [
+    "FRD0003",
+    "FEE0003",
+    "LON0003",
+    "FRD0006",
+    "FEE0006",
+    "LON0006",
+    "FRD0009",
+    "FEE0009",
+    "LON0009",
+    "FRD0012"
+  ],
+  "test": [
+    "INT0003",
+    "CRD0003",
+    "PEN0003",
+    "INT0006",
+    "CRD0006",
+    "PEN0006",
+    "INT0009",
+    "CRD0009",
+    "PEN0009",
+    "INT0012"
+  ],
+  "reference": [
+    "TXNCHK"
+  ],
+  "templates": {
+    "train": [
+      "credit_bankruptcy",
+      "credit_score_cutoff",
+      "fee_transaction_count",
+      "fee_waiver_balance",
+      "fraud_minor_high_value",
+      "fraud_velocity",
+      "interest_balance_tiers",
+      "interest_senior_bonus",
+      "loan_age_term",
+      "loan_income_multiple",
+      "penalty_days_late",
+      "penalty_waiver"
+    ],
+    "val": [
+      "fee_student_senior",
+      "fraud_channel",
+      "loan_ltv"
+    ],
+    "test": [
+      "credit_limit_assign",
+      "interest_term",
+      "penalty_repeat"
+    ]
+  }
+}

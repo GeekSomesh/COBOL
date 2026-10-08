@@ -1,0 +1,6 @@
+# COBOL sources are compiled inside Linux/WSL: keep LF line endings on every checkout
+*.cob text eol=lf
+*.cbl text eol=lf
+*.cpy text eol=lf
+*.py text eol=lf
+*.sh text eol=lf

@@ -1,0 +1,102 @@
+program: FRD0010
+program_file: FRD0010.cob
+domain: fraud_scoring
+template: fraud_minor_high_value
+seed: 502943516
+record: WS-IN-REC
+out_record: WS-RESULTS
+main: A000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: CA-AGE
+  pic: 9(3)
+  business: customer_age
+  comment: CUSTOMER AGE IN YEARS
+- name: T-AMT1
+  pic: 9(7)V99
+  business: transaction_amount
+  comment: TRANSACTION AMOUNT
+- name: WS-CTRY
+  pic: X(2)
+  business: country_code
+  comment: ORIGIN COUNTRY CODE
+outputs:
+- name: R-IND
+  pic: X
+  business: review_flag
+  init: N
+  comment: MANUAL REVIEW FLAG
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: High-value transaction by minor
+    intent: Flag transactions over 3,000 made by customers younger than 16 for manual review.
+    concepts:
+    - age
+    - amount
+    - minor
+    - review
+    when:
+      all:
+      - field: customer_age
+        op: <
+        value: 16
+      - field: transaction_amount
+        op: '>'
+        value: 3000
+    then:
+    - set: review_flag
+      value: Y
+    id: R1
+  paragraph: CHECK-TXN
+- structure: if
+  rules:
+  - title: Large transaction from high-risk region
+    intent: Flag transactions over 45,000 that originate from high-risk country codes XA, XB for review.
+    concepts:
+    - amount
+    - geography
+    - country
+    - review
+    when:
+      all:
+      - field: transaction_amount
+        op: '>'
+        value: 45000
+      - field: country_code
+        op: in
+        value:
+        - XA
+        - XB
+    then:
+    - set: review_flag
+      value: Y
+    id: R1
+  paragraph: HIGH-RISK-REGION
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CA-AGE
+  pic: 9(3)
+  business: customer_age
+- name: T-AMT1
+  pic: 9(7)V99
+  business: transaction_amount
+- name: WS-CTRY
+  pic: X(2)
+  business: country_code
+record_length: 14
+names88: {}
+expected_rules: 2

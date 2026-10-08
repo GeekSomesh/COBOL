@@ -1,0 +1,3 @@
+    *> BUREAU CREDIT SCORE
+    05 CREDIT-SCORE       PIC 9(3).
+    05 DEBT-RATIO         PIC 9V99.

@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# compiled COBOL and run outputs
+data/synthetic/bin/
+*.so
+*.o
+*.exe
+results/*.json
+!results/.gitkeep
+
+# model weights and fine-tuning artifacts
+models/
+*.gguf
+*.safetensors
+*.bin
+
+# the docs are committed extracted under docs/
+cobol-to-decision-docs.zip
