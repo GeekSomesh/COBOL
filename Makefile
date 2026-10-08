@@ -2,7 +2,7 @@
 PY  ?= .venv/Scripts/python
 PYT ?= .venv-train/Scripts/python
 
-.PHONY: setup test corpus baseline finetune-data finetune serve-model eval demo serve
+.PHONY: setup test corpus baseline finetune-data finetune weights serve-model eval demo serve
 
 setup:            ## runtime environment (GnuCOBOL: apt install gnucobol, or WSL Ubuntu)
 	py -3.11 -m venv .venv && $(PY) -m pip install -r requirements.txt
@@ -21,6 +21,9 @@ finetune-data:    ## chat JSONL from the train split
 
 finetune:         ## LoRA fine-tune (needs .venv-train with CUDA torch, see requirements-train.txt)
 	$(PYT) scripts/finetune.py --epochs 2
+
+weights:          ## rebuild the fine-tuned model from the committed LoRA adapter (no GPU needed)
+	$(PYT) scripts/merge_adapter.py
 
 serve-model:      ## GGUF (Q8_0) of the fine-tuned and base models, imported into Ollama
 	$(PY) scripts/serve_model.py --also-base models/Qwen2.5-Coder-1.5B-Instruct

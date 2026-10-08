@@ -84,7 +84,9 @@ On the **test** templates it did not hold up. It names fields and writes intents
 
 The explorer defaults to the prompted 7B, the best measured model; the fine-tuned 1.5B is about 3x faster and one setting away (`COBOL_LLM_MODEL=cobol-enrich:1.5b`). The parser always owns the logic, so rule structure, traces and behavioural agreement are identical across models.
 
-To reproduce (needs `.venv-train` from `requirements-train.txt`, plus llama.cpp's converter as described there):
+**The fine-tuned weights are in this repo** as a 71 MB LoRA adapter: [weights/cobol-enrich-1.5b-lora](weights/cobol-enrich-1.5b-lora/README.md) (model card, checksum, training log). Full merged models (2.9 GB) are not committed: they exceed GitHub's file limits and are rebuilt exactly from base + adapter. To use the adapter, run `make weights serve-model`.
+
+To reproduce training from scratch (needs `.venv-train` from `requirements-train.txt`, plus llama.cpp's converter as described there):
 ```bash
 make corpus finetune-data    # 300 programs, 809 gold rules, chat JSONL from the train split
 make finetune serve-model    # LoRA, merge, GGUF Q8_0, import into Ollama as cobol-enrich:1.5b (+ matched base)

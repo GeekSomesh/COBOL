@@ -16,6 +16,7 @@ results/*.log
 models/
 *.gguf
 *.safetensors
+!weights/**/*.safetensors
 *.bin
 
 # the docs are committed extracted under docs/
