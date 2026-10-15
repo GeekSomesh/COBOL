@@ -10,8 +10,10 @@ Conventions (shared with the generator's gold rules, documented in docs/rules.md
   to its last statement.
 * EVALUATE and ELSE-IF chains keep first-match semantics: branch *i* adds
   ``not`` of every earlier branch condition. WHEN OTHER is ``all`` of those nots.
-* Constructs the slicer cannot model (GO TO, EXEC, SEARCH, inline PERFORM loops,
-  arithmetic in conditions) are listed in ``unsupported`` instead of failing.
+* Constructs the slicer cannot model (EXEC, SEARCH, inline PERFORM loops,
+  GO TO DEPENDING ON, REDEFINES overlaps) are listed in ``unsupported`` instead of
+  failing. GO TO and STOP RUN inside a branch become ``goto`` / ``stop`` actions;
+  the control-flow layer (src/analysis/cfg.py) models where they lead.
 """
 
 from __future__ import annotations
@@ -28,6 +30,11 @@ from src.ingest.source import ResolvedSource
 
 DECISIONS = (IfStmt, EvaluateStmt)
 _WORD_RE = re.compile(r"[A-Z0-9][A-Z0-9_-]*")
+SUPPORTED_NOTES = {"arithmetic expression in condition"}     # the evaluator computes these now
+
+
+def _notes(notes: list[str]) -> list[str]:
+    return [n for n in notes if n not in SUPPORTED_NOTES]
 
 
 def negate(cond: dict[str, Any]) -> dict[str, Any]:
@@ -61,16 +68,24 @@ class Slicer:
         self.dict = program.dictionary
         self.records: list[dict[str, Any]] = []
         self.paragraph: Optional[str] = None
+        self.stmt: Optional[Stmt] = None            # top-level statement the current rules come from
+        self.redefined = {i.redefines for i in self.dict.items if i.redefines}
 
     # ---- walking ----------------------------------------------------------
     def run(self) -> list[Slice]:
-        for para in self.program.paragraphs:
+        for i, para in enumerate(self.program.paragraphs):
             self.paragraph = para.name
+            self.para_idx = i
             self._walk_top(para.statements)
         return [self._to_slice(n, rec) for n, rec in enumerate(self.records, start=1)]
 
+    def statement_actions(self, s: Stmt) -> list[dict[str, Any]]:
+        """Actions of one statement (used by the control-flow layer for assignments)."""
+        return self._actions([s])[0]
+
     def _walk_top(self, stmts: list[Stmt]) -> None:
         for s in stmts:
+            self.stmt = s
             if isinstance(s, DECISIONS):
                 self._decision(s, [])
             elif isinstance(s, PerformStmt) and s.body:
@@ -80,7 +95,7 @@ class Slicer:
                     acts, unsupported, external = self._actions(w.stmts)
                     self._emit(w.cond or {"all": []}, acts, [], w.line,
                                max([w.line] + [x.line_end for x in w.stmts]), s.file,
-                               ["SEARCH"] + w.notes + unsupported, external)
+                               ["SEARCH"] + _notes(w.notes) + unsupported, external)
 
     def _decision(self, s: Stmt, path: list[dict[str, Any]]) -> None:
         if isinstance(s, IfStmt):
@@ -90,11 +105,11 @@ class Slicer:
                 else_acts, u2, e2 = self._actions(else_)
                 if acts or else_acts or u1 or u2:    # an IF that only does I/O is not a rule
                     self._emit(combine([s.cond]), acts, else_acts, s.line_start, s.line_end, s.file,
-                               s.notes + u1 + u2, e1 or e2)
+                               _notes(s.notes) + u1 + u2, e1 or e2)
                 return
-            self._branch(s.then, path + [s.cond], s.line_start, s.file, s.notes)
+            self._branch(s.then, path + [s.cond], s.line_start, s.file, _notes(s.notes))
             if s.else_ is not None:
-                self._branch(s.else_, path + [negate(s.cond)], s.else_line or s.line_start, s.file, s.notes)
+                self._branch(s.else_, path + [negate(s.cond)], s.else_line or s.line_start, s.file, _notes(s.notes))
         elif isinstance(s, EvaluateStmt):
             earlier: list[dict[str, Any]] = []
             for w in s.whens:
@@ -102,7 +117,7 @@ class Slicer:
                 if w.cond is not None:
                     conds.append(w.cond)
                     earlier.append(w.cond)
-                self._branch(w.stmts, path + conds, w.line, s.file, w.notes)
+                self._branch(w.stmts, path + conds, w.line, s.file, _notes(w.notes))
 
     def _branch(self, stmts: list[Stmt], path: list[dict[str, Any]], open_line: int,
                 file: str, notes: list[str]) -> None:
@@ -126,6 +141,7 @@ class Slicer:
         unsupported: list[str] = []
         external = False
         for s in stmts:
+            first = len(acts)
             if isinstance(s, MoveStmt):
                 for tgt in s.targets:
                     if isinstance(s.source, Lit):
@@ -154,14 +170,22 @@ class Slicer:
                 acts.append({"type": "call", "source_name": s.program})
                 external = True
             elif isinstance(s, GoToStmt):
-                unsupported.append("GO TO " + " ".join(s.targets))
+                if s.depending or len(s.targets) != 1:
+                    unsupported.append("GO TO DEPENDING ON " + (s.depending or ""))
+                else:
+                    acts.append({"type": "goto", "source_name": s.targets[0]})
+            elif isinstance(s, OtherStmt) and (s.verb in ("STOP RUN", "GOBACK") or s.text == "EXIT PROGRAM"):
+                acts.append({"type": "stop", "source_name": s.text})
             elif isinstance(s, ExecStmt):
+                acts.append({"type": "call", "source_name": f"EXEC {s.kind}", "expr": s.text[:500]})
                 unsupported.append(f"EXEC {s.kind}")
                 external = True
             elif isinstance(s, SearchStmt):
                 unsupported.append("SEARCH")
             elif isinstance(s, OtherStmt) and s.verb == "ALTER":
                 unsupported.append("ALTER")
+            for a in acts[first:]:
+                a.setdefault("_stmt", s)          # source statement, kept out of the Slice (see _to_slice)
         return acts, unsupported, external
 
     def _set_actions(self, s: SetStmt, unsupported: list[str]) -> list[dict[str, Any]]:
@@ -190,7 +214,8 @@ class Slicer:
     def _emit(self, cond: dict[str, Any], acts: list, else_acts: list, start: int, end: int,
               file: str, unsupported: list[str], external: bool) -> None:
         self.records.append(dict(cond=cond, actions=acts, else_actions=else_acts, start=start,
-                                 end=end, file=file, paragraph=self.paragraph,
+                                 end=end, file=file, paragraph=self.paragraph, stmt=self.stmt,
+                                 para_idx=getattr(self, "para_idx", 0),
                                  unsupported=list(dict.fromkeys(unsupported)), external=external))
 
     def _names(self, rec: dict[str, Any]) -> list[str]:
@@ -224,11 +249,14 @@ class Slicer:
     def _to_slice(self, n: int, rec: dict[str, Any]) -> Slice:
         fields: dict[str, dict[str, Any]] = {}
         copybooks: list[str] = []
+        unsupported = list(rec["unsupported"])
         for name in self._names(rec):
             item = self.dict.lookup(name)
             fields[name] = item.entry()
             if item.file != self.src.program_file and item.file not in copybooks:
                 copybooks.append(item.file)
+            if self._overlaps(item):
+                unsupported.append(f"REDEFINES overlap on {name}")
         if rec["file"] != self.src.program_file and rec["file"] not in copybooks:
             copybooks.append(rec["file"])
         return Slice(
@@ -241,10 +269,19 @@ class Slicer:
             line_end=rec["end"],
             source_text=self.src.raw_text(rec["file"], rec["start"], rec["end"]),
             condition=rec["cond"],
-            actions=rec["actions"],
-            else_actions=rec["else_actions"],
+            actions=[{k: v for k, v in a.items() if k != "_stmt"} for a in rec["actions"]],
+            else_actions=[{k: v for k, v in a.items() if k != "_stmt"} for a in rec["else_actions"]],
             fields=fields,
             copybooks=copybooks,
             external_dependency=rec["external"],
-            unsupported=rec["unsupported"],
+            unsupported=list(dict.fromkeys(unsupported)),
         )
+
+    def _overlaps(self, item: Any) -> bool:
+        """The field shares storage with another field (it, or a group above it, is or has a REDEFINES)."""
+        p = item
+        while p is not None:
+            if p.redefines or p.name in self.redefined:
+                return True
+            p = p.parent
+        return False

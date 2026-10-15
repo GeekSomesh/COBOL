@@ -95,6 +95,22 @@ def compare(op: str, a: Any, b: Any) -> bool:
     raise ValueError(f"unknown operator {op}")
 
 
+_EXPR_HINT = re.compile(r"\s[-+*/]\s|\*\*|^\(|^FUNCTION ")
+
+
+def operand_value(name: str, row: dict[str, Any]) -> Any:
+    """Field value, or the value of an arithmetic expression such as 'AMT + FEE'."""
+    key = base(name)
+    if key in row:
+        return row[key]
+    if _EXPR_HINT.search(str(name)):
+        try:
+            return eval_expr(str(name), row)
+        except ExprError:
+            return None
+    return row.get(key)
+
+
 def eval_cond(c: dict[str, Any], row: dict[str, Any]) -> bool:
     if c.get("all") is not None:
         return all(eval_cond(x, row) for x in c["all"])
@@ -102,9 +118,9 @@ def eval_cond(c: dict[str, Any], row: dict[str, Any]) -> bool:
         return any(eval_cond(x, row) for x in c["any"])
     if c.get("not") is not None or c.get("not_") is not None:
         return not eval_cond(c.get("not") or c.get("not_"), row)
-    v = row.get(base(c["source_name"]))
+    v = operand_value(c["source_name"], row)
     op = c["op"]
-    rhs = row.get(base(c["ref"])) if c.get("ref") else c.get("value")
+    rhs = operand_value(c["ref"], row) if c.get("ref") else c.get("value")
     if op == "between":
         return compare(">=", v, rhs[0]) and compare("<=", v, rhs[1])
     if op == "in":

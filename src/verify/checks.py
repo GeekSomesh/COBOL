@@ -14,6 +14,7 @@ from src.common.models import Rule, Slice
 from src.rules.canon import canon_actions, canon_cond
 from src.verify.engine import base, eval_cond, run_rules, store
 from src.verify.harness import Harness, build_grid, build_harness, decode_display, encode_record, same_output
+from src.verify.interpreter import RuleInterpreter, SimulationLimit
 
 
 def rule_dict(rule: Rule) -> dict[str, Any]:
@@ -49,6 +50,8 @@ class DiffResult:
     agree: int = 0
     per_rule: dict[int, list[bool]] = field(default_factory=dict)
     mismatches: list[dict[str, Any]] = field(default_factory=list)
+    unsimulated: int = 0                   # rows the rule model could not run (loop limits, GO TO DEPENDING)
+    notes: set[str] = field(default_factory=set)
 
     @property
     def agreement(self) -> float:
@@ -71,12 +74,21 @@ def differential(analysis: Analysis, rules: list[Rule], exe: Path, toolchain: To
     outputs = toolchain.run_many(exe, [encode_record(h, r) for r in rows])
     res = DiffResult()
     slice_by_rule = {k: s for k, s in enumerate(analysis.slices)} if len(analysis.slices) == len(rules) else {}
+    interp = RuleInterpreter(analysis, rds, h.fields) if analysis.slice_stmts and slice_by_rule else None
     for row, raw in zip(rows, outputs):
         state = dict(h.initial)
         for f in h.layout:
             state[f["name"]] = store(row.get(f["name"], ""), f["entry"])
         inputs = dict(state)
-        fired = set(run_rules(rds, state, h.fields))
+        if interp is not None:
+            try:
+                fired = interp.run(state)
+            except SimulationLimit as exc:
+                res.unsimulated += 1
+                res.notes.add(str(exc))
+                continue
+        else:
+            fired = set(run_rules(rds, state, h.fields))
         actual = parse_display(raw)
         ok = all(o in actual and same_output(state.get(base(o)), decode_display(actual[o], h.fields.get(base(o))),
                                              h.fields.get(base(o))) for o in h.outputs)

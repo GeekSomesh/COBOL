@@ -102,7 +102,12 @@ class PerformStmt(Stmt):
     target: Optional[str] = None            # out-of-line paragraph
     thru: Optional[str] = None
     body: Optional[list[Stmt]] = None       # inline PERFORM ... END-PERFORM
-    loop: Optional[str] = None              # TIMES / UNTIL / VARYING text
+    loop: Optional[str] = None              # TIMES / UNTIL / VARYING text (display)
+    until: Optional[dict[str, Any]] = None  # parsed UNTIL condition
+    times: Optional[Operand] = None         # n TIMES
+    varying: Optional[tuple[Ident, Operand, Operand]] = None   # VARYING x FROM a BY b
+    test_after: bool = False
+    nested_varying: bool = False            # VARYING ... AFTER ... (not interpreted)
 
 
 @dataclass
@@ -115,11 +120,13 @@ class CallStmt(Stmt):
 @dataclass
 class GoToStmt(Stmt):
     targets: list[str] = field(default_factory=list)
+    depending: Optional[str] = None         # GO TO a b c DEPENDING ON x
 
 
 @dataclass
 class ExecStmt(Stmt):
     kind: str = ""                          # SQL, CICS, ...
+    text: str = ""                          # statement body, e.g. "SELECT RATE INTO :WS-RATE FROM ..."
 
 
 @dataclass

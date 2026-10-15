@@ -11,6 +11,10 @@ match the canonical JSON in docs/rules.md:
   rules whose lines live in a copybook.
 - ``Slice`` gains ``unsupported``, ``external_dependency``, ``copybooks`` and
   ``program_file`` so the baseline extractor needs nothing else.
+- Control flow (v0.2): ``Rule.context`` (conditions imposed by callers),
+  ``Rule.derivations`` (how computed fields are derived), ``Rule.reachable``
+  (dead code), ``Trace.performed_from``, and ``goto`` / ``stop`` actions.
+  ``conditions`` stays the local decision, so it still traces to the IF lines.
 
 Serialise with :func:`dump` so aliases are used and empty optionals are dropped.
 """
@@ -57,7 +61,7 @@ class Cond(BaseModel):
 class Action(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    type: Literal["set", "compute", "perform", "call"]
+    type: Literal["set", "compute", "perform", "call", "goto", "stop"]
     target: Optional[str] = None        # business name of the target field / paragraph / program
     source_name: Optional[str] = None   # COBOL name of the same
     value: Optional[Scalar] = None      # literal for "set"
@@ -73,6 +77,7 @@ class Trace(BaseModel):
     line_start: int
     line_end: int
     copybooks: list[str] = []
+    performed_from: list[str] = []  # paragraphs that PERFORM (or GO TO) this rule's paragraph
 
 
 class Rule(BaseModel):
@@ -86,6 +91,9 @@ class Rule(BaseModel):
     conditions: Cond
     actions: list[Action]
     else_actions: list[Action] = []
+    context: Optional[Cond] = None  # conditions under which callers reach this rule (None = always)
+    derivations: dict[str, str] = {}  # computed field -> expression in terms of earlier fields / inputs
+    reachable: bool = True          # False: no path from the program entry reaches this rule (dead code)
     trace: Trace
     concepts: list[str] = []
     external_dependency: bool = False
@@ -121,6 +129,10 @@ class Slice(BaseModel):
     copybooks: list[str] = []
     external_dependency: bool = False
     unsupported: list[str] = []
+    context: Optional[dict[str, Any]] = None   # raw condition tree from callers (None = always)
+    derivations: dict[str, str] = {}
+    performed_from: list[str] = []
+    reachable: bool = True
 
 
 Cond.model_rebuild()

@@ -39,6 +39,8 @@ def route(rule: Rule, score: float, components: dict[str, Optional[float]],
         warnings.append("unsupported construct: " + ", ".join(rule.unsupported))
     if rule.external_dependency:
         warnings.append("external dependency (CALL/EXEC): behaviour not fully visible")
+    if not rule.reachable:
+        warnings.append("unreachable paragraph (dead code): no path from the program entry runs this rule")
     if rule.provenance.get("enrichment_error"):
         warnings.append("LLM enrichment failed; baseline names only")
     if components.get("structural") != 1.0:
@@ -59,7 +61,7 @@ def route(rule: Rule, score: float, components: dict[str, Optional[float]],
         warnings.append("intent mentions a number that is not in the code")
     ok = (score >= CANDIDATE_MIN and components.get("structural") == 1.0 and not ungrounded
           and diff is not None and diff >= DIFFERENTIAL_MIN
-          and not rule.unsupported and not rule.external_dependency
+          and not rule.unsupported and not rule.external_dependency and rule.reachable
           and not rule.provenance.get("enrichment_error"))
     return ("candidate" if ok else "needs_review"), warnings
 

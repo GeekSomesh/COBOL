@@ -75,6 +75,9 @@ function actHtml(a) {
   if (a.type === "set") return `set ${tgt} = ${a.expr ? `<code>${esc(a.expr)}</code>` : `<span class="val">${esc(fmtVal(a.value))}</span>`}`;
   if (a.type === "compute") return `compute ${tgt} = <code>${esc(a.expr)}</code>`;
   if (a.type === "perform") return `perform paragraph <code>${esc(a.source_name)}</code>`;
+  if (a.type === "goto") return `go to <code>${esc(a.source_name)}</code> (skips the rest of this flow)`;
+  if (a.type === "stop") return `stop the program`;
+  if (a.expr) return `${esc(a.source_name)}: <code>${esc(a.expr)}</code>`;
   return `call external program <code>${esc(a.source_name)}</code>`;
 }
 function confBar(score) {
@@ -144,11 +147,15 @@ async function showRule(id, detailSel) {
           <h4>When</h4><div class="cond">${condHtml(r.conditions)}</div>
           <h4>Then</h4><ul class="acts">${r.actions.map((a) => `<li>${actHtml(a)}</li>`).join("") || "<li class='muted'>no actions</li>"}</ul>
           ${r.else_actions?.length ? `<h4>Else</h4><ul class="acts">${r.else_actions.map((a) => `<li>${actHtml(a)}</li>`).join("")}</ul>` : ""}
+          ${r.context ? `<h4>Only reached when</h4><div class="cond">${condHtml(r.context)}</div>` : ""}
+          ${Object.keys(r.derivations || {}).length ? `<h4>Computed fields</h4><ul class="acts">${Object.entries(r.derivations).map(([k, v]) => `<li><code>${esc(k)}</code> = <code>${esc(v)}</code></li>`).join("")}</ul>` : ""}
+          ${r.reachable === false ? `<div class="warn">⚠ dead code: no path from the program entry reaches this rule</div>` : ""}
           <h4>Confidence</h4><div class="comps">${compRows}</div>
           ${(r.confidence?.warnings || []).map((w) => `<div class="warn">⚠ ${esc(w)}</div>`).join("")}
           ${r.external_dependency ? `<div class="warn">⚠ external dependency</div>` : ""}
           <h4>Trace</h4><div class="muted">${esc(tr.file)} · paragraph ${esc(r.trace.paragraph || "-")} · lines ${r.trace.line_start}–${r.trace.line_end}
-            ${r.trace.copybooks?.length ? " · copybooks " + r.trace.copybooks.map(esc).join(", ") : ""}</div>
+            ${r.trace.copybooks?.length ? " · copybooks " + r.trace.copybooks.map(esc).join(", ") : ""}
+            ${r.trace.performed_from?.length ? " · called from " + r.trace.performed_from.map(esc).join(", ") : ""}</div>
         </div>
         <div><h4>Source</h4><div class="src" id="srcBox">${src}</div></div>
       </div>

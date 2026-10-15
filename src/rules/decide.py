@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import itertools
+import re
 import random
 import time
 from decimal import Decimal
@@ -18,7 +19,7 @@ from typing import Any, Optional
 
 from src.common.models import Rule
 from src.rules.canon import canon_actions, canon_cond
-from src.verify.engine import apply_actions, base, eval_cond, to_num
+from src.verify.engine import ExprError, apply_actions, base, eval_cond, eval_expr, to_num
 
 
 def _leaves(c: Any, out: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -33,11 +34,30 @@ def _leaves(c: Any, out: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+_IDENT = re.compile(r"(?<![A-Z0-9-])([A-Z][A-Z0-9-]*[A-Z0-9]|[A-Z])(?![A-Z0-9-])")
+
+
+def _derived(rules: list[Rule]) -> set[str]:
+    return {base(k) for r in rules for k in r.derivations}
+
+
 def input_fields(rules: list[Rule]) -> dict[str, dict[str, Any]]:
-    """Business input name -> {source_name, kind, values} for every field tested by the rules."""
+    """Business input name -> {source_name, kind, values} for every field the rules read.
+
+    Fields computed by the program (derivations) are replaced by the inputs they are
+    computed from; fields tested by a rule's context (its callers' conditions) count too.
+    """
     fields: dict[str, dict[str, Any]] = {}
+    derived = _derived(rules)
     for r in rules:
-        for leaf in _leaves(r.conditions, []):
+        leaves = _leaves(r.conditions, []) + (_leaves(r.context, []) if r.context is not None else [])
+        for expr in r.derivations.values():
+            for name in _IDENT.findall(expr.upper()):
+                if name not in derived:
+                    leaves.append({"field": name.lower().replace("-", "_"), "source_name": name, "value": 0})
+        for leaf in leaves:
+            if base(leaf["source_name"]) in derived:
+                continue
             f = fields.setdefault(leaf["field"], {"source_name": base(leaf["source_name"]), "values": set()})
             vals = leaf.get("value") if isinstance(leaf.get("value"), list) else [leaf.get("value")]
             for v in vals:
@@ -78,6 +98,13 @@ def score(rules: list[Rule], inputs: dict[str, Any], defaults: Optional[dict[str
     outputs = output_fields(rules)
     for r in rules:
         d = r.model_dump(by_alias=True)
+        for name, expr in r.derivations.items():   # computed fields, from the inputs given
+            try:
+                state[base(name)] = eval_expr(expr, state)
+            except ExprError:
+                pass
+        if d.get("context") is not None and not eval_cond(d["context"], state):
+            continue                              # the program never reaches this rule for these inputs
         if eval_cond(d["conditions"], state):
             fired.append(r.rule_id)
             apply_actions(d["actions"], state, {})
@@ -161,6 +188,12 @@ def explain(rules: list[Rule], target: Optional[str] = None, n: int = 1500, seed
 
 # ---- conflicts ---------------------------------------------------------------------------
 
+def effective(rule: Rule) -> dict[str, Any]:
+    """The rule's condition including its context: when the program actually applies it."""
+    d = rule.model_dump(by_alias=True)
+    return {"all": [d["context"], d["conditions"]]} if d.get("context") is not None else d["conditions"]
+
+
 def _by_business(c: dict[str, Any]) -> dict[str, Any]:
     """Condition keyed by business field names, so rules from different programs compare."""
     if c.get("all") is not None:
@@ -193,7 +226,7 @@ def conflicts(rules: list[Rule], n: int = 400, seed: int = 7) -> list[dict[str, 
                 continue
             pair = [ra, rb]
             fields = input_fields(pair)
-            ca, cb = (_by_business(r.model_dump(by_alias=True)["conditions"]) for r in pair)
+            ca, cb = (_by_business(effective(r)) for r in pair)
             both = 0
             for row in _samples(fields, n, rng):
                 state = {base(k): (to_num(v) if fields[k]["kind"] == "number" else str(v)) for k, v in row.items()}

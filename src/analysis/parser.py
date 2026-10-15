@@ -478,11 +478,13 @@ class Parser:
     def parse_exec(self) -> ExecStmt:
         start = self.next()
         kind = self.next().value if self.peek() is not None else ""
+        body: list[str] = []
         while self.peek() is not None and not self.at_word("END-EXEC"):
-            self.next()
+            body.append(self._tok_text(self.next()))
         if self.at_word("END-EXEC"):
             self.next()
-        return ExecStmt("EXEC", start.file, start.line, self.last.line, kind=kind)
+        text = " ".join(body).replace(" :", " :").replace(": ", ":")
+        return ExecStmt("EXEC", start.file, start.line, self.last.line, kind=kind, text=text)
 
     # ---- PERFORM ---------------------------------------------------------
     def parse_perform(self) -> PerformStmt:
@@ -497,7 +499,7 @@ class Parser:
             node.target = self.next().value
             if self.accept_word("THRU", "THROUGH"):
                 node.thru = self.next().value
-        node.loop = self._perform_loop()
+        node.loop = self._perform_loop(node)
         if not out_of_line:
             node.body = self.parse_statements()
             if self.at_word("END-PERFORM"):
@@ -505,28 +507,45 @@ class Parser:
         node.line_end = self.last.line
         return node
 
-    def _perform_loop(self) -> Optional[str]:
+    def _perform_loop(self, node: PerformStmt) -> Optional[str]:
+        """Loop phrase of a PERFORM; fills node.until / times / varying for the interpreter."""
         parts: list[str] = []
         if self.at_word("WITH", "TEST"):            # [WITH] TEST BEFORE|AFTER
             self.accept_word("WITH")
             self.expect_word("TEST")
-            parts.append("TEST " + self.next().value)
+            word = self.next().value
+            node.test_after = word == "AFTER"
+            parts.append("TEST " + word)
         if (self.at_kind("NUM") or self.at_kind("WORD")) and self.at_word("TIMES", k=1):
-            parts.append(self.next().value + " TIMES"); self.next()
+            node.times = self.parse_operand()
+            parts.append(operand_text(node.times) + " TIMES")
+            self.next()
         elif self.accept_word("FOREVER"):
             parts.append("FOREVER")
+            node.until = {"all": [{"source_name": "FOREVER", "op": "==", "value": "never"}]}
         elif self.at_word("UNTIL", "VARYING"):
-            while self.peek() is not None:
-                if self.accept_word("UNTIL"):
-                    cond, _ = self.parse_condition()
-                    parts.append(f"UNTIL {cond}")
-                    if not self.at_word("AFTER"):
+            if self.accept_word("VARYING"):
+                var = self._ident()
+                self.expect_word("FROM")
+                start = self.parse_operand()
+                self.expect_word("BY")
+                step = self.parse_operand()
+                node.varying = (var, start, step)
+                parts.append(f"VARYING {var.text} FROM {operand_text(start)} BY {operand_text(step)}")
+            self.expect_word("UNTIL")
+            cond, _ = self.parse_condition()
+            node.until = cond
+            parts.append("UNTIL ...")
+            if self.at_word("AFTER"):             # VARYING ... AFTER ...: nested loops, kept as text only
+                node.nested_varying = True
+                while self.peek() is not None:
+                    t = self.peek()
+                    if t.kind == "PERIOD" or (t.kind == "WORD" and (t.value in VERBS or t.value in LIST_STOP)):
                         break
-                    continue
-                t = self.peek()
-                if t.kind == "PERIOD" or (t.kind == "WORD" and (t.value in VERBS or t.value in LIST_STOP)):
-                    break
-                parts.append(self.next().value)
+                    if self.accept_word("UNTIL"):
+                        self.parse_condition()
+                        continue
+                    self.next()
         return " ".join(parts) or None
 
     # ---- simple statements -----------------------------------------------
@@ -575,9 +594,10 @@ class Parser:
             self.accept_word("RUN")
             return OtherStmt("STOP RUN", start.file, start.line, self.last.line, "STOP RUN")
         if verb == "EXIT":
+            words = []
             while self.at_word("PROGRAM", "PARAGRAPH", "SECTION", "PERFORM", "CYCLE"):
-                self.next()
-            return OtherStmt("EXIT", start.file, start.line, self.last.line, "EXIT")
+                words.append(self.next().value)
+            return OtherStmt("EXIT", start.file, start.line, self.last.line, " ".join(["EXIT"] + words))
         toks, handlers = self._collect(verb)
         end = self.last.line
         text = verb + (" " + " ".join(self._tok_text(t) for t in toks) if toks else "")
@@ -591,8 +611,13 @@ class Parser:
             if verb == "CALL":
                 return self._call(start, toks, handlers, end)
             if verb == "GO":
-                return GoToStmt("GO TO", start.file, start.line, end,
-                                targets=[t.value for t in toks if t.kind == "WORD" and t.value not in ("DEPENDING", "ON")])
+                words = [t.value for t in toks if t.kind in ("WORD", "NUM")]
+                if "DEPENDING" in words:
+                    k = words.index("DEPENDING")
+                    rest = [w for w in words[k + 1:] if w != "ON"]
+                    return GoToStmt("GO TO", start.file, start.line, end, targets=words[:k],
+                                    depending=rest[0] if rest else None)
+                return GoToStmt("GO TO", start.file, start.line, end, targets=words)
         except ParseError as exc:
             self.diags.append(f"statement kept as text: {exc}")
         return OtherStmt(verb, start.file, start.line, end, text, handlers)

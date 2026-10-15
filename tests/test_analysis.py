@@ -82,11 +82,15 @@ def test_class_and_sign_conditions(program):
     assert only_condition(program, "AMT = ZERO") == {"all": [leaf("AMT", "==", 0)]}
 
 
-def test_arithmetic_in_condition_is_flagged(program):
+def test_arithmetic_in_condition_is_evaluated(program):
+    from decimal import Decimal
+    from src.verify.engine import eval_cond
     path = program(DATA, "    IF AMT + FEE > 100\n        MOVE 'Y' TO FLAG\n    END-IF")
     s = analyze(path)[0]
     assert s.condition == {"all": [leaf("AMT + FEE", ">", 100)]}
-    assert "arithmetic expression in condition" in s.unsupported
+    assert s.unsupported == []
+    assert eval_cond(s.condition, {"AMT": Decimal(60), "FEE": Decimal(50)})
+    assert not eval_cond(s.condition, {"AMT": Decimal(40), "FEE": Decimal(50)})
 
 
 # ---- statement structure ----------------------------------------------------------
@@ -148,7 +152,8 @@ def test_unsupported_constructs_do_not_crash(program):
             "    IF AMT > 5\n        GO TO MAIN-PARA\n    END-IF")
     slices = analyze(program(DATA, proc))
     assert slices[0].unsupported == ["EXEC SQL"] and slices[0].external_dependency
-    assert slices[1].unsupported == ["GO TO MAIN-PARA"] and slices[1].actions == []
+    assert slices[0].actions == [{"type": "call", "source_name": "EXEC SQL", "expr": "UPDATE T SET X = 1"}]
+    assert slices[1].unsupported == [] and slices[1].actions == [{"type": "goto", "source_name": "MAIN-PARA"}]
 
 
 # ---- the construct fixture: every mapping in rules.md section 2 -------------------
@@ -183,8 +188,11 @@ def test_constructs_fixture():
         leaf("RISK-CODE", "==", "A2")]}
     # IF/ELSE at top level is one rule with else_actions
     assert by_id["S014"].else_actions == [{"type": "set", "source_name": "FEE-AMT", "value": 0}]
-    # CALL is an external dependency, GO TO is flagged
-    assert by_id["S015"].external_dependency and by_id["S015"].unsupported == ["GO TO OTHER-EXIT"]
+    # CALL is an external dependency; GO TO is a control-transfer action modelled by the flow layer
+    assert by_id["S015"].external_dependency and by_id["S015"].unsupported == []
+    assert {"type": "goto", "source_name": "OTHER-EXIT"} in by_id["S015"].actions
+    # the rule after "IF BALANCE IS NEGATIVE ... GO TO OTHER-EXIT" only runs when that guard is false
+    assert by_id["S016"].context == {"not": leaf("BALANCE", "is_negative")}
     assert by_id["S016"].actions == [{"type": "perform", "source_name": "ABBREV"}]
 
 
