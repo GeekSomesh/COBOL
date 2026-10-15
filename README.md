@@ -2,17 +2,19 @@
 
 > IBM Z Datathon · Real-Time AI for Critical Decisions
 
-COBOL source in, decision model out. The pipeline reads COBOL programs and copybooks and finds every decision branch. It turns each branch into a structured, plain-English, source-traceable rule, then checks the rule against the **compiled COBOL program** before anyone relies on it. Everything runs on one machine: no customer data, no network calls.
+COBOL source in, decision model out. The pipeline reads COBOL programs, copybooks and JCL, finds every decision branch, and turns each one into a structured, plain-English, source-traceable rule. Before anyone relies on a rule, it is checked against the **compiled COBOL program**. Everything runs on one machine: no customer data, no network calls.
 
 ```
-COBOL + copybooks ─► parse & slice (exact) ─► AST rule ─► fine-tuned local LLM adds names & intent
-                  ─► verify: symbolic check + differential test vs GnuCOBOL + self-consistency
-                  ─► confidence & review queue ─► REST API / explorer UI / JSON · tree · PMML
+COBOL + copybooks -> parse, slice, follow control & data flow (exact) -> AST rule
+                  -> local LLM adds names & intent (never logic)
+                  -> verify: SMT proof vs parse, run rules vs compiled GnuCOBOL, wording & number checks
+                  -> calibrated confidence -> review (assign, comment, N approvers, four-eyes, audit chain)
+                  -> API, explorer UI, CLI, SDK -> JSON, trees, PMML, DMN, scoring, impact, drift
 ```
 
 **The LLM never decides logic.** Operators, values, actions and line ranges always come from the parser. The model only writes the title, intent, business field names and concepts (`src/llm/enrich.py: merge`).
 
-## Results (measured, held-out test split)
+## Results (measured)
 <!-- RESULTS:START -->
 Test split: held-out templates, generated 2026-10-08.
 
@@ -59,64 +61,68 @@ Criterion: mean of field_name_exact, intent_similarity, concept_jaccard. The tes
 <!-- RESULTS:END -->
 
 **What the numbers say**
-- **The parser is what makes rules correct.** Every system that builds on the parser gets 1.000 rule F1, traceability and behavioural agreement on held-out templates. The same 7B model reading raw code matches 0 of 61 gold rules. It treats 88-level names as fields, drops first-match exclusions and cites wrong lines, and its rules agree with the compiled program on only 62% of inputs.
-- **Verification catches what the LLM or a bug could break.** Every injected fault is routed to review, and no clean rule is. The differential test against the compiled COBOL alone catches every behaviour-changing fault; the rest are equivalent mutants that no test can see.
-- **Naming and intent are where models differ.** Fine-tuning won on validation but not on the unseen test templates (it overfit), so the explorer defaults to the prompted 7B. Details: [results/ERROR_ANALYSIS.md](results/ERROR_ANALYSIS.md), [docs/limitations.md](docs/limitations.md).
+- **The parser is what makes rules correct.** Every system built on the parser gets 1.000 rule F1, traceability and behavioural agreement on held-out templates. The same 7B model reading raw code matches 0 of 61 gold rules.
+- **It holds on real code we did not write.** On IBM's SAM1/SAM2 samples the parser matches all 45 hand-drafted expected rules (drafted by an AI, not yet reviewed by a COBOL expert). SAM2, a called subprogram, agrees byte for byte with the compiled program on every generated input, and a one-line planted bug is caught.
+- **Verification catches what a model or a bug could break.** Every behaviour-changing injected fault goes to review and no clean rule does. The remaining injected faults are proven by the SMT solver not to change any decision. Calibrated, the confidence score means what it says (calibration error 0.03).
+- **Fine-tuning helps once the data is varied enough.** Trained on 12 templates it overfit and lost to prompting; trained on 21 templates (three more domains) it beats prompting the same 1.5B model on unseen templates and runs 3.7x faster than the 7B, which stays the most accurate and the default.
 
-The test split uses **templates never seen in training**. All programs are synthetic (see [docs/limitations.md](docs/limitations.md)).
+All corpus programs are synthetic; test templates are never seen in training. See [docs/limitations.md](docs/limitations.md) and [results/ERROR_ANALYSIS.md](results/ERROR_ANALYSIS.md).
 
 ## Quick start (Windows + WSL, or Linux)
 ```bash
-py -3.11 -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt
+py -3.11 -m venv .venv && .venv/Scripts/python -m pip install --require-hashes -r requirements.lock
 wsl --install Ubuntu-24.04 && wsl -d Ubuntu-24.04 -- bash -c "apt-get update && apt-get install -y gnucobol"
 ollama pull qwen2.5-coder:7b && ollama pull nomic-embed-text        # enrichment model + search embeddings
 .venv/Scripts/python scripts/load_demo.py --reset                     # extract the demo programs
-.venv/Scripts/python -m uvicorn src.api.main:app --port 8000          # explorer at http://localhost:8000
+.venv/Scripts/python scripts/serve.py                                 # explorer at http://localhost:8000
 ```
 Sign in with a token from `data/dev_tokens.json` (generated on first start; roles viewer, reviewer, admin).
-On Linux, use `.venv/bin/python` and install GnuCOBOL with `apt install gnucobol`. Without Ollama, everything still works with AST-only names (`COBOL_LLM_MODEL=none`).
-Container: `docker build -t cobol-to-decision .`, then run it with `COBOL_API_TOKENS="token:admin:you"`. GnuCOBOL is inside the image.
+On Linux, use `.venv/bin/python` and `apt install gnucobol`. Without WSL, GnuCOBOL can run in Docker (`make toolchain-image`, `COBOL_BACKEND=docker`). Without Ollama, everything works with AST-only names (`COBOL_LLM_MODEL=none`).
+
+Command line, no server needed:
+```bash
+python -m src.cli extract data/public/ibm-zopeneditor-sample/SAM2.cbl --verify -o sam2.json
+python -m src.cli export  data/public/ibm-zopeneditor-sample/SAM2.cbl --format dmn -o sam2.dmn
+python -m src.cli repo    data/public/ibm-zopeneditor-sample --impact program:SAM2
+```
+
+Production: `docker compose up` (API + Ollama on an internal, no-egress network), TLS, OIDC, PostgreSQL, backups and monitoring are described in the [admin guide](docs/admin_guide.md). Day-to-day use: [user guide](docs/user_guide.md).
 
 ## Fine-tuning: what we did and what we found
-We fine-tuned Qwen2.5-Coder-1.5B-Instruct with LoRA on the 546 training rules. That took 29 minutes on an RTX 3050 6 GB laptop GPU. We picked the best of two runs on the **validation** templates, where it clearly beat the same base model prompted with three examples.
+Round 1: LoRA on Qwen2.5-Coder-1.5B-Instruct with 546 training rules from 12 templates (29 minutes on an RTX 3050 6 GB laptop GPU). It won on the validation templates but lost to prompting on the test templates: it had learned the style of its 12 templates. We reported that as a negative result.
 
-On the **test** templates it did not hold up. It names fields and writes intents slightly worse than the prompted 1.5B and the prompted 7B (tables below), because it learned the style of the 12 training templates. So we report it as a measured negative result, not a win.
+Round 2: we added three domains (insurance claims, payroll, shipping; 9 templates, 54 programs) to the **training split only**, keeping validation and test unchanged, and retrained with the same settings (702 rules, 26 minutes). Selected on validation, then measured once on test with the same prompt as every other model: field names 0.590 vs 0.563 for the prompted 1.5B and 0.542 for round 1; intent 0.839 vs 0.837 and 0.818. The prompted 7B is still best (0.632 / 0.856) and stays the default; the fine-tuned model is the fast option and the fallback.
 
-The explorer defaults to the prompted 7B, the best measured model; the fine-tuned 1.5B is about 3x faster and one setting away (`COBOL_LLM_MODEL=cobol-enrich:1.5b`). The parser always owns the logic, so rule structure, traces and behavioural agreement are identical across models.
+**The weights are in this repo** as LoRA adapters (71 MB each, with model cards and checksums): [round 2](weights/cobol-enrich-1.5b-v2-lora/README.md) and [round 1](weights/cobol-enrich-1.5b-lora/README.md). Merged models (2.9 GB) are rebuilt from base + adapter with `make weights serve-model`.
 
-**The fine-tuned weights are in this repo** as a 71 MB LoRA adapter: [weights/cobol-enrich-1.5b-lora](weights/cobol-enrich-1.5b-lora/README.md) (model card, checksum, training log). Full merged models (2.9 GB) are not committed: they exceed GitHub's file limits and are rebuilt exactly from base + adapter. To use the adapter, run `make weights serve-model`.
-
-To reproduce training from scratch (needs `.venv-train` from `requirements-train.txt`, plus llama.cpp's converter as described there):
+Reproduce from scratch (needs `.venv-train` from `requirements-train.txt` and llama.cpp's converter):
 ```bash
-make corpus finetune-data    # 300 programs, 809 gold rules, chat JSONL from the train split
-make finetune serve-model    # LoRA, merge, GGUF Q8_0, import into Ollama as cobol-enrich:1.5b (+ matched base)
-make eval                    # every system on the test split -> results/RESULTS.md, README, evaluation.md
+make corpus finetune-data    # 300 + 54 programs, gold rules, chat JSONL from the train split
+make finetune serve-model    # LoRA, merge, GGUF Q8_0, import into Ollama (+ matched base)
+make eval                    # every system and study -> results/RESULTS.md, README, evaluation.md
 ```
 
 ## What is built
 | Area | Where | Notes |
 |---|---|---|
 | Ingest: free/fixed format, `COPY ... REPLACING`, line mapping | `src/ingest/` | Every rule traces to its original file and line |
-| Parser, data dictionary, 88-levels, abbreviated conditions | `src/analysis/` | Hand-written recursive descent; [subset and conventions](docs/parser_subset.md) |
-| Decision slicer (IF, ELSE-IF, nested, EVALUATE with ALSO/THRU) | `src/analysis/slicer.py` | First-match semantics; GO TO, EXEC, SEARCH flagged, never guessed |
-| AST-only baseline and canonical rule matching | `src/rules/` | `baseline_rule`, `canon`, `match` |
-| Synthetic corpus: 6 domains, 18 templates, 300 programs | `src/corpus/`, `data/` | Gold rules with intents; splits held out by template; all compiled with GnuCOBOL |
-| LLM enrichment, prompts with comments fenced as untrusted | `src/llm/` | Ollama, JSON-schema output, retry, baseline fallback |
-| LoRA fine-tune + local serving | `scripts/finetune.py`, `scripts/serve_model.py` | Qwen2.5-Coder-1.5B-Instruct (Apache-2.0) |
-| Verification: symbolic, differential vs compiled COBOL, consistency, naming | `src/verify/` | Weights from rules.md; routing to review |
-| Rule store with versions, content hashes, audit log | `src/api/store.py` | SQLite |
-| REST API per docs/api.md, bearer roles | `src/api/main.py` | `/docs` serves OpenAPI |
-| Explorer UI (offline, no CDN) | `src/ui/static/` | Search, source highlighting, review, export, scoring, SHAP, conflicts |
-| Exports: JSON, decision-tree JSON, PMML TreeModel | `src/rules/export.py` | Trees are tested to match rule semantics |
-| Stateless `/score`, SHAP surrogate, conflict detection | `src/rules/decide.py` | Scoring inputs are never stored or logged |
-| Evaluation harness | `scripts/evaluate.py` | AST-only, LLM-only, prompted, fine-tuned + verification, fault injection, latency |
-| Packaging | `Dockerfile`, `docker-compose.yml`, `Makefile` | Model server on an internal (no-egress) network |
+| Parser, data dictionary, byte layout, 88-levels | `src/analysis/`, `src/verify/storage.py` | [Subset and conventions](docs/parser_subset.md) |
+| Slicer, control and data flow, lookup tables | `src/analysis/slicer.py`, `cfg.py`, `tables.py` | Contexts from callers, derivations, dead code, SEARCH tables as per-row rules |
+| Synthetic corpus: 9 domains, 27 templates, 354 programs | `src/corpus/`, `data/` | Splits held out by template; all compiled with GnuCOBOL |
+| LLM enrichment, fine-tune, glossary | `src/llm/`, `scripts/finetune.py`, `src/rules/glossary.py` | Comments fenced as untrusted; schema-checked output |
+| Verification | `src/verify/` | SMT structural proof, rule interpreter vs GnuCOBOL (programs and subprograms), wording and number checks, calibrated confidence |
+| Repository analysis | `src/repo/` | JCL, call graph, datasets, impact analysis; rule drift in `src/rules/diff.py` |
+| Rule store and review workflow | `src/api/store.py`, `src/api/db.py` | Versions, hash-chained audit, N approvers, four-eyes, comments, notifications; SQLite or PostgreSQL |
+| REST API, explorer UI, CLI, SDK | `src/api/`, `src/ui/static/`, `src/cli.py`, `src/sdk.py` | OIDC, per-program access, rate limits, metrics, TLS; accessible UI |
+| Exports and decisions | `src/rules/` | JSON, trees, PMML 4.4, DMN 1.3 (schema-validated), stateless scoring, SHAP, SMT conflict detection |
+| Packaging and CI | `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml` | Hash-pinned dependencies, SBOM, non-root container |
 
 ## Docs
-[architecture](docs/architecture.md) · [requirements](docs/requirement.md) · [rules schema](docs/rules.md) · [API](docs/api.md) ·
-[dataset](docs/dataset.md) · [evaluation](docs/evaluation.md) · [security](docs/security.md) · [demo script](docs/demo.md) ·
-[parser subset](docs/parser_subset.md) · [limitations](docs/limitations.md) · [build plan](docs/implementation.md)
+[user guide](docs/user_guide.md) · [admin guide](docs/admin_guide.md) · [architecture](docs/architecture.md) · [requirements status](docs/STATUS.md) ·
+[rules schema](docs/rules.md) · [API](docs/api.md) · [dataset](docs/dataset.md) · [evaluation](docs/evaluation.md) · [security](docs/security.md) ·
+[demo script](docs/demo.md) · [parser subset](docs/parser_subset.md) · [limitations](docs/limitations.md) · [roadmap](docs/roadmap.md) · [build plan](docs/implementation.md)
 
 ## Licences of third-party material
-- `data/public/ibm-zopeneditor-sample/`: IBM Z Open Editor samples, Apache-2.0 (LICENSE included).
-- Base model Qwen2.5-Coder-1.5B-Instruct: Apache-2.0. Weights are not in this repository.
+- `data/public/ibm-zopeneditor-sample/`: IBM Z Open Editor samples (programs, copybooks, JCL), Apache-2.0 (LICENSE included).
+- `src/rules/schemas/`: PMML 4.4 schema (DMG) and DMN 1.3 schemas (OMG), published by their standards bodies.
+- Base model Qwen2.5-Coder-1.5B-Instruct: Apache-2.0. Base weights are not in this repository; the LoRA adapters are.

@@ -1,8 +1,33 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "cobol-to-decision"
-version = "0.1.0"
-description = "Extract source-traceable decision rules from COBOL programs"
+version = "1.0.0"
+description = "Extract source-traceable, verified decision rules from COBOL programs"
+readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "Proprietary (project code); IBM samples under Apache-2.0, see data/public" }
+dependencies = [
+    "pydantic>=2.13", "PyYAML>=6.0", "requests>=2.34", "fastapi>=0.142", "starlette>=1.7", "uvicorn>=0.54",
+    "python-multipart>=0.0.32", "numpy>=2.4", "scikit-learn>=1.9", "shap>=0.51", "z3-solver>=5.3",
+    "lxml>=6.1", "PyJWT[crypto]>=2.15",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.3"]
+test = ["pytest>=9.1", "httpx>=0.28"]
+
+[project.scripts]
+cobol2rules = "src.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"src.ui" = ["static/*"]
+"src.rules" = ["schemas/*.xsd"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

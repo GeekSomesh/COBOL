@@ -1,0 +1,38 @@
+{
+  "system": "real code (IBM Z Open Editor samples)",
+  "public_gold": {
+    "gold": 45,
+    "predicted": 45,
+    "matched": 45,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "public_gold_history": [
+    {
+      "date": "2026-10-15",
+      "parser": "0.2.0",
+      "f1": {
+        "SAM1": 0.885,
+        "SAM2": 0.947
+      },
+      "finding": "SAM1: 3 rules wrote ADD +1 as 'X + +1' (parser fixed). SAM2: 1 drafted trace included END-IF against the documented convention (draft fixed)."
+    }
+  ],
+  "sam2_subprogram": {
+    "rows": 427,
+    "agreement": 1.0,
+    "excluded_undefined_rows": 35,
+    "notes": [
+      "undefined: CRUNCH-CPU-LOOPS holds non-digit bytes in a comparison"
+    ],
+    "comparison": "every parameter record byte for byte"
+  },
+  "sam2_planted_fault": {
+    "rule": "SAM2-R011",
+    "fault": "sign flip removed",
+    "agreement": 0.9929,
+    "caught": true
+  },
+  "generated_at": "2026-10-15T21:06:43+00:00"
+}

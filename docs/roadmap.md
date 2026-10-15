@@ -28,7 +28,16 @@ Phases are ordered by dependency; adjust durations to the datathon schedule.
 | Limited public COBOL data | High | Synthetic generator with built-in ground truth |
 | Time | High | Priority order above; keep demo to one strong end-to-end path |
 
-## Beyond the datathon
-- Wider COBOL dialect and CICS/DB2 coverage.
-- Impact analysis: which rules change when a copybook field changes.
-- Integration with decision engines and CI checks that detect rule drift between releases.
+## Beyond the datathon (status 2026-10-16)
+Done: control flow across paragraphs, lookup tables, behavioural testing of called
+subprograms, SMT equivalence and conflict checks, impact analysis and JCL/call-graph
+analysis, rule drift with witnesses, DMN export, review workflow (assignment,
+comments, N approvers, four-eyes), OIDC and per-program access, PostgreSQL, hash-chained
+audit log, backups, metrics, CI, container and Docker toolchain backends.
+
+Still open:
+- CICS and DB2 semantics (EXEC statements are kept and flagged, not interpreted).
+- Behavioural testing of file-processing main programs (generate input files, compare output files).
+- GO TO DEPENDING ON, ALTER, nested OCCURS, reference modification.
+- Review of the drafted expected rules for the IBM samples by a COBOL expert; more real-code benchmarks.
+- A larger and more varied training set for the fine-tuned model, then a fresh comparison with prompted models.

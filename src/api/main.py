@@ -9,17 +9,26 @@ Settings (environment):
   COBOL_LLM_FEWSHOT        few-shot examples (default 3 for prompted models, 0 for cobol-enrich)
   COBOL_CONSISTENCY_RUNS   extra sampled enrichments for self-consistency (default 2)
   COBOL_API_TOKENS         "token:role:user,..." (default: generated dev tokens)
+  COBOL_OIDC_*             single sign-on with JWT access tokens (src/api/auth.py)
+  COBOL_ACCESS_FILE        per-program access grants (src/api/access.py; default data/access.json)
+  COBOL_APPROVALS_REQUIRED approvals needed before a rule is approved (default 1)
+  COBOL_WEBHOOK_URL        review events are POSTed here (optional)
+  COBOL_RATE_LIMIT_*       requests per minute (src/api/ops.py); COBOL_METRICS_TOKEN protects /metrics
+  COBOL_LOG_JSON=1         structured JSON logs; COBOL_TLS=1 adds HSTS (serve with scripts/serve.py)
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
+import math
 import os
 import re
 import secrets
 import shutil
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Optional
@@ -30,7 +39,9 @@ from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from src.api.auth import User, load_tokens
+from src.api.access import can_see, patterns
+from src.api.auth import OIDC, InvalidToken, User, load_tokens, oidc_user
+from src.api.ops import SECURITY_HEADERS, Metrics, RateLimiter, configure_logging, request_class
 from src.api.store import Store, StoreError, content_hash
 from src.common.models import Rule, dump
 
@@ -39,11 +50,16 @@ DATA = ROOT / "data"
 UI_DIR = ROOT / "src" / "ui" / "static"
 MAX_UPLOAD_BYTES = 1_000_000
 log = logging.getLogger("cobol.api")
+access_log = logging.getLogger("cobol.access")
+configure_logging()
 
 app = FastAPI(title="COBOL-to-Decision", version="1.0.0",
               description="Extract source-traceable decision rules from COBOL programs.")
 store = Store(os.environ.get("COBOL_DB", str(DATA / "rules.db")))
 TOKENS = load_tokens(DATA / "dev_tokens.json")
+OIDC_CONFIG = OIDC()
+metrics = Metrics()
+limiter = RateLimiter()
 executor = ThreadPoolExecutor(max_workers=1)        # one extraction at a time: GPU and compiler are shared
 _llm_lock = threading.Lock()
 
@@ -55,11 +71,56 @@ def _error(status: int, code: str, message: str, request: Request) -> JSONRespon
     return JSONResponse({"error": {"code": code, "message": message, "request_id": rid}}, status_code=status)
 
 
+_NO_CSP = ("/docs", "/redoc", "/openapi.json")     # FastAPI's own docs pages load their assets from a CDN
+
+
+def _route_template(request: Request) -> str:
+    """Route path template (``/v1/rules/{rule_id}``), also for requests refused before routing."""
+    from starlette.routing import Match
+    route = request.scope.get("route")
+    if route is not None and getattr(route, "path", None):
+        return route.path
+    if request.url.path.startswith("/ui"):
+        return "/ui/*"
+    for r in app.router.routes:
+        if getattr(r, "path", None) and r.matches(request.scope)[0] == Match.FULL:
+            return r.path
+    return "unmatched"
+
+
 @app.middleware("http")
 async def request_id(request: Request, call_next):
+    """Request id, rate limit, metrics, security headers and the access log for every request."""
     request.state.request_id = "r_" + secrets.token_hex(3)
-    response = await call_next(request)
+    start = time.perf_counter()
+    path = request.url.path
+    response = None
+    if path.startswith("/v1/") and path != "/v1/health":
+        auth = request.headers.get("authorization", "")
+        key = ("t:" + hashlib.sha256(auth.encode()).hexdigest()[:16]) if auth else \
+            ("ip:" + (request.client.host if request.client else "?"))
+        cls = request_class(request.method, path)
+        wait = limiter.take(key, cls)
+        if wait is not None:
+            metrics.limited[cls] += 1
+            response = _error(429, "RATE_LIMITED", f"Too many requests; retry in {wait:.1f} s", request)
+            response.headers["Retry-After"] = str(max(1, math.ceil(wait)))
+    if response is None:
+        response = await call_next(request)
+    template = _route_template(request)
+    elapsed = time.perf_counter() - start
+    metrics.observe(request.method, template, response.status_code, elapsed)
+    for k, v in SECURITY_HEADERS.items():
+        if k == "Content-Security-Policy" and path.startswith(_NO_CSP):
+            continue
+        response.headers.setdefault(k, v)
+    if request.url.scheme == "https" or os.environ.get("COBOL_TLS") == "1":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["X-Request-ID"] = request.state.request_id
+    access_log.info("%s %s %s %.1fms", request.method, template, response.status_code, elapsed * 1000,
+                    extra={"request_id": request.state.request_id, "method": request.method, "route": template,
+                           "status": response.status_code, "ms": round(elapsed * 1000, 1),
+                           "user": getattr(request.state, "user", None)})
     return response
 
 
@@ -87,13 +148,43 @@ def fail(status: int, code: str, message: str) -> HTTPException:
 
 # ---- auth ------------------------------------------------------------------------------
 
-def current_user(authorization: Optional[str] = Header(None)) -> User:
+def current_user(request: Request, authorization: Optional[str] = Header(None)) -> User:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise fail(401, "UNAUTHENTICATED", "Missing bearer token")
-    user = TOKENS.get(authorization.split(" ", 1)[1].strip())
+    token = authorization.split(" ", 1)[1].strip()
+    user = TOKENS.get(token)
+    if user is None and OIDC_CONFIG.enabled and token.count(".") == 2:
+        try:
+            user = oidc_user(OIDC_CONFIG, token)
+        except InvalidToken as exc:
+            raise fail(401, "UNAUTHENTICATED", f"Invalid token: {exc}") from exc
     if user is None:
         raise fail(401, "UNAUTHENTICATED", "Invalid token")
+    request.state.user = user.name
     return user
+
+
+# ---- per-program access ----------------------------------------------------------------------
+
+def _rule_for(user: User, rule_id: str, version: Optional[int] = None) -> tuple[Rule, str]:
+    """The rule, or 404 when the user may not see its program (existence is not leaked)."""
+    rule, pid = store.get_rule(rule_id, version)
+    if not can_see(user, rule.trace.program, rule_id.rsplit("-R", 1)[0]):
+        raise fail(404, "RULE_NOT_FOUND", f"No rule with id {rule_id}")
+    return rule, pid
+
+
+def _program_for(user: User, pid: str) -> dict[str, Any]:
+    p = store.program(pid)
+    if not can_see(user, p["name"], p["program_file"]):
+        raise fail(404, "PROGRAM_NOT_FOUND", f"No program with id {pid}")
+    return p
+
+
+def _visible_rules(user: User, pairs: list[tuple[Rule, str]]) -> list[tuple[Rule, str]]:
+    if patterns(user) is None:
+        return pairs
+    return [(r, p) for r, p in pairs if can_see(user, r.trace.program)]
 
 
 def need(role: str):
@@ -108,7 +199,7 @@ def need(role: str):
 
 # Default enrichment models in order of measured quality on the held-out test split
 # (results/RESULTS.md): prompted 7B first, then the fine-tuned 1.5B (about 3x faster).
-DEFAULT_MODELS = [("qwen2.5-coder:7b", 3), ("cobol-enrich:1.5b", 0)]
+DEFAULT_MODELS = [("qwen2.5-coder:7b", 3), ("cobol-enrich:1.5b-v2", 0), ("cobol-enrich:1.5b", 0)]
 
 
 def llm_settings() -> tuple[Optional[str], int, int]:
@@ -232,18 +323,19 @@ async def upload_program(program: UploadFile = File(...), copybooks: list[Upload
 
 @app.get("/v1/programs")
 def list_programs(user: User = Depends(need("viewer"))):
-    return {"items": store.programs()}
+    return {"items": [p for p in store.programs() if can_see(user, p["name"], p["program_file"])]}
 
 
 @app.get("/v1/programs/{pid}")
 def get_program(pid: str, user: User = Depends(need("viewer"))):
-    p = store.program(pid)
+    p = _program_for(user, pid)
     p["copybooks"] = [n for n in p.pop("files") if n != p["program_file"]]
     return p
 
 
 @app.get("/v1/programs/{pid}/source")
 def program_source(pid: str, user: User = Depends(need("viewer"))):
+    _program_for(user, pid)
     from src.ingest.source import load_program
     p = store.program(pid)
     folder = program_dir(pid)
@@ -257,7 +349,7 @@ def program_source(pid: str, user: User = Depends(need("viewer"))):
 
 @app.post("/v1/programs/{pid}/extract", status_code=202)
 def extract_program(pid: str, user: User = Depends(need("admin"))):
-    store.program(pid)
+    _program_for(user, pid)
     jid = store.new_job(pid)
     store.set_program_status(pid, "extracting")
     executor.submit(run_extraction, jid, pid)
@@ -278,7 +370,7 @@ def list_rules(q: Optional[str] = None, concept: Optional[str] = None, program: 
                page: int = Query(1, ge=1), page_size: int = Query(25, ge=1, le=200),
                user: User = Depends(need("viewer"))):
     from src.rules.search import search
-    rules = store.latest_rules(program, status, domain, min_confidence, concept)
+    rules = _visible_rules(user, store.latest_rules(program, status, domain, min_confidence, concept))
     embed_query = _embedder() if q else None
     results = search(rules, q, embed_query, lambda r: store.embedding(r.rule_id, content_hash(r)))
     total = len(results)
@@ -289,13 +381,13 @@ def list_rules(q: Optional[str] = None, concept: Optional[str] = None, program: 
 
 @app.get("/v1/rules/{rule_id}")
 def get_rule(rule_id: str, version: Optional[int] = None, user: User = Depends(need("viewer"))):
-    rule, pid = store.get_rule(rule_id, version)
+    rule, pid = _rule_for(user, rule_id, version)
     return dump(rule) | {"program_id": pid}
 
 
 @app.get("/v1/rules/{rule_id}/trace")
 def rule_trace(rule_id: str, context: int = Query(8, ge=0, le=200), user: User = Depends(need("viewer"))):
-    rule, pid = store.get_rule(rule_id)
+    rule, pid = _rule_for(user, rule_id)
     p = store.program(pid)
     fname = rule.trace.file or rule.trace.program
     text = p["files"].get(fname) or p["files"].get(p["program_file"], "")
@@ -332,6 +424,7 @@ def _webhook(event: dict[str, Any]) -> None:
 def _review(rule_id: str, body: "ReviewBody", user: User) -> dict[str, Any]:
     if body.action in ("approve", "reject") and not body.reason.strip():
         raise fail(400, "INVALID_REQUEST", "A reason is required for approve and reject")
+    _rule_for(user, rule_id)
     rule = store.review(rule_id, body.action, body.reason, user.name, body.changes)
     log.info("review rule=%s action=%s user=%s", rule_id, body.action, user.name)
     a = store.assignment(rule_id)
@@ -380,6 +473,7 @@ class AssignBody(BaseModel):
 
 @app.post("/v1/rules/{rule_id}/assign")
 def assign_rule(rule_id: str, body: AssignBody, user: User = Depends(need("reviewer"))):
+    _rule_for(user, rule_id)
     out = store.assign(rule_id, body.assignee.strip(), user.name)
     _webhook({"event": "assign", "rule_id": rule_id, "assignee": body.assignee, "user": user.name})
     return out
@@ -391,12 +485,13 @@ class CommentBody(BaseModel):
 
 @app.get("/v1/rules/{rule_id}/comments")
 def rule_comments(rule_id: str, user: User = Depends(need("viewer"))):
-    store.get_rule(rule_id)
+    _rule_for(user, rule_id)
     return {"items": store.comments(rule_id), "assignment": store.assignment(rule_id)}
 
 
 @app.post("/v1/rules/{rule_id}/comments", status_code=201)
 def add_comment(rule_id: str, body: CommentBody, user: User = Depends(need("reviewer"))):
+    _rule_for(user, rule_id)
     text = body.text.strip()
     if not text or len(text) > 4000:
         raise fail(400, "INVALID_REQUEST", "a comment needs 1 to 4000 characters")
@@ -407,7 +502,10 @@ def add_comment(rule_id: str, body: CommentBody, user: User = Depends(need("revi
 
 @app.get("/v1/review_queue")
 def review_queue(mine: bool = False, user: User = Depends(need("viewer"))):
-    return {"items": store.review_queue(user.name if mine else None),
+    items = store.review_queue(user.name if mine else None)
+    if patterns(user) is not None:
+        items = [i for i in items if can_see(user, i["rule_id"].rsplit("-R", 1)[0])]
+    return {"items": items,
             "approvals_required": store.approvals_required}
 
 
@@ -429,18 +527,21 @@ def audit_verify(user: User = Depends(need("admin"))):
 
 @app.get("/v1/rules/{rule_id}/history")
 def rule_history(rule_id: str, user: User = Depends(need("viewer"))):
+    _rule_for(user, rule_id)
     return store.history(rule_id)
 
 
 @app.get("/v1/audit")
 def audit(limit: int = Query(100, ge=1, le=1000), user: User = Depends(need("reviewer"))):
+    if patterns(user) is not None:
+        return {"items": [a for a in store.audit_log(limit) if can_see(user, a["rule_id"].rsplit("-R", 1)[0])]}
     return {"items": store.audit_log(limit)}
 
 
 @app.get("/v1/conflicts")
 def get_conflicts(program: Optional[str] = None, user: User = Depends(need("viewer"))):
     from src.rules.decide import conflicts
-    rules = [r for r, _ in store.latest_rules(program) if r.status != "rejected"]
+    rules = [r for r, _ in _visible_rules(user, store.latest_rules(program)) if r.status != "rejected"]
     return {"items": conflicts(rules)}
 
 
@@ -454,7 +555,7 @@ def export(format: str = Query("json", pattern="^(json|tree|pmml|dmn)$"), progra
     from src.rules.dmn import to_dmn
     from src.rules.export import to_json, to_pmml, to_tree_json
     from src.rules.schema_check import validate
-    rules = [r for r, _ in store.latest_rules(program, status, domain)]
+    rules = [r for r, _ in _visible_rules(user, store.latest_rules(program, status, domain))]
     if format == "json":
         return JSONResponse(json.loads(to_json(rules)))
     if format == "tree":
@@ -472,8 +573,11 @@ def export(format: str = Query("json", pattern="^(json|tree|pmml|dmn)$"), progra
                                       "Content-Disposition": f"attachment; filename=rules.{ext}"})
 
 
-def _rule_set(name: str, statuses: tuple[str, ...]) -> list[Rule]:
-    rules = [r for r, _ in store.latest_rules(name) if r.status in statuses]
+def _rule_set(name: str, statuses: tuple[str, ...], user: Optional[User] = None) -> list[Rule]:
+    pairs = store.latest_rules(name)
+    if user is not None:
+        pairs = _visible_rules(user, pairs)
+    rules = [r for r, _ in pairs if r.status in statuses]
     return sorted(rules, key=lambda r: (r.trace.program, r.trace.line_start, r.rule_id))
 
 
@@ -493,7 +597,7 @@ class ScoreBody(BaseModel):
 def score_endpoint(body: ScoreBody, user: User = Depends(need("viewer"))):
     """Stateless: inputs are neither stored nor logged (security.md T8)."""
     from src.rules.decide import score
-    rules = _rule_set(body.rule_set, ("approved",))
+    rules = _rule_set(body.rule_set, ("approved",), user)
     if not rules:
         raise fail(404, "RULE_NOT_FOUND", f"No approved rules for rule set {body.rule_set}")
     return score(rules, body.inputs, _defaults(body.rule_set))
@@ -502,7 +606,7 @@ def score_endpoint(body: ScoreBody, user: User = Depends(need("viewer"))):
 @app.get("/v1/rule_sets/{name}/inputs")
 def rule_set_inputs(name: str, user: User = Depends(need("viewer"))):
     from src.rules.decide import input_fields, output_fields
-    rules = _rule_set(name, ("approved",))
+    rules = _rule_set(name, ("approved",), user)
     return {"rule_set": name, "approved_rules": len(rules),
             "inputs": {k: {"kind": v["kind"], "values": v["values"]} for k, v in input_fields(rules).items()},
             "outputs": list(output_fields(rules))}
@@ -511,7 +615,7 @@ def rule_set_inputs(name: str, user: User = Depends(need("viewer"))):
 @app.get("/v1/explain/{rule_set}")
 def explain_endpoint(rule_set: str, target: Optional[str] = None, user: User = Depends(need("viewer"))):
     from src.rules.decide import explain
-    rules = _rule_set(rule_set, ("approved",)) or _rule_set(rule_set, ("candidate", "needs_review", "approved"))
+    rules = _rule_set(rule_set, ("approved",), user) or _rule_set(rule_set, ("candidate", "needs_review", "approved"), user)
     if not rules:
         raise fail(404, "RULE_NOT_FOUND", f"No rules for rule set {rule_set}")
     try:
@@ -557,10 +661,14 @@ def list_jcl(user: User = Depends(need("viewer"))):
 _repo_cache: dict[str, Any] = {}
 
 
-def _repository() -> tuple[Any, dict[str, Any]]:
-    """Repository graph over every uploaded program and JCL member (cached until uploads change)."""
+def _repository(user: Optional[User] = None) -> tuple[Any, dict[str, Any]]:
+    """Repository graph over every uploaded program the user may see and every JCL member
+    (cached until uploads change; users limited to some programs get their own graph)."""
     from src.repo.graph import build_graph, scan_sources
     progs = store.programs()
+    if user is not None and patterns(user) is not None:
+        progs = [p for p in progs if can_see(user, p["name"], p["program_file"])]
+        _repo_cache.pop("key", None)
     jcl = sorted(_jcl_dir().glob("*"))
     key = repr([(p["id"], p.get("sha256")) for p in progs]
                + [(j.name, j.stat().st_mtime) for j in jcl])
@@ -584,7 +692,7 @@ def _repository() -> tuple[Any, dict[str, Any]]:
 @app.get("/v1/repository")
 def repository(user: User = Depends(need("viewer"))):
     """Call graph, copybook use, JCL jobs and datasets across all uploaded sources, with findings."""
-    return _repository()[1]
+    return _repository(user)[1]
 
 
 @app.get("/v1/impact")
@@ -593,7 +701,7 @@ def impact_endpoint(kind: str = Query(..., pattern="^(field|copybook|program|dat
     """What a change would affect: rules that read or write a field, programs including a copybook,
     callers of a program (transitively) and the JCL jobs that run them."""
     from src.repo.graph import impact
-    repo, graph = _repository()
+    repo, graph = _repository(user)
     return impact(repo, graph, kind, name)
 
 
@@ -605,7 +713,7 @@ def drift(old: str, new: str, user: User = Depends(need("viewer"))):
     from src.rules.diff import diff_rules
     sets = []
     for pid in (old, new):
-        prog = store.program(pid)
+        prog = _program_for(user, pid)
         folder = program_dir(pid)
         folder.mkdir(parents=True, exist_ok=True)
         for name, text in prog["files"].items():
@@ -635,6 +743,53 @@ def put_glossary(body: GlossaryBody, user: User = Depends(need("admin"))):
     save(g)
     log.info("glossary updated by=%s fields=%d terms=%d", user.name, len(g.fields), len(g.terms))
     return g.as_dict()
+
+
+# ---- administration: backups and retention ------------------------------------------------------
+
+def _backup_dir() -> Path:
+    return Path(os.environ.get("COBOL_BACKUP_DIR") or DATA / "backups")
+
+
+@app.post("/v1/admin/backup", status_code=201)
+def admin_backup(keep: int = Query(14, ge=1, le=365), user: User = Depends(need("admin"))):
+    """Verified online backup of the rule store; keeps the newest ``keep`` backups."""
+    from datetime import datetime, timezone
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    result = store.backup(_backup_dir() / f"rules-{stamp}.db")
+    olds = sorted(_backup_dir().glob("rules-*.db"))
+    for old in olds[:-keep]:
+        old.unlink()
+    log.info("backup by=%s ok=%s bytes=%s", user.name, result["ok"], result["bytes"])
+    return result | {"path": Path(result["path"]).name, "kept": min(len(olds), keep)}
+
+
+@app.get("/v1/admin/backups")
+def admin_backups(user: User = Depends(need("admin"))):
+    return {"items": [{"name": p.name, "bytes": p.stat().st_size} for p in sorted(_backup_dir().glob("rules-*.db"))]}
+
+
+@app.post("/v1/admin/retention")
+def admin_retention(jobs_days: int = Query(30, ge=1), notifications_days: int = Query(90, ge=1),
+                    user: User = Depends(need("admin"))):
+    """Delete finished jobs and read notifications past their retention period."""
+    return store.purge(jobs_days, notifications_days)
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics_endpoint(authorization: Optional[str] = Header(None)):
+    """Prometheus metrics. Set COBOL_METRICS_TOKEN to require ``Authorization: Bearer <token>``."""
+    tok = os.environ.get("COBOL_METRICS_TOKEN")
+    if tok and not secrets.compare_digest(authorization or "", f"Bearer {tok}"):
+        raise fail(401, "UNAUTHENTICATED", "metrics token required")
+    s = store.stats()
+    gauges = {
+        "cobol_rules": ("Latest rule versions by status.", [({"status": k}, v) for k, v in s["rules"].items()]),
+        "cobol_programs": ("Uploaded programs.", [({}, s["programs"])]),
+        "cobol_jobs": ("Extraction jobs by state.", [({"state": k}, v) for k, v in s["jobs"].items()]),
+        "cobol_review_events": ("Entries in the review log.", [({}, s["reviews"])]),
+    }
+    return PlainTextResponse(metrics.render(gauges), media_type="text/plain; version=0.0.4")
 
 
 @app.get("/v1/health")

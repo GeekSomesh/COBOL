@@ -12,7 +12,15 @@ with the admin token from `data/dev_tokens.json`.
 5. **Business query (45 s):** search "customers under 18". The minor-transaction rules rank first, each with its source link.
 6. **Trust (45 s):** in the Review queue, open a rule flagged `needs_review`. Good examples are the FRD program's `CALL 'FRDALERT'` rule (external dependency) or an IBM SAM1 rule (not behaviourally verified). Approve one with a reason, then show the Audit log.
 7. **Explain and export (30 s):** Insights tab: SHAP influence for a rule set. Export tab: JSON, decision tree and PMML.
-8. **Close (30 s):** results slide from `results/RESULTS.md`. Use only these measured numbers, and say they come from synthetic held-out templates.
+8. **Real code (60 s, optional):** upload IBM's `SAM2.cbl` with `CUSTCOPY.cpy` and `TRANREC.cpy`. It is a CALLed
+   subprogram: the pipeline generates a driver, runs it with GnuCOBOL and compares every parameter record byte for
+   byte (Programs tab: "subprogram driver", agreement 1.0). Upload `SAM1.cbl` and `RUN.jcl`, then open
+   **Repository**: SAM1 calls SAM2 (through a variable), job ZDERUN runs SAM1, which reads CUSTFILE and TRANFILE.
+   Impact of changing SAM2 → caller SAM1 → job ZDERUN.
+9. **Drift (30 s, optional):** upload a copy of SAM2 with one threshold changed; Repository → "Rule drift" shows the
+   changed rule and an input where old and new disagree.
+10. **Close (30 s):** results slide from `results/RESULTS.md`. Use only these measured numbers, and say which come from
+    synthetic held-out templates and which from IBM's real samples.
 
 ## 2. Demo checklist
 - [x] One clean synthetic program with 3 to 5 clear rules (TXNCHK, INT0003, LON0002)
@@ -43,7 +51,8 @@ Unsupported constructs and external calls are flagged rather than guessed, and r
 We report precision, recall, F1 and behavioural agreement on a held-out test split with gold rules, against baselines (AST-only, LLM-only, no fine-tuning) described in [evaluation.md](evaluation.md).
 
 **What would you do next?**
-Wider dialect support, impact analysis when copybooks change, and CI checks that detect rule drift between releases.
+CICS/DB2 semantics, behavioural testing of file-processing main programs, expert review of the drafted expected
+rules for real code, and more real-code benchmarks. Impact analysis, drift detection and CI checks are already built.
 
 ## 4. Things not to claim
 - Do not quote accuracy numbers you have not measured.

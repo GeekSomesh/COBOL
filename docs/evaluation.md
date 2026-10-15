@@ -29,6 +29,14 @@ Partial matches (right condition, wrong action, etc.) count as a failure but are
 3. Run the COBOL program and the extracted rule set on the same inputs.
 4. Compare output fields. Report agreement per rule and per program.
 
+As built: the extracted rules are executed by an interpreter that follows the
+program's control flow (PERFORM, GO TO, loops) and runs every decision only through
+its rules; outputs are compared with the compiled program's. Called subprograms run
+through a generated driver and whole parameter records are compared byte for byte.
+Inputs come from boundary values, targeted searches for every condition and
+sub-condition, random rows and (for subprograms) a coverage-guided search for rule
+combinations. Rows that make COBOL compare invalid numeric data are excluded and counted.
+
 ## 4. Baselines and ablations
 | System | Purpose |
 |---|---|
@@ -44,6 +52,19 @@ Partial matches (right condition, wrong action, etc.) count as a failure but are
 3. Run each system on the test split; report metrics per domain and overall.
 4. Evaluate on public COBOL programs qualitatively and, where hand-labelled, quantitatively.
 5. Error analysis: categorise failures (unsupported construct, 88-level mis-expansion, numeric scale, first-match semantics, hallucinated field).
+
+### Additional studies (as built)
+| Study | Command | Output |
+|---|---|---|
+| Fault injection (validation and test) | `scripts/evaluate.py faults [--split val]` | `results/eval_faults*.json` |
+| Confidence calibration (fit on validation faults, measure on test) | `scripts/evaluate.py calibrate` | `results/eval_calibration.json`, `data/calibration.json` |
+| Real code: IBM samples vs drafted expected rules, SAM2 vs compiled subprogram | `scripts/evaluate.py real` | `results/eval_real.json`, `results/public_gold.json` |
+| Intent wording check: false alarms on gold intents, detection of flipped wordings | see `tests/test_llm.py` and STATUS.md | 0 false alarms on 965, 97% caught |
+| Performance on generated programs up to 51k lines | `scripts/perf.py` | `results/perf.json` |
+| Fine-tune round 2 (21 templates), selection on validation, single test run | `scripts/enrich_eval.py`, `scripts/evaluate.py system llm_slices` | `results/enrich_ft_*_val.json`, `results/eval_llm_slices_*_p4.json` |
+
+All LLM systems in the current table use the same prompt (version p4); the first
+round's numbers (prompt p2) are kept in the model-selection table for reference.
 
 ## 6. Reporting template
 | System | Precision | Recall | F1 | Behavioural agreement | Intent similarity |

@@ -85,3 +85,14 @@ Split by program template and domain variant so near-duplicates do not leak acro
 - Every gold rule maps to exactly one source line range.
 - No duplicate programs across splits.
 - No real names, account numbers or personal data (Faker output only).
+
+## 8. As built (2026-10-16)
+- Main corpus: 300 programs from 18 templates in 6 banking domains (`scripts/generate.py --count 300`),
+  split by template: 12 train templates, 3 validation, 3 test. Unchanged since the first evaluation,
+  so all test numbers stay comparable.
+- Extra training data: 54 programs from 9 templates in 3 more domains (insurance claims, payroll,
+  shipping; `src/corpus/extra_templates.py`, `scripts/generate.py --extra 54`). They go to the
+  **train split only**; the held-out validation and test templates are untouched. Fine-tuning data
+  grew from 546 to 702 examples (21 templates).
+- Public real code: IBM Z Open Editor samples (SAM1, SAM2, SAM1LIB, copybooks, JCL), Apache-2.0,
+  with hand-drafted expected rules in `data/gold_public/` (marked unverified).

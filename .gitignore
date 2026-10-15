@@ -29,3 +29,10 @@ data/cache/
 data/dev_tokens.json
 .claude/
 .venv-train/
+data/tls/
+data/backups/
+data/jcl/
+data/rules.db-*
+data/access.json
+data/glossary.json
+data/pg_test.json

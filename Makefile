@@ -2,7 +2,7 @@
 PY  ?= .venv/Scripts/python
 PYT ?= .venv-train/Scripts/python
 
-.PHONY: setup test corpus baseline finetune-data finetune weights serve-model eval demo serve
+.PHONY: setup test corpus baseline finetune-data finetune weights serve-model eval demo serve lock toolchain-image
 
 setup:            ## runtime environment (GnuCOBOL: apt install gnucobol, or WSL Ubuntu)
 	py -3.11 -m venv .venv && $(PY) -m pip install -r requirements.txt
@@ -10,8 +10,9 @@ setup:            ## runtime environment (GnuCOBOL: apt install gnucobol, or WSL
 test:             ## full test suite (GnuCOBOL tests skip when cobc is missing)
 	$(PY) -m pytest
 
-corpus:           ## 300 synthetic programs + gold rules + splits, compiled with GnuCOBOL
+corpus:           ## 300 synthetic programs + gold rules + splits, then 54 training-only programs (3 more domains)
 	$(PY) scripts/generate.py --count 300
+	$(PY) scripts/generate.py --extra 54
 
 baseline:         ## AST-only baseline against gold, all splits
 	$(PY) scripts/run_corpus.py
@@ -22,20 +23,26 @@ finetune-data:    ## chat JSONL from the train split
 finetune:         ## LoRA fine-tune (needs .venv-train with CUDA torch, see requirements-train.txt)
 	$(PYT) scripts/finetune.py --epochs 2
 
-weights:          ## rebuild the fine-tuned model from the committed LoRA adapter (no GPU needed)
-	$(PYT) scripts/merge_adapter.py
+weights:          ## rebuild the fine-tuned model v2 from the committed LoRA adapter (no GPU needed)
+	$(PYT) scripts/merge_adapter.py --adapter weights/cobol-enrich-1.5b-v2-lora --out models/cobol-enrich-1.5b-v2/merged
 
-serve-model:      ## GGUF (Q8_0) of the fine-tuned and base models, imported into Ollama
-	$(PY) scripts/serve_model.py --also-base models/Qwen2.5-Coder-1.5B-Instruct
+serve-model:      ## GGUF (Q8_0) of the fine-tuned v2 and base models, imported into Ollama
+	$(PY) scripts/serve_model.py --merged models/cobol-enrich-1.5b-v2/merged --name cobol-enrich:1.5b-v2 --also-base models/Qwen2.5-Coder-1.5B-Instruct
 
 eval:             ## every system on the test split, then results/RESULTS.md
 	$(PY) scripts/evaluate.py system ast_only
 	$(PY) scripts/evaluate.py system llm_only --model qwen2.5-coder:7b --limit 20
-	$(PY) scripts/evaluate.py system llm_slices --model qwen-coder-base:1.5b-q8_0 --fewshot 3 --label llm_slices_1.5b
-	$(PY) scripts/evaluate.py system llm_slices --model qwen2.5-coder:7b --fewshot 3 --label llm_slices_7b
-	$(PY) scripts/evaluate.py system full --model cobol-enrich:1.5b --consistency 2
+	$(PY) scripts/evaluate.py system llm_slices --model qwen-coder-base:1.5b-q8_0 --fewshot 3 --label llm_slices_1.5b_p4
+	$(PY) scripts/evaluate.py system llm_slices --model qwen2.5-coder:7b --fewshot 3 --label llm_slices_7b_p4
+	$(PY) scripts/evaluate.py system llm_slices --model cobol-enrich:1.5b --fewshot 0 --label llm_slices_ft_A_p4
+	$(PY) scripts/evaluate.py system llm_slices --model cobol-enrich:1.5b-v2 --fewshot 0 --label llm_slices_ft_v2
+	$(PY) scripts/evaluate.py system full --model cobol-enrich:1.5b-v2 --consistency 2
+	$(PY) scripts/evaluate.py faults --split val
 	$(PY) scripts/evaluate.py faults
+	$(PY) scripts/evaluate.py calibrate
+	$(PY) scripts/evaluate.py real
 	$(PY) scripts/evaluate.py latency
+	$(PY) scripts/perf.py
 	$(PY) scripts/evaluate.py table
 	$(PY) scripts/evaluate.py errors
 	$(PY) scripts/update_docs.py
@@ -44,5 +51,11 @@ demo:             ## load the demo programs, then start the explorer on http://l
 	$(PY) scripts/load_demo.py --reset
 	$(PY) -m uvicorn src.api.main:app --port 8000
 
-serve:
-	$(PY) -m uvicorn src.api.main:app --port 8000
+serve:            ## API + UI (TLS when COBOL_TLS_CERT / COBOL_TLS_KEY are set)
+	$(PY) scripts/serve.py
+
+lock:             ## hash-pinned requirements.lock and CycloneDX SBOM from requirements.txt
+	$(PY) scripts/lock_deps.py
+
+toolchain-image:  ## GnuCOBOL container for COBOL_BACKEND=docker
+	docker build -t cobol-toolchain:3.1 -f docker/toolchain.Dockerfile docker

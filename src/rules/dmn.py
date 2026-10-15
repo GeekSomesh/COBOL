@@ -11,8 +11,8 @@ columns (computed values as FEEL arithmetic over business names); PERFORM, CALL
 and GO TO go to an annotation column together with the rule id and source lines.
 An IF with an ELSE gives a second group of rows for the negated condition.
 
-Sets that cannot be expressed (class tests such as IS NUMERIC, more than
-``MAX_ROWS`` rows after expansion) are skipped with a reason, like PMML.
+IS NUMERIC / IS ALPHABETIC become FEEL ``matches()`` tests. Sets that cannot be
+expressed (more than ``MAX_ROWS`` rows after expansion) are skipped with a reason, like PMML.
 """
 
 from __future__ import annotations
@@ -78,8 +78,15 @@ def _unary(tests: list[dict[str, Any]], names: dict[str, str]) -> str:
     pieces: list[str] = []
     for t in tests:
         op, neg = t["op"], t.get("negated", False)
-        if op.startswith("is_"):
-            raise NotExpressible(f"class test {op}")
+        if op in ("is_numeric", "is_alphabetic"):     # FEEL regular expressions over the field's text
+            pattern = "^[0-9]+$" if op == "is_numeric" else "^[A-Za-z ]*$"
+            test = f'matches(string(?), "{pattern}")'
+            pieces.append(f"not({test})" if neg else test)
+            continue
+        if op in ("is_positive", "is_negative", "is_zero"):
+            test = {"is_positive": "? > 0", "is_negative": "? < 0", "is_zero": "? = 0"}[op]
+            pieces.append(f"not({test})" if neg else test)
+            continue
         if t.get("ref"):
             rhs = names.get(t["ref"].split("(")[0].strip().upper(), feel_name(t["ref"]))
             expr = {"==": f"? = {rhs}", "!=": f"? != {rhs}"}.get(op) or f"? {_OPS[op]} {rhs}"
@@ -105,7 +112,7 @@ def _unary(tests: list[dict[str, Any]], names: dict[str, str]) -> str:
         return ("[" if lo.startswith(">=") else "(") + f"{a}..{b}" + ("]" if hi.startswith("<=") else ")")
     as_expr = []
     for p in pieces:                                   # general form: a boolean expression over ?
-        if p.startswith("?") or p.startswith("not(?"):
+        if p.startswith("?") or p.startswith("not(?") or "matches(" in p:
             as_expr.append(p)
         elif p.startswith("not("):
             as_expr.append(f"? != {p[4:-1]}")

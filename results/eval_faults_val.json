@@ -6,6 +6,8 @@
   "clean_rules": 112,
   "with_verification": {
     "faults_routed_to_review": 0.9018,
+    "non_equivalent_faults_routed_to_review": 1.0,
+    "equivalent_mutants_proven_equivalent": 11,
     "faults_caught_by_differential_alone": 0.9018,
     "faults_caught_by_structural_alone": 0.9018,
     "equivalent_mutants": 11,

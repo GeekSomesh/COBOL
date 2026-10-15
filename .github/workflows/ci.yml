@@ -1,0 +1,66 @@
+# Continuous integration: the whole test suite with a native GnuCOBOL toolchain, the PostgreSQL
+# store, corpus and public-sample regression checks, and the container build.
+# LLM evaluations need a GPU and local models, so they are not part of CI (results/ keeps them).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: cobol
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: cobol_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U cobol" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      COBOL_BACKEND: native
+      COBOL_LLM_MODEL: none
+      COBOL_TEST_PG_URL: postgresql://cobol:ci-only-password@localhost:5432/cobol_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: GnuCOBOL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gnucobol && cobc --version | head -1
+      - name: Python dependencies (hash-pinned)
+        run: |
+          if [ -s requirements.lock ]; then pip install --require-hashes -r requirements.lock; else pip install -r requirements.txt; fi
+      - name: Tests (including GnuCOBOL differential tests and PostgreSQL)
+        run: python -m pytest -p no:warnings
+      - name: Parser regression on the corpus (F1 must stay 1.000)
+        run: |
+          python scripts/run_corpus.py | tee corpus.txt
+          grep -E "^overall +[0-9]+ +1\.000 +1\.000 +1\.000" corpus.txt
+      - name: Parser on IBM's samples against the drafted expected rules
+        run: python scripts/eval_public.py
+      - name: CLI smoke test
+        run: |
+          python -m src.cli export data/public/ibm-zopeneditor-sample/SAM2.cbl --format dmn -o sam2.dmn
+          python -m src.cli repo data/public/ibm-zopeneditor-sample --impact program:SAM2
+
+  container:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the API image
+        run: docker build -t cobol-to-decision:ci .
+      - name: Start it and check health
+        run: |
+          docker run -d --name api -e COBOL_API_TOKENS=ci-token:admin:ci -e COBOL_LLM_MODEL=none -p 8000:8000 cobol-to-decision:ci
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8000/v1/health && break; sleep 2; done
+          curl -sf http://127.0.0.1:8000/v1/health | grep '"toolchain":"native"'
+          docker logs api | tail -20

@@ -79,11 +79,11 @@ def content_hash(rule: Rule) -> str:
 class Store:
     def __init__(self, path: Path | str, approvals_required: Optional[int] = None):
         import os
+        from src.api.db import connect, is_url
         self.path = str(path)
-        Path(self.path).parent.mkdir(parents=True, exist_ok=True) if self.path != ":memory:" else None
+        self.postgres = is_url(self.path)               # SQLite file by default, PostgreSQL for a URL
         self._lock = threading.RLock()
-        self.db = sqlite3.connect(self.path, check_same_thread=False)
-        self.db.row_factory = sqlite3.Row
+        self.db = connect(self.path)
         self.db.executescript(SCHEMA)
         cols = {r["name"] for r in self.db.execute("PRAGMA table_info(reviews)")}
         for col in ("prev_hash", "hash"):                    # migrate stores created before the hash chain
@@ -131,7 +131,7 @@ class Store:
             self.db.commit()
 
     # ---- rules -----------------------------------------------------------------
-    def _latest_row(self, rule_id: str) -> Optional[sqlite3.Row]:
+    def _latest_row(self, rule_id: str) -> Optional[Any]:
         return self.db.execute("SELECT * FROM rules WHERE rule_id=? AND is_latest=1", (rule_id,)).fetchone()
 
     def save_rules(self, pid: str, rules: list[Rule]) -> dict[str, int]:
@@ -336,6 +336,62 @@ class Store:
         with self._lock:
             self.db.execute("UPDATE notifications SET read=1 WHERE id=? AND user=?", (nid, user))
             self.db.commit()
+
+    def close(self) -> None:
+        self.db.close()
+
+    # ---- backups and retention --------------------------------------------------
+    def backup(self, dest: Path | str) -> dict[str, Any]:
+        """Consistent online copy of the database, then checked: SQLite integrity and the
+        review log's hash chain must both hold in the copy."""
+        dest = Path(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if self.postgres:                                 # PostgreSQL: pg_dump, checked by its exit code
+            from src.api.db import pg_dump
+            dump_path = dest.with_suffix(".dump")
+            pg_dump(self.path, dump_path)
+            chain = self.verify_audit()
+            return {"path": str(dump_path), "bytes": dump_path.stat().st_size, "integrity": "pg_dump ok",
+                    "audit_chain_ok": chain["ok"], "ok": chain["ok"]}
+        with self._lock:
+            target = sqlite3.connect(str(dest))
+            try:
+                self.db.backup(target)
+            finally:
+                target.close()
+        check = sqlite3.connect(str(dest))
+        try:
+            integrity = check.execute("PRAGMA integrity_check").fetchone()[0]
+        finally:
+            check.close()
+        copy = Store(dest)
+        try:
+            chain = copy.verify_audit()
+        finally:
+            copy.close()
+        return {"path": str(dest), "bytes": dest.stat().st_size, "integrity": integrity, "audit_chain_ok": chain["ok"],
+                "ok": integrity == "ok" and chain["ok"]}
+
+    def purge(self, jobs_days: int = 30, notifications_days: int = 90) -> dict[str, int]:
+        """Retention: drop finished jobs and read notifications older than the given ages.
+        Rules, rule versions and the review log are never purged (they are the audit record)."""
+        from datetime import timedelta
+        cutoff = lambda days: (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")  # noqa: E731
+        with self._lock:
+            jobs = self.db.execute("DELETE FROM jobs WHERE state IN ('done', 'failed') AND updated_at < ?",
+                                   (cutoff(jobs_days),)).rowcount
+            notes = self.db.execute("DELETE FROM notifications WHERE read=1 AND ts < ?",
+                                    (cutoff(notifications_days),)).rowcount
+            self.db.commit()
+        return {"jobs": jobs, "notifications": notes}
+
+    def stats(self) -> dict[str, Any]:
+        rules = {r["status"]: r["n"] for r in self.db.execute(
+            "SELECT status, COUNT(*) n FROM rules WHERE is_latest=1 GROUP BY status")}
+        jobs = {r["state"]: r["n"] for r in self.db.execute("SELECT state, COUNT(*) n FROM jobs GROUP BY state")}
+        return {"rules": rules, "jobs": jobs,
+                "programs": self.db.execute("SELECT COUNT(*) n FROM programs").fetchone()["n"],
+                "reviews": self.db.execute("SELECT COUNT(*) n FROM reviews").fetchone()["n"]}
 
     def review_queue(self, assignee: Optional[str] = None) -> list[dict[str, Any]]:
         """Rules waiting for review, least confident first, with assignment and approvals so far."""

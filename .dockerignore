@@ -14,3 +14,10 @@ data/synthetic/bin
 data/finetune
 cobol-to-decision-docs.zip
 .claude
+data/tls
+data/backups
+data/jcl
+data/pg_test.json
+data/access.json
+weights
+docker

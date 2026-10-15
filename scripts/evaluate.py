@@ -299,6 +299,11 @@ def run_faults(args: argparse.Namespace) -> None:
         "faulty_rules": len(faulty), "clean_rules": len(clean),
         "with_verification": {
             "faults_routed_to_review": round(sum(flagged(c) for c in faulty) / len(faulty), 4),
+            # equivalent mutants cannot change any decision; the SMT check proves many of them identical
+            "non_equivalent_faults_routed_to_review": round(
+                sum(flagged(c) for c in faulty if not c["equivalent_mutant"])
+                / max(1, sum(not c["equivalent_mutant"] for c in faulty)), 4),
+            "equivalent_mutants_proven_equivalent": sum(c["equivalent_mutant"] and c["structural"] == 1.0 for c in faulty),
             "faults_caught_by_differential_alone": round(sum(c["differential"] < 1.0 for c in faulty) / len(faulty), 4),
             "faults_caught_by_structural_alone": round(sum(c["structural"] < 1.0 for c in faulty) / len(faulty), 4),
             "equivalent_mutants": sum(c["equivalent_mutant"] for c in faulty),
@@ -318,6 +323,42 @@ def run_faults(args: argparse.Namespace) -> None:
         "by_fault_kind": by_kind,
         "cases": cases,                      # per rule: used to fit and check the calibration (calibrate)
     })
+
+
+# ---- real code: IBM samples ------------------------------------------------------------------
+
+def run_real(args: argparse.Namespace) -> None:
+    """Parser vs hand-drafted expected rules on IBM's samples, and SAM2 (a CALLed subprogram)
+    executed through its rules vs the compiled program, with a planted fault as a control."""
+    import copy
+    import subprocess
+    from src.pipeline import extract
+    from src.verify.checks import differential
+    from src.verify.subprogram import build_driver, build_subprogram_harness
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "eval_public.py")], check=True)
+    public = json.loads((RESULTS / "public_gold.json").read_text())
+    ibm = DATA / "public" / "ibm-zopeneditor-sample"
+    tc = Toolchain.detect()
+    ex = extract(ibm / "SAM2.cbl", [ibm])
+    h = build_subprogram_harness(ex.analysis)
+    exe = build_driver(ex.analysis, h, ibm / "SAM2.cbl", [ibm], tc, DATA / "cache" / "bin")
+    good, _ = differential(ex.analysis, ex.rules, exe, tc, h)
+    broken = copy.deepcopy(ex.rules)
+    k = next(i for i, r in enumerate(broken) if any(a.source_name == "WS-UPDATE-NUM" and a.type == "compute"
+                                                     for a in r.actions))
+    broken[k].actions = []
+    bad, _ = differential(ex.analysis, broken, exe, tc, h)
+    write("real", {
+        "system": "real code (IBM Z Open Editor samples)",
+        "public_gold": public["overall"], "public_gold_history": public.get("history", []),
+        "sam2_subprogram": {"rows": good.rows, "agreement": round(good.agreement, 4),
+                            "excluded_undefined_rows": good.unsimulated, "notes": sorted(good.notes),
+                            "comparison": "every parameter record byte for byte"},
+        "sam2_planted_fault": {"rule": broken[k].rule_id, "fault": "sign flip removed",
+                               "agreement": round(bad.agreement, 4), "caught": bad.agreement < 1.0},
+    })
+    print(f"public gold F1 {public['overall']['f1']}; SAM2 agreement {good.agreement:.4f} on {good.rows} rows; "
+          f"planted fault caught: {bad.agreement < 1.0}")
 
 
 # ---- confidence calibration ---------------------------------------------------------------
@@ -409,11 +450,14 @@ def run_latency(args: argparse.Namespace) -> None:
 # ---- results table -------------------------------------------------------------------------------
 
 def run_table(args: argparse.Namespace) -> None:
-    order = ["ast_only", "llm_only", "llm_slices_1.5b", "llm_slices_7b", "full"]
+    order = ["ast_only", "llm_only", "llm_slices_1.5b_p4", "llm_slices_7b_p4", "llm_slices_ft_A_p4",
+             "llm_slices_ft_v2", "full"]
     names = {"ast_only": "AST-only (no LLM)", "llm_only": "LLM-only, zero-shot on raw code (7B)",
-             "llm_slices_1.5b": "LLM on slices, prompted 1.5B Q8 (no fine-tune)",
-             "llm_slices_7b": "LLM on slices, prompted 7B (no fine-tune)",
-             "full": "Full pipeline (fine-tuned 1.5B + verification)"}
+             "llm_slices_1.5b_p4": "LLM on slices, prompted 1.5B Q8, 3-shot",
+             "llm_slices_7b_p4": "LLM on slices, prompted 7B, 3-shot",
+             "llm_slices_ft_A_p4": "LLM on slices, fine-tuned 1.5B run A (12 templates)",
+             "llm_slices_ft_v2": "LLM on slices, fine-tuned 1.5B v2 (21 templates)",
+             "full": "Full pipeline (fine-tuned 1.5B v2 + verification)"}
     fmt = lambda v: "n/a" if v is None else (f"{v:.3f}" if isinstance(v, float) else str(v))   # noqa: E731
     lines = ["| System | Precision | Recall | F1 | F1, logic only | Trace acc. | Behavioural agreement | Field names | Intent similarity | s/program |",
              "|---|---|---|---|---|---|---|---|---|---|"]
@@ -423,6 +467,8 @@ def run_table(args: argparse.Namespace) -> None:
             continue
         d = json.loads(f.read_text())
         label = names[key] + (f", first {d['programs']} test programs" if d.get("programs", 50) < 50 else "")
+        if key == "full" and d.get("model") != "cobol-enrich:1.5b-v2":
+            label = f"Full pipeline ({d.get('model')} + verification)"
         ltp = d["tp"] + d["failures"].get("trace mismatch", 0)          # logic matched, lines ignored
         lp, lr = ltp / max(d["n_pred"], 1), ltp / max(d["n_gold"], 1)
         logic_f1 = 2 * lp * lr / (lp + lr) if lp + lr else 0.0
@@ -430,17 +476,32 @@ def run_table(args: argparse.Namespace) -> None:
                      f"{fmt(d['traceability_accuracy'])} | {fmt(d['behavioural_agreement'])} | "
                      f"{fmt(d['field_name_accuracy'])} | {fmt(d['intent_similarity'])} | "
                      f"{'<0.01' if d['seconds_per_program'] < 0.01 else format(d['seconds_per_program'], '.2f')} |")
-    out = ["# Measured results", "", f"Test split: held-out templates, generated {datetime.now(timezone.utc):%Y-%m-%d}.", ""] + lines
+    out = ["# Measured results", "",
+           f"Test split: 50 programs from 3 held-out templates (never seen in training), generated "
+           f"{datetime.now(timezone.utc):%Y-%m-%d}. All LLM rows use the same prompt (version p4).", ""] + lines
+    rows = []
+    for label, f in [("fine-tuned v2, 2 epochs, 21 templates (selected)", "enrich_ft_v2_val.json"),
+                     ("fine-tuned v2e, 0.5 epoch (early stop)", "enrich_ft_v2e_val.json"),
+                     ("fine-tuned A, 2 epochs, 12 templates", "enrich_ft_A_p4_val.json")]:
+        fp = RESULTS / f
+        if fp.exists():
+            m = json.loads(fp.read_text())
+            rows.append((label, m, "p4"))
     sp = RESULTS / "model_selection.json"
     if sp.exists():
-        d = json.loads(sp.read_text())
+        for m in json.loads(sp.read_text())["models"]:
+            if not m["model"].startswith("fine-tuned A"):
+                rows.append((m["model"], m, "p2"))
+    if rows:
         out += ["", "## Enrichment model selection (validation split, held-out templates)", "",
-                f"Criterion: {d['criterion']}. The test split was not used for selection.", "",
-                "| Model | Field names (exact) | Intent similarity | Concept overlap | Intent numbers grounded | s/rule | Selection score |",
-                "|---|---|---|---|---|---|---|"]
-        for m in d["models"]:
-            out.append(f"| {m['model']} | {m['field_name_exact']:.3f} | {m['intent_similarity']:.3f} | {m['concept_jaccard']:.3f} | "
-                       f"{m['intent_numbers_grounded']:.3f} | {m['seconds_per_rule']:.2f} | {m['selection_score']:.3f} |")
+                "Criterion: mean of field_name_exact, intent_similarity, concept_jaccard. The test split was not used "
+                "for selection. Rows marked p2 were measured in the first round with an earlier prompt.", "",
+                "| Model | Prompt | Field names (exact) | Intent similarity | Concept overlap | Intent numbers grounded | s/rule | Selection score |",
+                "|---|---|---|---|---|---|---|---|"]
+        for label, m, pv in rows:
+            score = m.get("selection_score") or (m["field_name_exact"] + m["intent_similarity"] + m["concept_jaccard"]) / 3
+            out.append(f"| {label} | {pv} | {m['field_name_exact']:.3f} | {m['intent_similarity']:.3f} | {m['concept_jaccard']:.3f} | "
+                       f"{m['intent_numbers_grounded']:.3f} | {m['seconds_per_rule']:.2f} | {score:.3f} |")
     fp = RESULTS / "eval_faults.json"
     if fp.exists():
         d = json.loads(fp.read_text())
@@ -448,13 +509,47 @@ def run_table(args: argparse.Namespace) -> None:
         out += ["", "## Verification ablation (fault injection)", "",
                 f"{d['faulty_rules']} rules with one injected fault (threshold, operator or action) and {d['clean_rules']} clean rules.", "",
                 "| | With verification | Without verification |", "|---|---|---|",
-                f"| Faulty rules routed to review | {w['faults_routed_to_review']:.3f} | 0.000 |",
+                f"| Behaviour-changing faults routed to review | {w.get('non_equivalent_faults_routed_to_review', w['faults_routed_to_review']):.3f} | 0.000 |",
+                f"| All injected faults routed to review | {w['faults_routed_to_review']:.3f} | 0.000 |",
+                f"| Equivalent mutants (no input changes any output) / proven identical by the SMT check | {w['equivalent_mutants']} / {w.get('equivalent_mutants_proven_equivalent', 0)} of {d['faulty_rules']} | - |",
                 f"| Faults caught by differential test alone (all / behaviour-changing only) | {w['faults_caught_by_differential_alone']:.3f} / {w['non_equivalent_faults_caught_by_differential']:.3f} | - |",
-                f"| Equivalent mutants (no input changes any output) | {w['equivalent_mutants']} of {d['faulty_rules']} | - |",
                 f"| Clean rules routed to review (excluding external/unsupported) | {w['clean_rules_routed_to_review_excluding_external']:.3f} | - |",
                 f"| Mean confidence, clean vs faulty | {w['mean_score_clean']:.3f} vs {w['mean_score_faulty']:.3f} | - |",
-                f"| Confidence AUROC, clean vs faulty | {w['auroc_clean_vs_faulty']:.3f} | - |",
-                f"| Expected calibration error (score read as a probability) | {w['expected_calibration_error']:.3f} | - |"]
+                f"| Confidence AUROC, clean vs faulty | {w['auroc_clean_vs_faulty']:.3f} | - |"]
+    cp = RESULTS / "eval_calibration.json"
+    if cp.exists():
+        c = json.loads(cp.read_text())
+        out += ["", "## Confidence calibration", "",
+                f"Isotonic map from score to P(rule correct), fitted on {c['fit_cases']} validation fault cases and measured on "
+                f"{c['test_cases']} test cases.", "",
+                "| | Raw score | Calibrated (`p_correct`) |", "|---|---|---|",
+                f"| Expected calibration error | {c['ece_raw']:.3f} | {c['ece_calibrated']:.3f} |",
+                f"| Brier score | {c['brier_raw']:.3f} | {c['brier_calibrated']:.3f} |"]
+    rp = RESULTS / "eval_real.json"
+    if rp.exists():
+        r = json.loads(rp.read_text())
+        g, sam2, fault = r["public_gold"], r["sam2_subprogram"], r["sam2_planted_fault"]
+        hist = r.get("public_gold_history") or []
+        first = hist[0]["f1"] if hist else {}
+        out += ["", "## Real code: IBM Z Open Editor samples", "",
+                f"- Parser vs hand-drafted expected rules (unverified by a COBOL expert): {g['matched']} of {g['gold']} "
+                f"rules match, F1 {g['f1']:.3f}" + (f" (first run: SAM1 {first.get('SAM1')}, SAM2 {first.get('SAM2')}; "
+                                                    "one parser fix, one draft fix)" if first else "") + ".",
+                f"- SAM2, a CALLed subprogram, run through its extracted rules vs the compiled program: agreement "
+                f"{sam2['agreement']:.3f} on {sam2['rows']} inputs, comparing {sam2['comparison']}; "
+                f"{sam2['excluded_undefined_rows']} inputs excluded because COBOL leaves them undefined (non-digit bytes "
+                "compared as a number).",
+                f"- Control: with the sign flip removed from {fault['rule']}, agreement drops to {fault['agreement']:.3f} "
+                f"(caught: {fault['caught']})."]
+    pp = RESULTS / "perf.json"
+    if pp.exists():
+        runs = json.loads(pp.read_text())["runs"]
+        out += ["", "## Performance on large programs", "", "| Lines | Paragraphs | Rules | Analyse s | Rules s | DMN s | Rules/s |",
+                "|---|---|---|---|---|---|---|"]
+        for m in runs:
+            t = m["seconds"]
+            out.append(f"| {m['lines']:,} | {m['paragraphs']:,} | {m['rules']:,} | {t['analyze (parse, slice, control flow)']:.2f} | "
+                       f"{t['rules (baseline)']:.2f} | {t['dmn export']:.2f} | {m['rules_per_second']:,.0f} |")
     lp = RESULTS / "eval_latency.json"
     if lp.exists():
         d = json.loads(lp.read_text())
@@ -530,11 +625,12 @@ def main() -> int:
     f.add_argument("--seed", type=int, default=11)
     sub.add_parser("latency")
     sub.add_parser("calibrate")
+    sub.add_parser("real")
     sub.add_parser("table")
     sub.add_parser("errors")
     args = ap.parse_args()
     {"system": run_system, "faults": run_faults, "latency": run_latency, "table": run_table,
-     "errors": run_errors, "calibrate": run_calibrate}[args.cmd](args)
+     "errors": run_errors, "calibrate": run_calibrate, "real": run_real}[args.cmd](args)
     return 0
 
 

@@ -1,0 +1,60 @@
+{
+  "runs": [
+    {
+      "lines": 1019,
+      "paragraphs": 111,
+      "rules": 233,
+      "diagnostics": 0,
+      "flow_truncated": false,
+      "seconds": {
+        "analyze (parse, slice, control flow)": 0.0375,
+        "rules (baseline)": 0.0482,
+        "smt satisfiability per rule": 0.0015,
+        "dmn export": 0.013
+      },
+      "rules_per_second": 2721.4
+    },
+    {
+      "lines": 5141,
+      "paragraphs": 666,
+      "rules": 1406,
+      "diagnostics": 0,
+      "flow_truncated": false,
+      "seconds": {
+        "analyze (parse, slice, control flow)": 0.2152,
+        "rules (baseline)": 0.3035,
+        "smt satisfiability per rule": 0.0013,
+        "dmn export": 0.074
+      },
+      "rules_per_second": 2710.5
+    },
+    {
+      "lines": 20623,
+      "paragraphs": 2750,
+      "rules": 5811,
+      "diagnostics": 0,
+      "flow_truncated": false,
+      "seconds": {
+        "analyze (parse, slice, control flow)": 0.9213,
+        "rules (baseline)": 1.6217,
+        "smt satisfiability per rule": 0.0013,
+        "dmn export": 0.3183
+      },
+      "rules_per_second": 2285.0
+    },
+    {
+      "lines": 51571,
+      "paragraphs": 6916,
+      "rules": 14621,
+      "diagnostics": 0,
+      "flow_truncated": false,
+      "seconds": {
+        "analyze (parse, slice, control flow)": 2.5403,
+        "rules (baseline)": 3.9433,
+        "smt satisfiability per rule": 0.0012,
+        "dmn export": 0.83
+      },
+      "rules_per_second": 2255.1
+    }
+  ]
+}

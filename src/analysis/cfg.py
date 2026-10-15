@@ -26,7 +26,8 @@ from src.analysis.ast import (
     Program, SearchStmt, SetStmt, Stmt,
 )
 
-MAX_VISITS = 20000
+MAX_VISITS = 20000               # plus VISITS_PER_PARAGRAPH per paragraph: the budget grows with the program
+VISITS_PER_PARAGRAPH = 25
 MAX_CONTEXT_PATHS = 8
 TERMINATORS = ("STOP RUN", "GOBACK")
 _IDENT = re.compile(r"(?<![A-Z0-9-])([A-Z][A-Z0-9-]*[A-Z0-9]|[A-Z])(?![A-Z0-9-])")
@@ -141,6 +142,7 @@ class FlowAnalyzer:
         self.actions = statement_actions          # Stmt -> list of action dicts (shared with the slicer)
         self.info = FlowInfo()
         self.visits = 0
+        self.budget = MAX_VISITS + VISITS_PER_PARAGRAPH * len(self.paras.list)
         self.record_fields = self._record_fields()
 
     def _record_fields(self) -> dict[str, set[str]]:
@@ -166,7 +168,7 @@ class FlowAnalyzer:
     # ---- walking -------------------------------------------------------------------
     def _tick(self) -> bool:
         self.visits += 1
-        if self.visits > MAX_VISITS:
+        if self.visits > self.budget:
             self.info.truncated = True
             return False
         return True

@@ -189,8 +189,34 @@ class Slicer:
             return prev.value.value == 1
         return isinstance(prev, OtherStmt) and re.fullmatch(r"SET \S+ TO 1", prev.text or "") is not None
 
+    def _write_index(self) -> tuple[set[str], str]:
+        """Built once per program: every field a MOVE / SET / COMPUTE writes, and the text of the
+        statements that may write anything (ACCEPT, READ INTO, STRING, CALL USING ...)."""
+        if getattr(self, "_writes", None) is None:
+            written: set[str] = set()
+            texts: list[str] = []
+            stack = [s for p in self.program.paragraphs for s in p.statements]
+            while stack:
+                s = stack.pop()
+                if isinstance(s, (MoveStmt, SetStmt)):
+                    written.update(_base(t.text) for t in s.targets)
+                elif isinstance(s, AssignStmt):
+                    written.update(_base(t.text) for t, _ in s.assignments)
+                elif isinstance(s, OtherStmt) and s.text:
+                    texts.append(s.text.upper())
+                elif isinstance(s, CallStmt) and s.using:
+                    texts.append(" ".join(s.using).upper())
+                for sub in _children(s):
+                    stack.extend(sub)
+            self._writes = (written, "\n".join(texts))
+            self._written_tables: dict[str, bool] = {}
+        return self._writes
+
     def _table_written(self, table: Table) -> bool:
         """True when any statement may change the table's storage at run time."""
+        written, texts = self._write_index()
+        if table.name in self._written_tables:
+            return self._written_tables[table.name]
         occ = self.dict.lookup(table.name)
         names = set(table.columns) | {table.name}
         top = occ
@@ -205,22 +231,10 @@ class Slicer:
             stack.extend(it.children)
         names.discard("FILLER")
         pattern = re.compile(r"(?<![A-Z0-9-])(" + "|".join(re.escape(n) for n in names) + r")(?![A-Z0-9-])")
-
-        def walk(stmts: list[Stmt]) -> bool:
-            for s in stmts:
-                if isinstance(s, (MoveStmt, SetStmt)) and any(_base(t.text) in names for t in s.targets):
-                    return True
-                if isinstance(s, AssignStmt) and any(_base(t.text) in names for t, _ in s.assignments):
-                    return True
-                if isinstance(s, OtherStmt) and pattern.search((s.text or "").upper()):
-                    return True                  # ACCEPT / READ INTO / INITIALIZE / STRING ... into the table
-                if isinstance(s, CallStmt) and pattern.search(" ".join(s.using).upper()):
-                    return True                  # passed BY REFERENCE: the callee may change it
-                if any(walk(sub) for sub in _children(s)):
-                    return True
-            return False
-
-        return any(walk(p.statements) for p in self.program.paragraphs)
+        # MOVE / SET / COMPUTE into the table, or ACCEPT / READ INTO / INITIALIZE / CALL USING naming it
+        result = bool(names & written) or pattern.search(texts) is not None
+        self._written_tables[table.name] = result
+        return result
 
     def _decision(self, s: Stmt, path: list[dict[str, Any]], trail: list[tuple]) -> None:
         """``trail`` records, per nesting level, (decision statement, branch, condition items)

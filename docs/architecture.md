@@ -82,3 +82,37 @@ sequenceDiagram
 - Rules that depend on external calls (CICS, DB2, called programs) are marked `external_dependency` rather than guessed.
 - GO TO-heavy legacy code can fragment slices; the slicer follows the CFG but may flag these for review.
 - LLM output quality depends on fine-tuning data; the synthetic corpus plus gold standard is used to measure this ([evaluation.md](evaluation.md)).
+
+## 8. As built (2026-10-16)
+
+```
+COBOL + copybooks ─► ingest (COPY REPLACING, line map) ─► parser ─► data dictionary + byte layout
+                  ─► slicer (IF / EVALUATE / SEARCH tables) ─► control & data flow (PERFORM, GO TO, contexts, derivations)
+                  ─► AST rule ─► LLM names & intents (local Ollama; logic never from the model)
+                  ─► verify: SMT structural proof · rule interpreter vs compiled GnuCOBOL (programs and
+                     CALLed subprograms, byte-level records) · consistency · naming · wording · impossible rules
+                  ─► calibrated confidence ─► review workflow (assign, comment, N approvers, four-eyes)
+                  ─► store (SQLite / PostgreSQL, hash-chained audit) ─► API · UI · CLI · SDK
+                  ─► exports: JSON · trees · PMML 4.4 · DMN 1.3 (schema-validated) · scoring · SHAP · conflicts
+JCL + programs    ─► repository graph (calls, copybooks, jobs, datasets) ─► impact analysis · rule drift
+```
+
+| Component | Module |
+|---|---|
+| Control and data flow | `src/analysis/cfg.py` |
+| Lookup tables (VALUE storage through OCCURS) | `src/analysis/tables.py` |
+| Rule interpreter for the differential test | `src/verify/interpreter.py` |
+| Byte-level storage (REDEFINES, OCCURS) | `src/verify/storage.py` |
+| Subprogram driver generation | `src/verify/subprogram.py` |
+| SMT encoding (z3) | `src/verify/smt.py` |
+| JCL reader, repository graph, impact | `src/repo/jcl.py`, `src/repo/graph.py` |
+| Rule drift | `src/rules/diff.py` |
+| DMN export, schema validation | `src/rules/dmn.py`, `src/rules/schema_check.py` |
+| Glossary | `src/rules/glossary.py` |
+| Auth (tokens, OIDC), per-program access | `src/api/auth.py`, `src/api/access.py` |
+| Metrics, rate limits, headers, logs | `src/api/ops.py` |
+| Database adapter (SQLite / PostgreSQL) | `src/api/db.py` |
+| CLI, Python client | `src/cli.py`, `src/sdk.py` |
+
+Toolchain backends: native `cobc`, WSL, or Docker (`docker/toolchain.Dockerfile`).
+Deployment and operations: [admin_guide.md](admin_guide.md). Daily use: [user_guide.md](user_guide.md).

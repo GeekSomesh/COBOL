@@ -35,7 +35,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "CRD0003",
@@ -197,7 +197,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "CRD0021",
@@ -224,7 +224,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "CRD0024",
@@ -233,7 +233,7 @@
       "gold": 3,
       "tp": 3,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "PEN0024",
@@ -251,7 +251,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "CRD0027",
@@ -278,7 +278,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "CRD0030",
@@ -296,7 +296,7 @@
       "gold": 2,
       "tp": 2,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "INT0033",
@@ -305,7 +305,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "CRD0033",
@@ -314,7 +314,7 @@
       "gold": 3,
       "tp": 3,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "PEN0033",
@@ -332,7 +332,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "CRD0036",
@@ -359,7 +359,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "CRD0039",
@@ -395,7 +395,7 @@
       "gold": 3,
       "tp": 3,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "PEN0042",
@@ -404,7 +404,7 @@
       "gold": 2,
       "tp": 2,
       "agreement": 1.0,
-      "seconds": 0.01
+      "seconds": 0.0
     },
     {
       "program": "INT0045",
@@ -413,7 +413,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "CRD0045",
@@ -440,7 +440,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.0
+      "seconds": 0.01
     },
     {
       "program": "CRD0048",
@@ -467,7 +467,7 @@
       "gold": 4,
       "tp": 4,
       "agreement": 1.0,
-      "seconds": 0.01
+      "seconds": 0.0
     },
     {
       "program": "CRD0051",
@@ -480,5 +480,158 @@
     }
   ],
   "match_examples": [],
-  "generated_at": "2026-10-08T12:25:05+00:00"
+  "name_error_examples": [
+    {
+      "rule": "INT0003-R001",
+      "cobol": "WS-TRM",
+      "predicted": "ws_trm",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0003-R001",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0003-R002",
+      "cobol": "WS-TRM",
+      "predicted": "ws_trm",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0003-R002",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0003-R003",
+      "cobol": "WS-TRM",
+      "predicted": "ws_trm",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0003-R003",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0003-R004",
+      "cobol": "WS-TRM",
+      "predicted": "ws_trm",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0003-R004",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "PEN0003-R001",
+      "cobol": "L-PY",
+      "predicted": "l_py",
+      "gold": "late_count_12m"
+    },
+    {
+      "rule": "PEN0003-R001",
+      "cobol": "WS-DLT",
+      "predicted": "ws_dlt",
+      "gold": "days_late"
+    },
+    {
+      "rule": "PEN0003-R001",
+      "cobol": "AS-CD",
+      "predicted": "as_cd",
+      "gold": "account_status"
+    },
+    {
+      "rule": "PEN0003-R001",
+      "cobol": "PA-AMT",
+      "predicted": "pa_amt",
+      "gold": "penalty_amt"
+    },
+    {
+      "rule": "PEN0003-R002",
+      "cobol": "WS-DLT",
+      "predicted": "ws_dlt",
+      "gold": "days_late"
+    },
+    {
+      "rule": "PEN0003-R002",
+      "cobol": "AS-CD",
+      "predicted": "as_cd",
+      "gold": "account_status"
+    },
+    {
+      "rule": "INT0006-R001",
+      "cobol": "TM-MM",
+      "predicted": "tm_mm",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0006-R001",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0006-R002",
+      "cobol": "TM-MM",
+      "predicted": "tm_mm",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0006-R002",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0006-R003",
+      "cobol": "TM-MM",
+      "predicted": "tm_mm",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0006-R003",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "INT0006-R004",
+      "cobol": "TM-MM",
+      "predicted": "tm_mm",
+      "gold": "term_months"
+    },
+    {
+      "rule": "INT0006-R004",
+      "cobol": "WS-IRT",
+      "predicted": "ws_irt",
+      "gold": "interest_rate"
+    },
+    {
+      "rule": "CRD0006-R001",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "approved_limit",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "CRD0006-R002",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "approved_limit",
+      "gold": "credit_limit"
+    },
+    {
+      "rule": "CRD0006-R003",
+      "cobol": "APPROVED-LIMIT",
+      "predicted": "approved_limit",
+      "gold": "credit_limit"
+    }
+  ],
+  "ungrounded_intent_examples": [],
+  "generated_at": "2026-10-15T21:30:03+00:00"
 }
