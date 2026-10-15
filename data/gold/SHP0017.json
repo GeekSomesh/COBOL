@@ -1,0 +1,130 @@
+{
+  "program": "SHP0017",
+  "program_file": "SHP0017.cob",
+  "domain": "shipping_charges",
+  "template": "ship_free_threshold",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "SHP0017-R001",
+      "version": 1,
+      "title": "Free standard shipping",
+      "intent": "Ship standard orders of at least 75 for free.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "order_value",
+            "source_name": "WS-ORDV",
+            "op": ">=",
+            "value": 75
+          },
+          {
+            "field": "service_level",
+            "source_name": "WS-SVC",
+            "op": "==",
+            "value": "S"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "free_shipping",
+          "source_name": "WS-FSH",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "ship_charge",
+          "source_name": "F-AM",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0017.cob",
+        "paragraph": "FREE-SHIPPING",
+        "line_start": 36,
+        "line_end": 39,
+        "copybooks": [
+          "SHP0017C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "free shipping",
+        "order value"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_free_threshold",
+        "spec": "data/specs/SHP0017.yaml",
+        "seed": 1203263579
+      }
+    },
+    {
+      "rule_id": "SHP0017-R002",
+      "version": 1,
+      "title": "Remote zone surcharge",
+      "intent": "Add a 15 surcharge for deliveries to zones Z7, ZR.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "dest_zone",
+            "source_name": "WS-ZONE",
+            "op": "in",
+            "value": [
+              "Z7",
+              "ZR"
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "surcharge",
+          "source_name": "SG-AMT",
+          "value": 15
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0017.cob",
+        "paragraph": "ZONE-SURCHARGE",
+        "line_start": 42,
+        "line_end": 44,
+        "copybooks": [
+          "SHP0017C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "zone",
+        "surcharge"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_free_threshold",
+        "spec": "data/specs/SHP0017.yaml",
+        "seed": 1203263579
+      }
+    }
+  ]
+}

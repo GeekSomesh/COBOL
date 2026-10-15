@@ -1,0 +1,124 @@
+program: SHP0017
+program_file: SHP0017.cob
+domain: shipping_charges
+template: ship_free_threshold
+seed: 1203263579
+record: INPUT-AREA
+out_record: RESULT-AREA
+main: MAINLINE
+copybook: SHP0017C.cpy
+prefix: null
+inputs:
+- name: WS-ORDV
+  pic: 9(7)V99
+  business: order_value
+  comment: ORDER VALUE
+- name: WS-SVC
+  pic: X
+  business: service_level
+  comment: SERVICE S=STANDARD E=EXPRESS O=OVERNIGHT
+- name: WS-ZONE
+  pic: X(2)
+  business: dest_zone
+  comment: DESTINATION ZONE CODE
+outputs:
+- name: WS-FSH
+  pic: X
+  business: free_shipping
+  init: N
+  comment: FREE SHIPPING Y/N
+- name: F-AM
+  pic: 9(5)V99
+  business: ship_charge
+  init: 0
+  comment: SHIPPING CHARGE
+- name: SG-AMT
+  pic: 9(4)V99
+  business: surcharge
+  init: 0
+  comment: DELIVERY SURCHARGE
+noise:
+  date: POST-DATE
+  filler: 2
+blocks:
+- structure: if
+  rules:
+  - title: Free standard shipping
+    intent: Ship standard orders of at least 75 for free.
+    concepts:
+    - shipping
+    - free shipping
+    - order value
+    when:
+      all:
+      - field: order_value
+        op: '>='
+        value: 75
+      - field: service_level
+        op: ==
+        value: S
+    then:
+    - set: free_shipping
+      value: Y
+    - set: ship_charge
+      value: 0
+    id: R1
+  paragraph: FREE-SHIPPING
+- structure: if
+  rules:
+  - title: Remote zone surcharge
+    intent: Add a 15 surcharge for deliveries to zones Z7, ZR.
+    concepts:
+    - shipping
+    - zone
+    - surcharge
+    when:
+      field: dest_zone
+      op: in
+      value: &id001
+      - Z7
+      - ZR
+    then:
+    - set: surcharge
+      value: 15
+    id: R1
+  paragraph: ZONE-SURCHARGE
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: WS-ORDV
+  pic: 9(7)V99
+  business: order_value
+- name: WS-SVC
+  pic: X
+  business: service_level
+- name: WS-ZONE
+  pic: X(2)
+  business: dest_zone
+- name: POST-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 22
+names88:
+  SVC-STANDARD:
+    field: service_level
+    op: ==
+    value: S
+  ZONE-Z7-OR-ZR:
+    field: dest_zone
+    op: in
+    value: *id001
+expected_rules: 2

@@ -1,0 +1,111 @@
+program: SHP0012
+program_file: SHP0012.cob
+domain: shipping_charges
+template: ship_hazmat
+seed: 1240571151
+record: INPUT-AREA
+out_record: RESULT-AREA
+main: MAINLINE
+copybook: SHP0012C.cpy
+prefix: TX
+inputs:
+- name: TX-D-GI
+  pic: X
+  business: hazmat_flag
+  comment: HAZARDOUS GOODS Y/N
+- name: TX-WS-SVC
+  pic: X
+  business: service_level
+  comment: SERVICE S=STANDARD E=EXPRESS O=OVERNIGHT
+- name: TX-WS-DIST
+  pic: 9(5)
+  business: distance_km
+  comment: DELIVERY DISTANCE IN KM
+outputs:
+- name: WS-SBLK
+  pic: X
+  business: ship_block
+  init: N
+  comment: SHIPMENT BLOCKED Y/N
+- name: X-CG
+  pic: 9(4)V99
+  business: surcharge
+  init: 0
+  comment: DELIVERY SURCHARGE
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: No overnight hazardous goods
+    intent: Block hazardous shipments sent overnight.
+    concepts:
+    - shipping
+    - hazardous
+    - overnight
+    - block
+    when:
+      field: service_level
+      op: ==
+      value: O
+    then:
+    - set: ship_block
+      value: Y
+    id: R1
+  - title: Long-distance hazardous surcharge
+    intent: Add a 60 surcharge to hazardous shipments over 500 km.
+    concepts:
+    - shipping
+    - hazardous
+    - distance
+    - surcharge
+    when:
+      field: distance_km
+      op: '>'
+      value: 500
+    then:
+    - set: surcharge
+      value: 60
+    id: R2
+  - title: Hazardous goods surcharge
+    intent: Add a 25 surcharge to other hazardous shipments.
+    concepts:
+    - shipping
+    - hazardous
+    - surcharge
+    when: null
+    then:
+    - set: surcharge
+      value: 25
+    id: R3
+  outer:
+    field: hazmat_flag
+    op: ==
+    value: Y
+  paragraph: DANGEROUS-GOODS
+  render: else_if
+  compact: true
+style:
+  cryptic_names: true
+  comments: misleading
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: true
+  noise_fields: false
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: TX-D-GI
+  pic: X
+  business: hazmat_flag
+- name: TX-WS-SVC
+  pic: X
+  business: service_level
+- name: TX-WS-DIST
+  pic: 9(5)
+  business: distance_km
+record_length: 7
+names88: {}
+expected_rules: 3

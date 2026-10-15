@@ -1,0 +1,181 @@
+{
+  "program": "SHP0004",
+  "program_file": "SHP0004.cob",
+  "domain": "shipping_charges",
+  "template": "ship_weight_bands",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "SHP0004-R001",
+      "version": 1,
+      "title": "Light parcel",
+      "intent": "Charge 7 for parcels up to 5 kg.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "package_weight",
+            "source_name": "SHIP-WEIGHT",
+            "op": "<=",
+            "value": 5
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "ship_charge",
+          "source_name": "FREIGHT-AMT",
+          "value": 7
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0004.cob",
+        "paragraph": "2000-WEIGHT-BAND",
+        "line_start": 28,
+        "line_end": 29,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "weight",
+        "charge"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_weight_bands",
+        "spec": "data/specs/SHP0004.yaml",
+        "seed": 472160436
+      }
+    },
+    {
+      "rule_id": "SHP0004-R002",
+      "version": 1,
+      "title": "Medium parcel",
+      "intent": "Charge 15 for parcels up to 10 kg.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "package_weight",
+              "source_name": "SHIP-WEIGHT",
+              "op": "<=",
+              "value": 5
+            }
+          },
+          {
+            "field": "package_weight",
+            "source_name": "SHIP-WEIGHT",
+            "op": "<=",
+            "value": 10
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "ship_charge",
+          "source_name": "FREIGHT-AMT",
+          "value": 15
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0004.cob",
+        "paragraph": "2000-WEIGHT-BAND",
+        "line_start": 32,
+        "line_end": 33,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "weight",
+        "charge"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_weight_bands",
+        "spec": "data/specs/SHP0004.yaml",
+        "seed": 472160436
+      }
+    },
+    {
+      "rule_id": "SHP0004-R003",
+      "version": 1,
+      "title": "Heavy parcel",
+      "intent": "Charge 1.25 per kg for heavier parcels.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "package_weight",
+              "source_name": "SHIP-WEIGHT",
+              "op": "<=",
+              "value": 5
+            }
+          },
+          {
+            "not": {
+              "field": "package_weight",
+              "source_name": "SHIP-WEIGHT",
+              "op": "<=",
+              "value": 10
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "ship_charge",
+          "source_name": "FREIGHT-AMT",
+          "expr": "SHIP-WEIGHT * 1.25"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0004.cob",
+        "paragraph": "2000-WEIGHT-BAND",
+        "line_start": 34,
+        "line_end": 35,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "weight",
+        "charge",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_weight_bands",
+        "spec": "data/specs/SHP0004.yaml",
+        "seed": 472160436
+      }
+    }
+  ]
+}

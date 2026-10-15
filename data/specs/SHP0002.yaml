@@ -1,0 +1,108 @@
+program: SHP0002
+program_file: SHP0002.cob
+domain: shipping_charges
+template: ship_free_threshold
+seed: 437273555
+record: WS-INPUT
+out_record: WS-OUT-REC
+main: MAIN-PARA
+copybook: null
+prefix: null
+inputs:
+- name: ORD-TOTAL
+  pic: 9(7)V99
+  business: order_value
+  comment: ORDER VALUE
+- name: SVC-LEVEL
+  pic: X
+  business: service_level
+  comment: SERVICE S=STANDARD E=EXPRESS O=OVERNIGHT
+- name: DEST-ZONE
+  pic: X(2)
+  business: dest_zone
+  comment: DESTINATION ZONE CODE
+outputs:
+- name: FREE-SHIP-IND
+  pic: X
+  business: free_shipping
+  init: N
+  comment: FREE SHIPPING Y/N
+- name: DELIV-FEE
+  pic: 9(5)V99
+  business: ship_charge
+  init: 0
+  comment: SHIPPING CHARGE
+- name: EXTRA-CHG
+  pic: 9(4)V99
+  business: surcharge
+  init: 0
+  comment: DELIVERY SURCHARGE
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Free standard shipping
+    intent: Ship standard orders of at least 75 for free.
+    concepts:
+    - shipping
+    - free shipping
+    - order value
+    when:
+      all:
+      - field: order_value
+        op: '>='
+        value: 75
+      - field: service_level
+        op: ==
+        value: S
+    then:
+    - set: free_shipping
+      value: Y
+    - set: ship_charge
+      value: 0
+    id: R1
+  paragraph: CHECK-FREE-SHIP
+- structure: if
+  rules:
+  - title: Remote zone surcharge
+    intent: Add a 15 surcharge for deliveries to zones Z7, Z8.
+    concepts:
+    - shipping
+    - zone
+    - surcharge
+    when:
+      field: dest_zone
+      op: in
+      value:
+      - Z7
+      - Z8
+    then:
+    - set: surcharge
+      value: 15
+    id: R1
+  paragraph: 3100-ZONE-SURCHG
+style:
+  cryptic_names: false
+  comments: none
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: ORD-TOTAL
+  pic: 9(7)V99
+  business: order_value
+- name: SVC-LEVEL
+  pic: X
+  business: service_level
+- name: DEST-ZONE
+  pic: X(2)
+  business: dest_zone
+record_length: 12
+names88: {}
+expected_rules: 2

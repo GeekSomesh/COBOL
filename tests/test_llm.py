@@ -72,3 +72,19 @@ def test_llm_only_output_is_parsed_defensively():
     assert len(rules) == 2
     assert [(l.source_name, l.op) for l in rules[0].conditions.all] == [("CUST-AGE", "<")]
     assert [(a.type, a.value) for a in rules[0].actions] == [("set", "Y")]
+
+
+def test_comparison_wording_must_match_the_rule():
+    from src.llm.evaluation import comparison_issues
+    from src.common.models import Slice
+    s = Slice(slice_id="X-S001", program="X", program_file="X.cob", source_file="X.cob", paragraph="P",
+              line_start=1, line_end=2, source_text="", fields={},
+              condition={"all": [{"source_name": "CREDIT-SCORE", "op": ">=", "value": 740},
+                                 {"not": {"source_name": "DTI", "op": ">=", "value": 0.43}}]},
+              actions=[{"type": "set", "source_name": "DECISION", "value": "A"}])
+    assert comparison_issues("Approve scores of at least 740 with a ratio below 0.43.", s) == []
+    assert comparison_issues("Approve scores of 740 or more with a debt ratio under 0.43.", s) == []
+    bad = comparison_issues("Approve scores over 740 with a ratio of at most 0.43.", s)
+    assert len(bad) == 2 and "CREDIT-SCORE >= 740" in bad[0]
+    assert comparison_issues("Lend up to 3 times income above 740.", s) != []      # 740 still checked
+    assert comparison_issues("Lend up to 740 times income.", s) == []             # a multiplier, not a threshold

@@ -1,0 +1,102 @@
+program: PAY0014
+program_file: PAY0014.cob
+domain: payroll_deductions
+template: payroll_union_dues
+seed: 1978322537
+record: WS-INPUT
+out_record: RESULT-AREA
+main: A000-MAIN
+copybook: PAY0014C.cpy
+prefix: null
+inputs:
+- name: UNION-FLG
+  pic: X
+  business: union_member
+  comment: UNION MEMBER Y/N
+- name: GRS-PAY-AMT
+  pic: 9(7)V99
+  business: gross_pay
+  comment: GROSS PAY FOR THE PERIOD
+outputs:
+- name: UNION-DUES
+  pic: 9(3)V99
+  business: union_dues
+  init: 0
+  comment: UNION DUES DEDUCTED
+noise:
+  date: POST-DATE
+  filler: 2
+blocks:
+- structure: nested
+  rules:
+  - title: Higher union dues
+    intent: Deduct 55 union dues from members earning at least 4,000.
+    concepts:
+    - union
+    - dues
+    - gross pay
+    - deduction
+    when:
+      field: gross_pay
+      op: '>='
+      value: 4000
+    then:
+    - set: union_dues
+      value: 55
+    id: R1
+  - title: Basic union dues
+    intent: Deduct 25 union dues from other members.
+    concepts:
+    - union
+    - dues
+    - deduction
+    when: null
+    then:
+    - set: union_dues
+      value: 25
+    id: R2
+  outer:
+    field: union_member
+    op: ==
+    value: Y
+  outer_else:
+    title: Non-member
+    intent: Deduct no union dues from non-members.
+    concepts:
+    - union
+    - dues
+    when: null
+    then:
+    - set: union_dues
+      value: 0
+  paragraph: 3000-UNION-DUES
+  render: else_if
+  compact: true
+style:
+  cryptic_names: false
+  comments: injection
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: UNION-FLG
+  pic: X
+  business: union_member
+- name: GRS-PAY-AMT
+  pic: 9(7)V99
+  business: gross_pay
+- name: POST-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 20
+names88: {}
+expected_rules: 3

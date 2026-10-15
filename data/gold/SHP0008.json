@@ -1,0 +1,130 @@
+{
+  "program": "SHP0008",
+  "program_file": "SHP0008.cob",
+  "domain": "shipping_charges",
+  "template": "ship_free_threshold",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "SHP0008-R001",
+      "version": 1,
+      "title": "Free standard shipping",
+      "intent": "Ship standard orders of at least 50 for free.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "order_value",
+            "source_name": "ORDER-VALUE",
+            "op": ">=",
+            "value": 50
+          },
+          {
+            "field": "service_level",
+            "source_name": "SERVICE-CD",
+            "op": "==",
+            "value": "S"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "free_shipping",
+          "source_name": "FREE-SHIP",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "ship_charge",
+          "source_name": "FREIGHT-AMT",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0008.cob",
+        "paragraph": "FREE-SHIPPING",
+        "line_start": 38,
+        "line_end": 42,
+        "copybooks": [
+          "SHP0008C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "free shipping",
+        "order value"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_free_threshold",
+        "spec": "data/specs/SHP0008.yaml",
+        "seed": 916805319
+      }
+    },
+    {
+      "rule_id": "SHP0008-R002",
+      "version": 1,
+      "title": "Remote zone surcharge",
+      "intent": "Add a 15 surcharge for deliveries to zones Z8, Z9.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "dest_zone",
+            "source_name": "DELIV-ZONE",
+            "op": "in",
+            "value": [
+              "Z8",
+              "Z9"
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "surcharge",
+          "source_name": "SURCHARGE",
+          "value": 15
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0008.cob",
+        "paragraph": "ZONE-SURCHARGE",
+        "line_start": 45,
+        "line_end": 47,
+        "copybooks": [
+          "SHP0008C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "zone",
+        "surcharge"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_free_threshold",
+        "spec": "data/specs/SHP0008.yaml",
+        "seed": 916805319
+      }
+    }
+  ]
+}

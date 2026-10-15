@@ -1,0 +1,121 @@
+program: PAY0007
+program_file: PAY0007.cob
+domain: payroll_deductions
+template: payroll_overtime
+seed: 11427656
+record: WS-INPUT
+out_record: OUT-RECORD
+main: A000-MAIN
+copybook: PAY0007C.cpy
+prefix: null
+inputs:
+- name: EMP-TYPE
+  pic: X
+  business: employee_type
+  comment: EMPLOYEE TYPE F=FULL-TIME P=PART-TIME C=CONTRACTOR
+- name: WEEK-HOURS
+  pic: 9(3)
+  business: hours_worked
+  comment: HOURS WORKED THIS WEEK
+- name: GROSS-PAY
+  pic: 9(7)V99
+  business: gross_pay
+  comment: GROSS PAY FOR THE PERIOD
+outputs:
+- name: OVERTIME-PAY
+  pic: 9(5)V99
+  business: overtime_pay
+  init: 0
+  comment: OVERTIME PAY
+noise:
+  date: POST-DATE
+  filler: 2
+blocks:
+- structure: chain
+  rules:
+  - title: No overtime for contractors
+    intent: Pay no overtime to contractors.
+    concepts:
+    - overtime
+    - contractor
+    - employee type
+    when:
+      field: employee_type
+      op: ==
+      value: C
+    then:
+    - set: overtime_pay
+      value: 0
+    id: R1
+  - title: Heavy overtime
+    intent: Add 30% of gross pay as overtime when more than 55 hours were worked.
+    concepts:
+    - overtime
+    - hours
+    - gross pay
+    when:
+      field: hours_worked
+      op: '>'
+      value: 55
+    then:
+    - compute: overtime_pay
+      expr: gross_pay * 0.30
+    id: R2
+  - title: Standard overtime
+    intent: Add 15% of gross pay as overtime when more than 40 hours were worked.
+    concepts:
+    - overtime
+    - hours
+    - gross pay
+    when:
+      field: hours_worked
+      op: '>'
+      value: 40
+    then:
+    - compute: overtime_pay
+      expr: gross_pay * 0.15
+    id: R3
+  - title: No overtime
+    intent: Pay no overtime otherwise.
+    concepts:
+    - overtime
+    - default
+    when: null
+    then:
+    - set: overtime_pay
+      value: 0
+    id: R4
+  paragraph: CALC-OVERTIME
+  render: else_if
+  compact: true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: EMP-TYPE
+  pic: X
+  business: employee_type
+- name: WEEK-HOURS
+  pic: 9(3)
+  business: hours_worked
+- name: GROSS-PAY
+  pic: 9(7)V99
+  business: gross_pay
+- name: POST-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 23
+names88: {}
+expected_rules: 4

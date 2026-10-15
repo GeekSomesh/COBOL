@@ -1,0 +1,187 @@
+{
+  "program": "CLM0009",
+  "program_file": "CLM0009.cob",
+  "domain": "insurance_claims",
+  "template": "claim_payout",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "CLM0009-R001",
+      "version": 1,
+      "title": "Medical co-insurance",
+      "intent": "Pay 70% of medical claims.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "field": "claim_type",
+            "source_name": "CLM-TYPE-CD",
+            "op": "==",
+            "value": "M"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "payout_amt",
+          "source_name": "CLAIM-PAYOUT",
+          "expr": "CLAIM-VALUE * 0.70"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0009.cob",
+        "paragraph": "CALC-PAYOUT",
+        "line_start": 41,
+        "line_end": 42,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "medical",
+        "payout",
+        "co-insurance"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_payout",
+        "spec": "data/specs/CLM0009.yaml",
+        "seed": 1007548724
+      }
+    },
+    {
+      "rule_id": "CLM0009-R002",
+      "version": 1,
+      "title": "Deductible applies",
+      "intent": "Pay the claimed amount minus the deductible for any other claim with an amount.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "claim_type",
+              "source_name": "CLM-TYPE-CD",
+              "op": "==",
+              "value": "M"
+            }
+          },
+          {
+            "field": "claim_amount",
+            "source_name": "CLAIM-VALUE",
+            "op": ">",
+            "value": 0
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "payout_amt",
+          "source_name": "CLAIM-PAYOUT",
+          "expr": "CLAIM-VALUE - POLICY-DEDUCT"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0009.cob",
+        "paragraph": "CALC-PAYOUT",
+        "line_start": 44,
+        "line_end": 45,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "deductible",
+        "payout"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_payout",
+        "spec": "data/specs/CLM0009.yaml",
+        "seed": 1007548724
+      }
+    },
+    {
+      "rule_id": "CLM0009-R003",
+      "version": 1,
+      "title": "Nothing to pay",
+      "intent": "Deny claims with no claimed amount.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "claim_type",
+              "source_name": "CLM-TYPE-CD",
+              "op": "==",
+              "value": "M"
+            }
+          },
+          {
+            "not": {
+              "field": "claim_amount",
+              "source_name": "CLAIM-VALUE",
+              "op": ">",
+              "value": 0
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "payout_amt",
+          "source_name": "CLAIM-PAYOUT",
+          "value": 0
+        },
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "CLAIM-STATUS",
+          "value": "D"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0009.cob",
+        "paragraph": "CALC-PAYOUT",
+        "line_start": 46,
+        "line_end": 48,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "denial",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_payout",
+        "spec": "data/specs/CLM0009.yaml",
+        "seed": 1007548724
+      }
+    }
+  ]
+}

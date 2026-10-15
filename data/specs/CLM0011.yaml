@@ -1,0 +1,138 @@
+program: CLM0011
+program_file: CLM0011.cob
+domain: insurance_claims
+template: claim_fraud_referral
+seed: 374244349
+record: IN-RECORD
+out_record: WS-RESULTS
+main: MAINLINE
+copybook: CLM0011C.cpy
+prefix: null
+inputs:
+- name: CT-TY
+  pic: X
+  business: claim_type
+  comment: CLAIM TYPE A=AUTO H=HOME M=MEDICAL
+- name: PR-FLG
+  pic: X
+  business: police_report
+  comment: POLICE REPORT FILED Y/N
+- name: C-VL
+  pic: 9(7)V99
+  business: claim_amount
+  comment: CLAIMED AMOUNT
+- name: WS-PCLM
+  pic: 9(2)
+  business: prior_claims
+  comment: CLAIMS IN LAST 3 YEARS
+outputs:
+- name: F-UI
+  pic: X
+  business: siu_referral
+  init: N
+  comment: SPECIAL INVESTIGATIONS REFERRAL
+- name: WS-CLST
+  pic: X
+  business: claim_status
+  init: A
+  comment: A=APPROVE I=INVESTIGATE D=DENY
+noise:
+  date: RUN-DATE
+  filler: 6
+blocks:
+- structure: if
+  rules:
+  - title: Auto claim without police report
+    intent: Refer auto claims above 5,000 without a police report to special investigations.
+    concepts:
+    - claim
+    - auto
+    - police report
+    - fraud
+    - referral
+    when:
+      all:
+      - field: claim_type
+        op: ==
+        value: A
+      - field: police_report
+        op: ==
+        value: N
+      - field: claim_amount
+        op: '>'
+        value: 5000
+    then:
+    - set: siu_referral
+      value: Y
+    - set: claim_status
+      value: I
+    id: R1
+  paragraph: 3000-AUTO-REPORT
+- structure: if
+  rules:
+  - title: Frequent claimant
+    intent: Refer customers with 4 or more prior claims to special investigations.
+    concepts:
+    - claim
+    - prior claims
+    - fraud
+    - referral
+    when:
+      field: prior_claims
+      op: '>='
+      value: 4
+    then:
+    - set: siu_referral
+      value: Y
+    id: R1
+  paragraph: 3100-CLAIM-FREQ
+style:
+  cryptic_names: true
+  comments: none
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: true
+  word_operators: false
+  dead_code: true
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: CT-TY
+  pic: X
+  business: claim_type
+- name: PR-FLG
+  pic: X
+  business: police_report
+- name: C-VL
+  pic: 9(7)V99
+  business: claim_amount
+- name: WS-PCLM
+  pic: 9(2)
+  business: prior_claims
+- name: RUN-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(6)
+  business: null
+record_length: 27
+names88:
+  CT-AUTO:
+    field: claim_type
+    op: ==
+    value: A
+  PR-IS-N:
+    field: police_report
+    op: ==
+    value: N
+  CLST-INVESTIGATE:
+    field: claim_status
+    op: ==
+    value: I
+  F-REFERRED:
+    field: siu_referral
+    op: ==
+    value: Y
+expected_rules: 2

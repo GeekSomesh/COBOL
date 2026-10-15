@@ -45,7 +45,8 @@ def _subject_field(rules: list[dict]) -> str | None:
 
 
 def sample_spec(template: Template, number: int, r: random.Random, seed: int) -> dict[str, Any]:
-    program = f"{DOMAIN_PREFIX[template.domain]}{number:04d}"
+    from src.corpus.extra_templates import EXTRA_PREFIX
+    program = f"{(DOMAIN_PREFIX | EXTRA_PREFIX)[template.domain]}{number:04d}"
     style = sample_style(r)
     blocks = template.build(r)
 

@@ -1,0 +1,145 @@
+{
+  "program": "PAY0009",
+  "program_file": "PAY0009.cob",
+  "domain": "payroll_deductions",
+  "template": "payroll_benefits",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "PAY0009-R001",
+      "version": 1,
+      "title": "Benefits eligibility",
+      "intent": "Make full-time employees, and part-time employees working at least 30 hours, eligible for benefits.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "any": [
+          {
+            "field": "employee_type",
+            "source_name": "IN-EMP-TYPE",
+            "op": "==",
+            "value": "F"
+          },
+          {
+            "all": [
+              {
+                "field": "employee_type",
+                "source_name": "IN-EMP-TYPE",
+                "op": "==",
+                "value": "P"
+              },
+              {
+                "field": "hours_worked",
+                "source_name": "IN-WEEK-HOURS",
+                "op": ">=",
+                "value": 30
+              }
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "benefits_flag",
+          "source_name": "BENEFIT-IND",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0009.cob",
+        "paragraph": "4000-BENEFITS",
+        "line_start": 29,
+        "line_end": 32,
+        "copybooks": [
+          "PAY0009C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "benefits",
+        "eligibility",
+        "employee type",
+        "hours"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_benefits",
+        "spec": "data/specs/PAY0009.yaml",
+        "seed": 1139082860
+      }
+    },
+    {
+      "rule_id": "PAY0009-R002",
+      "version": 1,
+      "title": "Pension contribution rate",
+      "intent": "Contribute 5% to the pension for enrolled employees with at least 3 years of service, otherwise 3%.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "field": "pension_opt_in",
+            "source_name": "IN-PENSION-OPTIN",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "field": "years_service",
+            "source_name": "IN-SERVICE-YEARS",
+            "op": ">=",
+            "value": 3
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "pension_rate",
+          "source_name": "PENSION-RATE",
+          "value": 0.05
+        }
+      ],
+      "else_actions": [
+        {
+          "type": "set",
+          "target": "pension_rate",
+          "source_name": "PENSION-RATE",
+          "value": 0.03
+        }
+      ],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0009.cob",
+        "paragraph": "4100-PENSION",
+        "line_start": 35,
+        "line_end": 40,
+        "copybooks": [
+          "PAY0009C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "pension",
+        "service years",
+        "contribution"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_benefits",
+        "spec": "data/specs/PAY0009.yaml",
+        "seed": 1139082860
+      }
+    }
+  ]
+}

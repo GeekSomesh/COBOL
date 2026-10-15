@@ -1,0 +1,110 @@
+program: SHP0003
+program_file: SHP0003.cob
+domain: shipping_charges
+template: ship_hazmat
+seed: 443209136
+record: INPUT-AREA
+out_record: WS-OUT-REC
+main: MAINLINE
+copybook: SHP0003C.cpy
+prefix: null
+inputs:
+- name: DANGER-GOODS-IND
+  pic: X
+  business: hazmat_flag
+  comment: HAZARDOUS GOODS Y/N
+- name: SERVICE-CD
+  pic: X
+  business: service_level
+  comment: SERVICE S=STANDARD E=EXPRESS O=OVERNIGHT
+- name: ROUTE-KM
+  pic: 9(5)
+  business: distance_km
+  comment: DELIVERY DISTANCE IN KM
+outputs:
+- name: NO-SHIP-IND
+  pic: X
+  business: ship_block
+  init: N
+  comment: SHIPMENT BLOCKED Y/N
+- name: SURCHG-AMT
+  pic: 9(4)V99
+  business: surcharge
+  init: 0
+  comment: DELIVERY SURCHARGE
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: No overnight hazardous goods
+    intent: Block hazardous shipments sent overnight.
+    concepts:
+    - shipping
+    - hazardous
+    - overnight
+    - block
+    when:
+      field: service_level
+      op: ==
+      value: O
+    then:
+    - set: ship_block
+      value: Y
+    id: R1
+  - title: Long-distance hazardous surcharge
+    intent: Add a 75 surcharge to hazardous shipments over 800 km.
+    concepts:
+    - shipping
+    - hazardous
+    - distance
+    - surcharge
+    when:
+      field: distance_km
+      op: '>'
+      value: 800
+    then:
+    - set: surcharge
+      value: 75
+    id: R2
+  - title: Hazardous goods surcharge
+    intent: Add a 25 surcharge to other hazardous shipments.
+    concepts:
+    - shipping
+    - hazardous
+    - surcharge
+    when: null
+    then:
+    - set: surcharge
+      value: 25
+    id: R3
+  outer:
+    field: hazmat_flag
+    op: ==
+    value: Y
+  paragraph: 4000-HAZMAT
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: false
+record_layout:
+- name: DANGER-GOODS-IND
+  pic: X
+  business: hazmat_flag
+- name: SERVICE-CD
+  pic: X
+  business: service_level
+- name: ROUTE-KM
+  pic: 9(5)
+  business: distance_km
+record_length: 7
+names88: {}
+expected_rules: 3

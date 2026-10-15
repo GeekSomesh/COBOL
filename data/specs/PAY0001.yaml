@@ -1,0 +1,121 @@
+program: PAY0001
+program_file: PAY0001.cob
+domain: payroll_deductions
+template: payroll_overtime
+seed: 1250986331
+record: INPUT-AREA
+out_record: WS-OUT-REC
+main: 0000-MAIN
+copybook: PAY0001C.cpy
+prefix: null
+inputs:
+- name: ET-CD
+  pic: X
+  business: employee_type
+  comment: EMPLOYEE TYPE F=FULL-TIME P=PART-TIME C=CONTRACTOR
+- name: HW-HH
+  pic: 9(3)
+  business: hours_worked
+  comment: HOURS WORKED THIS WEEK
+- name: P-GR
+  pic: 9(7)V99
+  business: gross_pay
+  comment: GROSS PAY FOR THE PERIOD
+outputs:
+- name: O-PY
+  pic: 9(5)V99
+  business: overtime_pay
+  init: 0
+  comment: OVERTIME PAY
+noise:
+  date: PROC-DATE
+  filler: 4
+blocks:
+- structure: chain
+  rules:
+  - title: No overtime for contractors
+    intent: Pay no overtime to contractors.
+    concepts:
+    - overtime
+    - contractor
+    - employee type
+    when:
+      field: employee_type
+      op: ==
+      value: C
+    then:
+    - set: overtime_pay
+      value: 0
+    id: R1
+  - title: Heavy overtime
+    intent: Add 25% of gross pay as overtime when more than 50 hours were worked.
+    concepts:
+    - overtime
+    - hours
+    - gross pay
+    when:
+      field: hours_worked
+      op: '>'
+      value: 50
+    then:
+    - compute: overtime_pay
+      expr: gross_pay * 0.25
+    id: R2
+  - title: Standard overtime
+    intent: Add 10% of gross pay as overtime when more than 44 hours were worked.
+    concepts:
+    - overtime
+    - hours
+    - gross pay
+    when:
+      field: hours_worked
+      op: '>'
+      value: 44
+    then:
+    - compute: overtime_pay
+      expr: gross_pay * 0.10
+    id: R3
+  - title: No overtime
+    intent: Pay no overtime otherwise.
+    concepts:
+    - overtime
+    - default
+    when: null
+    then:
+    - set: overtime_pay
+      value: 0
+    id: R4
+  paragraph: 2000-OVERTIME
+  render: else_if
+  compact: true
+style:
+  cryptic_names: true
+  comments: misleading
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: true
+  environment_division: false
+record_layout:
+- name: ET-CD
+  pic: X
+  business: employee_type
+- name: HW-HH
+  pic: 9(3)
+  business: hours_worked
+- name: P-GR
+  pic: 9(7)V99
+  business: gross_pay
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 25
+names88: {}
+expected_rules: 4

@@ -105,6 +105,73 @@ def grounded(intent: str, s: Slice) -> bool:
     return all(round(n, 6) in allowed for n in numbers(intent))
 
 
+# ---- comparison wording -------------------------------------------------------------
+# Phrases before / after a number and the relation they state ("at least 740" is >=).
+_BEFORE = [
+    (">=", r"at least|no less than|not less than|a minimum of|minimum of|minimum"),
+    ("<=", r"at most|up to|no more than|not more than|a maximum of|maximum of|maximum|within"),
+    (">", r"more than|greater than|higher than|over|above|exceeding|exceeds|exceed|older than|beyond"),
+    ("<", r"less than|fewer than|lower than|under|below|younger than|short of"),
+]
+_AFTER = [
+    (">=", r"or more|or above|or higher|or over|or older|and above|and over|and up|or greater|\+"),
+    ("<=", r"or less|or below|or fewer|or lower|or under|or younger|and below|and under"),
+]
+_SAME = {">=": {">="}, "<=": {"<="}, ">": {">"}, "<": {"<"}}
+
+
+def _relations(c: dict[str, Any]) -> list[tuple[str, str, float]]:
+    """(field, op, number) for every numeric relation of a condition, negation pushed inward."""
+    from src.rules.canon import _expand, _nnf
+    out: list[tuple[str, str, float]] = []
+
+    def walk(x: dict[str, Any]) -> None:
+        for k in ("all", "any"):
+            for y in x.get(k) or []:
+                walk(y)
+        if x.get("source_name") and x.get("op") in ("<", "<=", ">", ">=", "==", "!=") and not x.get("ref"):
+            v = x.get("value")
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                out.append((x["source_name"], x["op"], float(v)))
+
+    walk(_nnf(_expand(c)))
+    return out
+
+
+def comparison_issues(intent: str, s: Slice) -> list[str]:
+    """Comparison words in the intent that contradict the rule: "over 740" for ``>= 740``.
+
+    Only numbers that are thresholds of the rule and carry a clear comparison phrase are
+    checked; anything else (rates, amounts set, multipliers, "between", "1 to 15") is left alone."""
+    rels = _relations(s.condition) + (_relations(s.context) if s.context else [])
+    issues: list[str] = []
+    text = intent.lower()
+    for m in _NUM.finditer(text):
+        try:
+            n = float(m.group(1).replace(",", ""))
+        except ValueError:
+            continue
+        hits = [(f, op) for f, op, v in rels if abs(v - n) < 1e-9]
+        after = text[m.end():m.end() + 24]
+        if not hits or re.match(r"\s*(?:times|x)\b", after):
+            continue                         # not a threshold, or a multiplier ("3 times income")
+        said = None
+        for op, pat in _AFTER:               # "740 or more", "18 years or older", "5% and above"
+            if re.match(rf"\s*%?\s*(?:[a-z]+\s+)?(?:{pat})(?:\W|$)", after):
+                said = op
+                break
+        if said is None:
+            before = text[max(0, m.start() - 40):m.start()]
+            for op, pat in _BEFORE:          # "at least 740", "more than $5,000"
+                if re.search(rf"(?:^|\W)(?:{pat})\s+(?:[$\u00a3\u20ac]\s*)?$", before):
+                    said = op
+                    break
+        if said is not None and not any(op in _SAME[said] for _, op in hits):
+            f, op = hits[0]
+            issues.append(f"intent says '{said} {m.group(1)}' but the rule tests {f} {op} {m.group(1)}")
+    return issues
+
+
 def tokens(name: str) -> set[str]:
     return {t for t in re.split(r"[^a-z0-9]+", name.lower()) if t}
 

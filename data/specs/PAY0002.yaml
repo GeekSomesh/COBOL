@@ -1,0 +1,94 @@
+program: PAY0002
+program_file: PAY0002.cob
+domain: payroll_deductions
+template: payroll_union_dues
+seed: 435403545
+record: WS-INPUT
+out_record: WS-OUT-REC
+main: MAIN-PARA
+copybook: null
+prefix: null
+inputs:
+- name: WS-UNI
+  pic: X
+  business: union_member
+  comment: UNION MEMBER Y/N
+- name: WS-GRSP
+  pic: 9(7)V99
+  business: gross_pay
+  comment: GROSS PAY FOR THE PERIOD
+outputs:
+- name: U-DU
+  pic: 9(3)V99
+  business: union_dues
+  init: 0
+  comment: UNION DUES DEDUCTED
+noise: null
+blocks:
+- structure: nested
+  rules:
+  - title: Higher union dues
+    intent: Deduct 45 union dues from members earning at least 2,000.
+    concepts:
+    - union
+    - dues
+    - gross pay
+    - deduction
+    when:
+      field: gross_pay
+      op: '>='
+      value: 2000
+    then:
+    - set: union_dues
+      value: 45
+    id: R1
+  - title: Basic union dues
+    intent: Deduct 25 union dues from other members.
+    concepts:
+    - union
+    - dues
+    - deduction
+    when: null
+    then:
+    - set: union_dues
+      value: 25
+    id: R2
+  outer:
+    field: union_member
+    op: ==
+    value: Y
+  outer_else:
+    title: Non-member
+    intent: Deduct no union dues from non-members.
+    concepts:
+    - union
+    - dues
+    when: null
+    then:
+    - set: union_dues
+      value: 0
+  paragraph: DUES-RULES
+  render: else_if
+  compact: false
+style:
+  cryptic_names: true
+  comments: none
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: WS-UNI
+  pic: X
+  business: union_member
+- name: WS-GRSP
+  pic: 9(7)V99
+  business: gross_pay
+record_length: 10
+names88: {}
+expected_rules: 3

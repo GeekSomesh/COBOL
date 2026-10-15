@@ -1,0 +1,13 @@
+    *> EMPLOYEE TYPE F=FULL-TIME P=PART-TIME C=CONTRACTOR
+    05 EMP-TYPE           PIC X.
+       88 EMP-CONTRACTOR VALUE 'C'.
+    *> HOURS WORKED THIS WEEK
+    05 HRS-WKD            PIC 9(3).
+    *> GROSS PAY FOR THE PERIOD
+    05 GROSS-PAY          PIC 9(7)V99.
+    05 RUN-DATE           PIC 9(8).
+    05 RUN-DATE-R REDEFINES RUN-DATE.
+       10 RUN-DATE-YYYY  PIC 9(4).
+       10 RUN-DATE-MM    PIC 9(2).
+       10 RUN-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(6).

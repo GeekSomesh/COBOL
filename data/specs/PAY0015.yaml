@@ -1,0 +1,118 @@
+program: PAY0015
+program_file: PAY0015.cob
+domain: payroll_deductions
+template: payroll_benefits
+seed: 826434039
+record: WS-IN-REC
+out_record: WS-RESULTS
+main: 0000-MAIN
+copybook: PAY0015C.cpy
+prefix: null
+inputs:
+- name: WS-ETYP
+  pic: X
+  business: employee_type
+  comment: EMPLOYEE TYPE F=FULL-TIME P=PART-TIME C=CONTRACTOR
+- name: WS-HRS
+  pic: 9(3)
+  business: hours_worked
+  comment: HOURS WORKED THIS WEEK
+- name: WS-PENIN
+  pic: X
+  business: pension_opt_in
+  comment: PENSION ENROLMENT Y/N
+- name: T-YR
+  pic: 9(2)
+  business: years_service
+  comment: YEARS OF SERVICE
+outputs:
+- name: WS-BEN
+  pic: X
+  business: benefits_flag
+  init: N
+  comment: BENEFITS ELIGIBLE Y/N
+- name: PR-RT
+  pic: 9V9999
+  business: pension_rate
+  init: 0
+  comment: PENSION CONTRIBUTION RATE
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Benefits eligibility
+    intent: Make full-time employees, and part-time employees working at least 20 hours, eligible for benefits.
+    concepts:
+    - benefits
+    - eligibility
+    - employee type
+    - hours
+    when:
+      any:
+      - field: employee_type
+        op: ==
+        value: F
+      - all:
+        - field: employee_type
+          op: ==
+          value: P
+        - field: hours_worked
+          op: '>='
+          value: 20
+    then:
+    - set: benefits_flag
+      value: Y
+    id: R1
+  paragraph: 4000-BENEFITS
+- structure: if
+  rules:
+  - title: Pension contribution rate
+    intent: Contribute 6% to the pension for enrolled employees with at least 3 years of service, otherwise 2%.
+    concepts:
+    - pension
+    - service years
+    - contribution
+    when:
+      all:
+      - field: pension_opt_in
+        op: ==
+        value: Y
+      - field: years_service
+        op: '>='
+        value: 3
+    then:
+    - set: pension_rate
+      value: 0.06
+    else:
+    - set: pension_rate
+      value: 0.02
+    id: R1
+  paragraph: SET-PENSION
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: true
+  dead_code: true
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: WS-ETYP
+  pic: X
+  business: employee_type
+- name: WS-HRS
+  pic: 9(3)
+  business: hours_worked
+- name: WS-PENIN
+  pic: X
+  business: pension_opt_in
+- name: T-YR
+  pic: 9(2)
+  business: years_service
+record_length: 7
+names88: {}
+expected_rules: 2

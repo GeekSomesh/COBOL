@@ -52,6 +52,7 @@ def test_changed_operator_in_code_is_caught(tmp_path):
 
 
 def test_splits_are_by_template_and_disjoint():
+    import src.corpus.extra_templates  # noqa: F401  (registers the training-only templates)
     splits = json.loads((ROOT / "data" / "splits.json").read_text())
     seen = {}
     for split in ("train", "val", "test"):

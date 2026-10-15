@@ -21,6 +21,30 @@ def base(name: str) -> str:
     return str(name).split("(")[0].strip().upper()
 
 
+_SUBSCRIPT = re.compile(r"^([A-Z0-9][A-Z0-9-]*)\s*\((.*)\)\s*$")
+
+
+def resolve(name: str, state: dict[str, Any]) -> str:
+    """State key of a field reference: CUST-MONTH(MONTH-SUB) -> CUST-MONTH(3) when MONTH-SUB is 3.
+
+    Unresolvable subscripts and reference modification fall back to the whole field."""
+    text = str(name).strip().upper()
+    m = _SUBSCRIPT.match(text)
+    if not m:
+        return base(text)
+    head, inner = m.group(1), m.group(2)
+    if ":" in inner:
+        return head
+    idx = []
+    for part in [p for p in re.split(r"[,\s]+", inner.strip()) if p]:
+        n = to_num(part) if re.fullmatch(r"[+-]?\d+", part) else to_num(state.get(base(part)))
+        if n is None:
+            return head
+        idx.append(str(int(n)))
+    key = f"{head}({','.join(idx)})"
+    return key if key in state or head not in state else head
+
+
 def is_numeric_entry(entry: Optional[dict[str, Any]]) -> bool:
     return bool(entry) and entry.get("category") in ("numeric", "numeric-edited")
 
@@ -102,7 +126,7 @@ _EXPR_HINT = re.compile(r"\s[-+*/]\s|\*\*|^\(|^FUNCTION ")
 
 def operand_value(name: str, row: dict[str, Any]) -> Any:
     """Field value, or the value of an arithmetic expression such as 'AMT + FEE'."""
-    key = base(name)
+    key = resolve(name, row)
     if key in row:
         return row[key]
     if _EXPR_HINT.search(str(name)):
@@ -129,8 +153,8 @@ def eval_cond(c: dict[str, Any], row: dict[str, Any]) -> bool:
         return any(compare("==", v, x) for x in rhs)
     if op == "not_in":
         return all(compare("!=", v, x) for x in rhs)
-    if op == "is_numeric":
-        return isinstance(v, Decimal) or (isinstance(v, str) and v != "" and v.strip().isdigit())
+    if op == "is_numeric":                # every byte a digit: leading spaces make it non-numeric
+        return isinstance(v, Decimal) or (isinstance(v, str) and v != "" and v.isdigit())
     if op == "is_alphabetic":
         return isinstance(v, str) and all(ch.isalpha() or ch == " " for ch in v)
     if op in ("is_positive", "is_negative", "is_zero"):
@@ -181,8 +205,9 @@ def eval_expr(expr: str, state: dict[str, Any]) -> Decimal:
         n = to_num(t)
         if n is not None and re.fullmatch(r"\d+(\.\d+)?|\.\d+", t):
             return n
-        if base(t) in state:
-            n = to_num(state[base(t)])
+        key = resolve(t, state)
+        if key in state:
+            n = to_num(state[key])
             return n if n is not None else Decimal(0)
         raise ExprError(f"unknown identifier {t}")
 
@@ -217,22 +242,29 @@ def eval_expr(expr: str, state: dict[str, Any]) -> Decimal:
 
 # ---- running rules -----------------------------------------------------------------
 
-def apply_actions(actions: Iterable[dict[str, Any]], state: dict[str, Any], fields: dict[str, dict]) -> None:
+def apply_actions(actions: Iterable[dict[str, Any]], state: dict[str, Any], fields: dict[str, dict]) -> list[str]:
+    """Apply set/compute actions to ``state``; returns the state keys written."""
+    written: list[str] = []
     for a in actions:
-        target = base(a.get("source_name") or "")
-        entry = fields.get(target)
+        if a["type"] not in ("set", "compute"):
+            continue                           # perform / call / goto / stop: control transfer
+        target = resolve(a.get("source_name") or "", state)
+        entry = fields.get(base(target))
         if a["type"] == "set":
             if a.get("expr"):
-                src = state.get(base(a["expr"]))
+                src = state.get(resolve(a["expr"], state))
                 state[target] = store(src, entry)
             else:
                 state[target] = store(a.get("value"), entry)
-        elif a["type"] == "compute" and a.get("expr"):
+        elif a.get("expr"):
             try:
                 state[target] = store(eval_expr(a["expr"], state), entry)
             except ExprError:
                 state[target] = None           # unreadable expression: the output will not match
-        # perform / call: control transfer, nothing to evaluate here
+        else:
+            continue
+        written.append(target)
+    return written
 
 
 def run_rules(rules: list[dict[str, Any]], state: dict[str, Any], fields: dict[str, dict]) -> list[int]:

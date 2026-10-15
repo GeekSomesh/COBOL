@@ -1,0 +1,5 @@
+    *> CLAIMED AMOUNT
+    05 CLAIM-VALUE        PIC 9(7)V99.
+    *> CLAIMS IN LAST 3 YEARS
+    05 PREV-CLM-CNT       PIC 9(2).
+    05 POL-MONTHS         PIC 9(3).

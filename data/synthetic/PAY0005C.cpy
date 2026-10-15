@@ -1,0 +1,3 @@
+    05 UNION-FLG          PIC X.
+    *> GROSS PAY FOR THE PERIOD
+    05 GRS-PAY-AMT        PIC 9(7)V99.

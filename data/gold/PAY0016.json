@@ -1,0 +1,262 @@
+{
+  "program": "PAY0016",
+  "program_file": "PAY0016.cob",
+  "domain": "payroll_deductions",
+  "template": "payroll_overtime",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "PAY0016-R001",
+      "version": 1,
+      "title": "No overtime for contractors",
+      "intent": "Pay no overtime to contractors.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "field": "employee_type",
+            "source_name": "CU-EMP-CLASS",
+            "op": "==",
+            "value": "C"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "overtime_pay",
+          "source_name": "OT-PAY-AMT",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0016.cob",
+        "paragraph": "CALC-OVERTIME",
+        "line_start": 20,
+        "line_end": 21,
+        "copybooks": [
+          "PAY0016C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "overtime",
+        "contractor",
+        "employee type"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_overtime",
+        "spec": "data/specs/PAY0016.yaml",
+        "seed": 381096381
+      }
+    },
+    {
+      "rule_id": "PAY0016-R002",
+      "version": 1,
+      "title": "Heavy overtime",
+      "intent": "Add 25% of gross pay as overtime when more than 50 hours were worked.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "employee_type",
+              "source_name": "CU-EMP-CLASS",
+              "op": "==",
+              "value": "C"
+            }
+          },
+          {
+            "field": "hours_worked",
+            "source_name": "CU-HOURS-WORKED",
+            "op": ">",
+            "value": 50
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "overtime_pay",
+          "source_name": "OT-PAY-AMT",
+          "expr": "CU-GRS-PAY-AMT * 0.25"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0016.cob",
+        "paragraph": "CALC-OVERTIME",
+        "line_start": 22,
+        "line_end": 23,
+        "copybooks": [
+          "PAY0016C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "overtime",
+        "hours",
+        "gross pay"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_overtime",
+        "spec": "data/specs/PAY0016.yaml",
+        "seed": 381096381
+      }
+    },
+    {
+      "rule_id": "PAY0016-R003",
+      "version": 1,
+      "title": "Standard overtime",
+      "intent": "Add 10% of gross pay as overtime when more than 40 hours were worked.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "employee_type",
+              "source_name": "CU-EMP-CLASS",
+              "op": "==",
+              "value": "C"
+            }
+          },
+          {
+            "not": {
+              "field": "hours_worked",
+              "source_name": "CU-HOURS-WORKED",
+              "op": ">",
+              "value": 50
+            }
+          },
+          {
+            "field": "hours_worked",
+            "source_name": "CU-HOURS-WORKED",
+            "op": ">",
+            "value": 40
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "overtime_pay",
+          "source_name": "OT-PAY-AMT",
+          "expr": "CU-GRS-PAY-AMT * 0.10"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0016.cob",
+        "paragraph": "CALC-OVERTIME",
+        "line_start": 24,
+        "line_end": 25,
+        "copybooks": [
+          "PAY0016C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "overtime",
+        "hours",
+        "gross pay"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_overtime",
+        "spec": "data/specs/PAY0016.yaml",
+        "seed": 381096381
+      }
+    },
+    {
+      "rule_id": "PAY0016-R004",
+      "version": 1,
+      "title": "No overtime",
+      "intent": "Pay no overtime otherwise.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "employee_type",
+              "source_name": "CU-EMP-CLASS",
+              "op": "==",
+              "value": "C"
+            }
+          },
+          {
+            "not": {
+              "field": "hours_worked",
+              "source_name": "CU-HOURS-WORKED",
+              "op": ">",
+              "value": 50
+            }
+          },
+          {
+            "not": {
+              "field": "hours_worked",
+              "source_name": "CU-HOURS-WORKED",
+              "op": ">",
+              "value": 40
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "overtime_pay",
+          "source_name": "OT-PAY-AMT",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0016.cob",
+        "paragraph": "CALC-OVERTIME",
+        "line_start": 26,
+        "line_end": 27,
+        "copybooks": [
+          "PAY0016C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "overtime",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_overtime",
+        "spec": "data/specs/PAY0016.yaml",
+        "seed": 381096381
+      }
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+program: CLM0004
+program_file: CLM0004.cob
+domain: insurance_claims
+template: claim_fast_track
+seed: 2038439933
+record: IN-RECORD
+out_record: RESULT-AREA
+main: 0000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: CLAIM-AMT
+  pic: 9(7)V99
+  business: claim_amount
+  comment: CLAIMED AMOUNT
+- name: PRIOR-CLAIMS
+  pic: 9(2)
+  business: prior_claims
+  comment: CLAIMS IN LAST 3 YEARS
+- name: POLICY-TENURE
+  pic: 9(3)
+  business: policy_age_months
+  comment: MONTHS SINCE POLICY START
+outputs:
+- name: CLAIM-STATUS
+  pic: X
+  business: claim_status
+  init: A
+  comment: A=APPROVE I=INVESTIGATE D=DENY
+noise:
+  date: PROC-DATE
+  filler: 2
+blocks:
+- structure: chain
+  rules:
+  - title: Fast-track small claim
+    intent: Approve claims of 2,500 or less from customers with fewer than 2 prior claims.
+    concepts:
+    - claim
+    - amount
+    - prior claims
+    - approval
+    when:
+      all:
+      - field: claim_amount
+        op: <=
+        value: 2500
+      - field: prior_claims
+        op: <
+        value: 2
+    then:
+    - set: claim_status
+      value: A
+    id: R1
+  - title: Large claim investigation
+    intent: Investigate claims above 25,000.
+    concepts:
+    - claim
+    - amount
+    - investigation
+    when:
+      field: claim_amount
+      op: '>'
+      value: 25000
+    then:
+    - set: claim_status
+      value: I
+    id: R2
+  - title: New policy claim
+    intent: Investigate claims on policies younger than 6 months.
+    concepts:
+    - claim
+    - policy age
+    - investigation
+    when:
+      field: policy_age_months
+      op: <
+      value: 6
+    then:
+    - set: claim_status
+      value: I
+    id: R3
+  - title: Standard claim
+    intent: Approve all other claims.
+    concepts:
+    - claim
+    - approval
+    - default
+    when: null
+    then:
+    - set: claim_status
+      value: A
+    id: R4
+  paragraph: CLAIM-ROUTING
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CLAIM-AMT
+  pic: 9(7)V99
+  business: claim_amount
+- name: PRIOR-CLAIMS
+  pic: 9(2)
+  business: prior_claims
+- name: POLICY-TENURE
+  pic: 9(3)
+  business: policy_age_months
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(2)
+  business: null
+record_length: 24
+names88: {}
+expected_rules: 4

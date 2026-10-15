@@ -25,6 +25,7 @@ class Analysis:
     flow: Optional[FlowInfo] = None
     slice_stmts: list[Stmt] = field(default_factory=list)          # top-level statement of each slice
     action_stmts: list[tuple[list[Any], list[Any]]] = field(default_factory=list)  # per slice: (then, else)
+    trails: list[list[tuple[Any, Any, int]]] = field(default_factory=list)  # per slice: (decision, branch, items) by level
 
     @property
     def diagnostics(self) -> list[str]:
@@ -48,7 +49,8 @@ def analyze_program(program_path: Path | str, copybook_dirs: Sequence[Path | str
         sl.reachable = flow.truncated or rec["para_idx"] in flow.reachable
     actions = [([a.get("_stmt") for a in rec["actions"]], [a.get("_stmt") for a in rec["else_actions"]])
                for rec in slicer.records]
-    return Analysis(src, program, slices, flow, stmts, actions)
+    trails = [rec["trail"] for rec in slicer.records]
+    return Analysis(src, program, slices, flow, stmts, actions, trails)
 
 
 def analyze(program_path: Path | str, copybook_dirs: Sequence[Path | str] = ()) -> list[Slice]:

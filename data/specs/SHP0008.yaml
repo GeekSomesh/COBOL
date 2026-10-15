@@ -1,0 +1,116 @@
+program: SHP0008
+program_file: SHP0008.cob
+domain: shipping_charges
+template: ship_free_threshold
+seed: 916805319
+record: WS-IN-REC
+out_record: WS-OUT-REC
+main: 0000-MAIN
+copybook: SHP0008C.cpy
+prefix: null
+inputs:
+- name: ORDER-VALUE
+  pic: 9(7)V99
+  business: order_value
+  comment: ORDER VALUE
+- name: SERVICE-CD
+  pic: X
+  business: service_level
+  comment: SERVICE S=STANDARD E=EXPRESS O=OVERNIGHT
+- name: DELIV-ZONE
+  pic: X(2)
+  business: dest_zone
+  comment: DESTINATION ZONE CODE
+outputs:
+- name: FREE-SHIP
+  pic: X
+  business: free_shipping
+  init: N
+  comment: FREE SHIPPING Y/N
+- name: FREIGHT-AMT
+  pic: 9(5)V99
+  business: ship_charge
+  init: 0
+  comment: SHIPPING CHARGE
+- name: SURCHARGE
+  pic: 9(4)V99
+  business: surcharge
+  init: 0
+  comment: DELIVERY SURCHARGE
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Free standard shipping
+    intent: Ship standard orders of at least 50 for free.
+    concepts:
+    - shipping
+    - free shipping
+    - order value
+    when:
+      all:
+      - field: order_value
+        op: '>='
+        value: 50
+      - field: service_level
+        op: ==
+        value: S
+    then:
+    - set: free_shipping
+      value: Y
+    - set: ship_charge
+      value: 0
+    id: R1
+  paragraph: FREE-SHIPPING
+- structure: if
+  rules:
+  - title: Remote zone surcharge
+    intent: Add a 15 surcharge for deliveries to zones Z8, Z9.
+    concepts:
+    - shipping
+    - zone
+    - surcharge
+    when:
+      field: dest_zone
+      op: in
+      value: &id001
+      - Z8
+      - Z9
+    then:
+    - set: surcharge
+      value: 15
+    id: R1
+  paragraph: ZONE-SURCHARGE
+style:
+  cryptic_names: false
+  comments: injection
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: true
+  word_operators: false
+  dead_code: true
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: ORDER-VALUE
+  pic: 9(7)V99
+  business: order_value
+- name: SERVICE-CD
+  pic: X
+  business: service_level
+- name: DELIV-ZONE
+  pic: X(2)
+  business: dest_zone
+record_length: 12
+names88:
+  DELIV-Z8-OR-Z9:
+    field: dest_zone
+    op: in
+    value: *id001
+  FREE-FREE:
+    field: free_shipping
+    op: ==
+    value: Y
+expected_rules: 2

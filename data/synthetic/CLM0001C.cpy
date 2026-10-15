@@ -1,0 +1,5 @@
+    *> CLAIMED AMOUNT
+    05 CLM-AMOUNT         PIC 9(7)V99.
+    05 PRIOR-CLAIMS       PIC 9(2).
+    *> MONTHS SINCE POLICY START
+    05 POL-MONTHS         PIC 9(3).

@@ -1,0 +1,126 @@
+program: PAY0003
+program_file: PAY0003.cob
+domain: payroll_deductions
+template: payroll_benefits
+seed: 1202851908
+record: WS-IN-REC
+out_record: WS-OUT-REC
+main: A000-MAIN
+copybook: PAY0003C.cpy
+prefix: null
+inputs:
+- name: WS-ETYP
+  pic: X
+  business: employee_type
+  comment: EMPLOYEE TYPE F=FULL-TIME P=PART-TIME C=CONTRACTOR
+- name: W-HR
+  pic: 9(3)
+  business: hours_worked
+  comment: HOURS WORKED THIS WEEK
+- name: P-EN
+  pic: X
+  business: pension_opt_in
+  comment: PENSION ENROLMENT Y/N
+- name: WS-SVCY
+  pic: 9(2)
+  business: years_service
+  comment: YEARS OF SERVICE
+outputs:
+- name: WS-BEN
+  pic: X
+  business: benefits_flag
+  init: N
+  comment: BENEFITS ELIGIBLE Y/N
+- name: PR-RT
+  pic: 9V9999
+  business: pension_rate
+  init: 0
+  comment: PENSION CONTRIBUTION RATE
+noise:
+  date: POST-DATE
+  filler: 4
+blocks:
+- structure: if
+  rules:
+  - title: Benefits eligibility
+    intent: Make full-time employees, and part-time employees working at least 25 hours, eligible for benefits.
+    concepts:
+    - benefits
+    - eligibility
+    - employee type
+    - hours
+    when:
+      any:
+      - field: employee_type
+        op: ==
+        value: F
+      - all:
+        - field: employee_type
+          op: ==
+          value: P
+        - field: hours_worked
+          op: '>='
+          value: 25
+    then:
+    - set: benefits_flag
+      value: Y
+    id: R1
+  paragraph: CHECK-BENEFITS
+- structure: if
+  rules:
+  - title: Pension contribution rate
+    intent: Contribute 6% to the pension for enrolled employees with at least 2 years of service, otherwise 2%.
+    concepts:
+    - pension
+    - service years
+    - contribution
+    when:
+      all:
+      - field: pension_opt_in
+        op: ==
+        value: Y
+      - field: years_service
+        op: '>='
+        value: 2
+    then:
+    - set: pension_rate
+      value: 0.06
+    else:
+    - set: pension_rate
+      value: 0.02
+    id: R1
+  paragraph: SET-PENSION
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: true
+  dead_code: true
+  noise_fields: true
+  decimal_literals: true
+  environment_division: false
+record_layout:
+- name: WS-ETYP
+  pic: X
+  business: employee_type
+- name: W-HR
+  pic: 9(3)
+  business: hours_worked
+- name: P-EN
+  pic: X
+  business: pension_opt_in
+- name: WS-SVCY
+  pic: 9(2)
+  business: years_service
+- name: POST-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 19
+names88: {}
+expected_rules: 2

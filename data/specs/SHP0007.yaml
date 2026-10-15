@@ -1,0 +1,95 @@
+program: SHP0007
+program_file: SHP0007.cob
+domain: shipping_charges
+template: ship_weight_bands
+seed: 203269416
+record: WS-INPUT
+out_record: RESULT-AREA
+main: 0000-MAIN
+copybook: SHP0007C.cpy
+prefix: null
+inputs:
+- name: PW-KG
+  pic: 9(4)
+  business: package_weight
+  comment: PACKAGE WEIGHT IN KG
+outputs:
+- name: F-AM
+  pic: 9(5)V99
+  business: ship_charge
+  init: 0
+  comment: SHIPPING CHARGE
+noise:
+  date: POST-DATE
+  filler: 4
+blocks:
+- structure: chain
+  rules:
+  - title: Light parcel
+    intent: Charge 5 for parcels up to 2 kg.
+    concepts:
+    - shipping
+    - weight
+    - charge
+    when:
+      field: package_weight
+      op: <=
+      value: 2
+    then:
+    - set: ship_charge
+      value: 5
+    id: R1
+  - title: Medium parcel
+    intent: Charge 12 for parcels up to 20 kg.
+    concepts:
+    - shipping
+    - weight
+    - charge
+    when:
+      field: package_weight
+      op: <=
+      value: 20
+    then:
+    - set: ship_charge
+      value: 12
+    id: R2
+  - title: Heavy parcel
+    intent: Charge 1.50 per kg for heavier parcels.
+    concepts:
+    - shipping
+    - weight
+    - charge
+    - default
+    when: null
+    then:
+    - compute: ship_charge
+      expr: package_weight * 1.50
+    id: R3
+  paragraph: WEIGHT-PRICING
+  render: else_if
+  compact: true
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: false
+  abbreviated: true
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: PW-KG
+  pic: 9(4)
+  business: package_weight
+- name: POST-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 16
+names88: {}
+expected_rules: 3

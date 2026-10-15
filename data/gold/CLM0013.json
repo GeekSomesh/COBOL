@@ -1,0 +1,300 @@
+{
+  "program": "CLM0013",
+  "program_file": "CLM0013.cob",
+  "domain": "insurance_claims",
+  "template": "claim_fast_track",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "CLM0013-R001",
+      "version": 1,
+      "title": "Fast-track small claim",
+      "intent": "Approve claims of 1,000 or less from customers with fewer than 2 prior claims.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "field": "claim_amount",
+            "source_name": "CLAIM-VALUE",
+            "op": "<=",
+            "value": 1000
+          },
+          {
+            "field": "prior_claims",
+            "source_name": "PREV-CLM-CNT",
+            "op": "<",
+            "value": 2
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "CLAIM-DECN",
+          "value": "A"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0013.cob",
+        "paragraph": "TRIAGE-CLAIM",
+        "line_start": 29,
+        "line_end": 31,
+        "copybooks": [
+          "CLM0013C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "amount",
+        "prior claims",
+        "approval"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_fast_track",
+        "spec": "data/specs/CLM0013.yaml",
+        "seed": 206993224
+      }
+    },
+    {
+      "rule_id": "CLM0013-R002",
+      "version": 1,
+      "title": "Large claim investigation",
+      "intent": "Investigate claims above 40,000.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "claim_amount",
+                  "source_name": "CLAIM-VALUE",
+                  "op": "<=",
+                  "value": 1000
+                },
+                {
+                  "field": "prior_claims",
+                  "source_name": "PREV-CLM-CNT",
+                  "op": "<",
+                  "value": 2
+                }
+              ]
+            }
+          },
+          {
+            "field": "claim_amount",
+            "source_name": "CLAIM-VALUE",
+            "op": ">",
+            "value": 40000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "CLAIM-DECN",
+          "value": "I"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0013.cob",
+        "paragraph": "TRIAGE-CLAIM",
+        "line_start": 33,
+        "line_end": 34,
+        "copybooks": [
+          "CLM0013C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "amount",
+        "investigation"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_fast_track",
+        "spec": "data/specs/CLM0013.yaml",
+        "seed": 206993224
+      }
+    },
+    {
+      "rule_id": "CLM0013-R003",
+      "version": 1,
+      "title": "New policy claim",
+      "intent": "Investigate claims on policies younger than 3 months.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "claim_amount",
+                  "source_name": "CLAIM-VALUE",
+                  "op": "<=",
+                  "value": 1000
+                },
+                {
+                  "field": "prior_claims",
+                  "source_name": "PREV-CLM-CNT",
+                  "op": "<",
+                  "value": 2
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "claim_amount",
+              "source_name": "CLAIM-VALUE",
+              "op": ">",
+              "value": 40000
+            }
+          },
+          {
+            "field": "policy_age_months",
+            "source_name": "POL-MONTHS",
+            "op": "<",
+            "value": 3
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "CLAIM-DECN",
+          "value": "I"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0013.cob",
+        "paragraph": "TRIAGE-CLAIM",
+        "line_start": 35,
+        "line_end": 36,
+        "copybooks": [
+          "CLM0013C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "policy age",
+        "investigation"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_fast_track",
+        "spec": "data/specs/CLM0013.yaml",
+        "seed": 206993224
+      }
+    },
+    {
+      "rule_id": "CLM0013-R004",
+      "version": 1,
+      "title": "Standard claim",
+      "intent": "Approve all other claims.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "claim_amount",
+                  "source_name": "CLAIM-VALUE",
+                  "op": "<=",
+                  "value": 1000
+                },
+                {
+                  "field": "prior_claims",
+                  "source_name": "PREV-CLM-CNT",
+                  "op": "<",
+                  "value": 2
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "claim_amount",
+              "source_name": "CLAIM-VALUE",
+              "op": ">",
+              "value": 40000
+            }
+          },
+          {
+            "not": {
+              "field": "policy_age_months",
+              "source_name": "POL-MONTHS",
+              "op": "<",
+              "value": 3
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "CLAIM-DECN",
+          "value": "A"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0013.cob",
+        "paragraph": "TRIAGE-CLAIM",
+        "line_start": 37,
+        "line_end": 38,
+        "copybooks": [
+          "CLM0013C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "approval",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_fast_track",
+        "spec": "data/specs/CLM0013.yaml",
+        "seed": 206993224
+      }
+    }
+  ]
+}

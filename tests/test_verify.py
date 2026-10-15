@@ -101,9 +101,12 @@ def test_broken_rule_is_caught(toolchain):
 
 
 @pytest.mark.cobol
-def test_public_program_without_harness_still_gets_confidence(toolchain):
+def test_public_programs_get_confidence_with_or_without_a_harness(toolchain):
     public = ROOT / "data" / "public" / "ibm-zopeneditor-sample"
-    ex = run_pipeline(public / "SAM2.cbl", [public], toolchain=toolchain)
-    assert "differential" not in ex.report                    # file I/O program: no ACCEPT/DISPLAY harness
-    assert all(r.confidence["components"]["differential"] is None for r in ex.rules)
-    assert all(r.confidence["components"]["structural"] == 1.0 for r in ex.rules)
+    sam1 = run_pipeline(public / "SAM1.cbl", [public], toolchain=toolchain)
+    assert "differential" not in sam1.report                  # file I/O main program: no harness yet
+    assert all(r.confidence["components"]["differential"] is None for r in sam1.rules)
+    sam2 = run_pipeline(public / "SAM2.cbl", [public], toolchain=toolchain)
+    assert sam2.report["harness"] == "subprogram driver"      # CALLed subprogram: generated driver
+    assert sam2.report["differential"]["agreement"] == 1.0
+    assert all(r.confidence["components"]["structural"] == 1.0 for r in sam1.rules + sam2.rules)

@@ -30,6 +30,10 @@ class Harness:
     fields: dict[str, dict[str, Any]]             # dictionary entries (COBOL name -> entry)
     initial: dict[str, Any] = field(default_factory=dict)   # VALUE clauses of outputs/work fields
     lines: list[int] = field(default_factory=list)          # fields per ACCEPT, in order (empty: one line)
+    storage: Optional[Any] = None                            # Storage: inputs are whole records in bytes
+    records: list[str] = field(default_factory=list)        # records ACCEPTed in order (storage mode)
+    loop_bounds: set[str] = field(default_factory=set)      # fields bounding PERFORM loops: kept small
+    raw_tests: set[str] = field(default_factory=set)        # fields tested with IS NUMERIC / ALPHABETIC
 
     @property
     def record_length(self) -> int:
@@ -41,6 +45,36 @@ def _walk(stmts: list[Stmt]):
         yield s
         if isinstance(s, PerformStmt) and s.body:
             yield from _walk(s.body)
+
+
+def walk_all(stmts: list[Stmt]):
+    """Every statement, including those nested in IF / EVALUATE / SEARCH / handlers."""
+    from src.analysis.slicer import _children
+    for s in stmts:
+        yield s
+        for sub in _children(s):
+            yield from walk_all(sub)
+
+
+def loop_bounds(analysis: Analysis) -> set[str]:
+    """Fields that bound a PERFORM loop (UNTIL / TIMES): inputs there must stay small."""
+    from src.verify.smt import _leaves
+    out: set[str] = set()
+    for para in analysis.program.paragraphs:
+        for s in walk_all(para.statements):
+            if isinstance(s, PerformStmt):
+                if s.until:
+                    for leaf in _leaves(s.until):
+                        out.update(base(n) for n in (leaf["source_name"], leaf.get("ref")) if n)
+                if s.times is not None and hasattr(s.times, "text"):
+                    out.add(base(s.times.text))
+    return out
+
+
+def raw_tests(conditions: list[dict[str, Any]]) -> set[str]:
+    from src.verify.smt import _leaves
+    return {base(l["source_name"]) for c in conditions for l in _leaves(c)
+            if l["op"] in ("is_numeric", "is_alphabetic")}
 
 
 def _elementary(item: DataItem) -> list[DataItem]:
@@ -98,7 +132,8 @@ def build_harness(analysis: Analysis) -> Optional[Harness]:
             initial[name] = store(0, entry)
         else:
             initial[name] = ""
-    return Harness(record_name, layout, outputs, fields, initial, lines if len(lines) > 1 else [])
+    return Harness(record_name, layout, outputs, fields, initial, lines if len(lines) > 1 else [],
+                   loop_bounds=loop_bounds(analysis))
 
 
 # ---- encode / decode -----------------------------------------------------------------
@@ -113,6 +148,8 @@ def encode_value(value: Any, entry: dict[str, Any], length: int) -> str:
 
 
 def encode_record(h: Harness, row: dict[str, Any]) -> str:
+    if h.storage is not None:            # whole records as bytes, one line per ACCEPT
+        return LINE_SEP.join(h.storage.image(root, row) for root in h.records)
     out = []
     for f in h.layout:
         value = row.get(f["name"], 0 if is_numeric_entry(f["entry"]) else "")
@@ -137,20 +174,30 @@ def decode_display(text: str, entry: Optional[dict[str, Any]]) -> Any:
         if not digits:
             return Decimal(0)
         scale = int(entry.get("scale") or 0)
-        if "." in t:
-            n = Decimal(t.replace("+", "").replace("-", ""))
-        else:
-            n = Decimal(int(digits)).scaleb(-scale)
+        try:
+            if "." in t:
+                n = Decimal(t.replace("+", "").replace("-", ""))
+            else:
+                n = Decimal(int(digits)).scaleb(-scale)
+        except ArithmeticError:
+            return text                      # not a number (bytes left by a REDEFINES view)
         return -n if neg else n
     return text.rstrip()
+
+
+def same_raw(expected: Any, actual: str, entry: Optional[dict[str, Any]]) -> bool:
+    """A numeric field holding non-digit bytes: GnuCOBOL's DISPLAY inserts the decimal point
+    and shows blank positions as zeros, so compare the bytes modulo that formatting."""
+    norm = lambda t: str(t).replace(".", "").replace(" ", "0").rstrip("0")   # noqa: E731
+    return norm(expected) == norm(actual)
 
 
 def same_output(expected: Any, actual: Any, entry: Optional[dict[str, Any]]) -> bool:
     """Equal outputs; numbers may differ by one unit in the last place (ROUNDED vs truncation)."""
     if is_numeric_entry(entry):
         a, b = to_num(expected), to_num(actual)
-        if a is None or b is None:
-            return False
+        if a is None or b is None:           # non-digit bytes in a numeric field: compare the text
+            return str(expected).rstrip() == str(actual).rstrip()
         unit = Decimal(1).scaleb(-int(entry.get("scale") or 0))
         return abs(a - b) <= unit
     return str(expected).rstrip() == str(actual).rstrip()
@@ -182,22 +229,65 @@ def candidates(h: Harness, conditions: list[dict[str, Any]], rng: random.Random)
     cands: dict[str, list[Any]] = {}
     for f in h.layout:
         entry, name = f["entry"], f["name"]
+        if is_numeric_entry(entry) and base(name) in h.loop_bounds:
+            cands[name] = [Decimal(0), Decimal(1), Decimal(2), Decimal(3)]    # loop counts: keep runs short
+            continue
         if is_numeric_entry(entry):
             scale = int(entry.get("scale") or 0)
             unit = Decimal(1).scaleb(-scale)
             top = Decimal(10) ** int(entry.get("int_digits") or 1) - unit
             vals = {Decimal(0), top, unit}
-            for t in lits.get(name, set()):
+            for t in lits.get(name, set()) | lits.get(base(name), set()):
                 n = to_num(t)
                 if n is not None:
                     vals.update({n - unit, n, n + unit})
             for _ in range(3):
                 vals.add(store(Decimal(rng.random()) * min(top, Decimal(100000)), entry))
             cands[name] = sorted(v for v in vals if Decimal(0) <= v <= top)
+            if h.storage is not None and base(name) in h.raw_tests:
+                cands[name] += [" " * f["length"], ("A" + " " * f["length"])[:f["length"]]]   # NOT NUMERIC
         else:
-            vals = {str(t) for t in lits.get(name, set())} | {"Z" * min(f["length"], 1), ""}
+            vals = {str(t) for t in lits.get(name, set()) | lits.get(base(name), set())} | {"Z" * min(f["length"], 1), ""}
+            if h.storage is not None and base(name) in h.raw_tests:
+                vals |= {"1" * f["length"], "A1"[:f["length"]]}
+            if h.storage is not None and any(h.storage.cells[o].numeric for o in h.storage.overlaps.get(name, [])
+                                             if h.storage.cells[o].elementary):
+                n = f["length"]                  # text sharing bytes with a number: digit strings too
+                vals |= {"0" * n, "".join(str(rng.randint(0, 9)) for _ in range(n))}
             cands[name] = sorted(vals)
     return cands
+
+
+def normalize(h: Harness, row: dict[str, Any], rng: random.Random, force: tuple[str, ...] = ()) -> dict[str, Any]:
+    """Storage mode: lay the chosen values into record bytes (base fields, then a random subset
+    of the REDEFINES views on top) and read every field back, so the row is one consistent
+    record image, as the compiled program will see it."""
+    if h.storage is None:
+        return row
+    st = h.storage
+    out = dict(row)
+    for root in h.records:
+        raw = st.image(root, row)
+        views: dict[str, list[str]] = {}         # redefined area -> alternative layouts
+        for c in st.fields(root):
+            if c.alias and c.view and c.view not in views.setdefault(c.area, []):
+                views[c.area].append(c.view)
+        for area, alts in views.items():
+            forced = [c.view for c in st.fields(root) if c.key in force and c.area == area and c.view]
+            pick = forced[0] if forced else (rng.choice(alts) if rng.random() < 0.5 else None)
+            if pick is None:
+                continue                         # keep the base layout's bytes
+            named = [c for c in st.fields(root) if c.view == pick and c.key in row and not c.key.startswith("FILLER#")]
+            keep = [c for c in named if c.key in force or rng.random() < 0.7] or named[:1]
+            for c in keep:                       # one alternative, some of its named fields
+                raw = st.write(root, raw, c, row[c.key])
+        for c in st.fields(root):                # loop counts read from shared bytes: keep runs short
+            if c.numeric and base(c.key) in h.loop_bounds:
+                v = st.decode(c, raw[c.off:c.off + c.length])
+                if isinstance(v, Decimal) and v > 3:
+                    raw = st.write(root, raw, c, v % 4)
+        st.fill(root, raw, out)
+    return out
 
 
 def _subnodes(c: dict[str, Any], out: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -228,14 +318,20 @@ def build_grid(h: Harness, conditions: list[dict[str, Any]], seed: int = 7, rand
     names = [f["name"] for f in h.layout]
 
     def sample() -> dict[str, Any]:
-        return {n: rng.choice(cands[n]) for n in names}
+        return normalize(h, {n: rng.choice(cands[n]) for n in names}, rng)
 
+    if h.storage is not None:
+        targeted_tries = min(targeted_tries, 40)    # record-level rows cost more; the fuzzer covers depth
+        conditions = list({repr(c): c for c in conditions}.values())
     subs: dict[str, dict[str, Any]] = {}
     for c in conditions:
         for s in _subnodes(c, []):
             subs.setdefault(repr(s), s)
     targets: list[list[tuple[dict[str, Any], bool]]] = [[(c, w)] for c in conditions for w in (True, False)]
-    targets += [[(c, True), (s, w)] for c in conditions for s in subs.values() for w in (True, False)]
+    if h.storage is not None:            # record-level rows: each condition's own parts (the fuzzer goes deeper)
+        targets += [[(c, True), (s, w)] for c in conditions for s in _subnodes(c, [])[1:] for w in (True, False)]
+    else:
+        targets += [[(c, True), (s, w)] for c in conditions for s in subs.values() for w in (True, False)]
     # every conjunct failing alone while its siblings hold: probes each threshold in context,
     # including thresholds inside first-match exclusions (not ...) of chained rules
     for s in subs.values():
@@ -249,7 +345,7 @@ def build_grid(h: Harness, conditions: list[dict[str, Any]], seed: int = 7, rand
                     targets.append([(x, True) for j, x in enumerate(kids) if j != k]
                                    + [(y, True) for i, y in enumerate(inner["all"]) if i != m] + [(member, False)])
 
-    base_rows: list[dict[str, Any]] = [{n: cands[n][0] for n in names}]
+    base_rows: list[dict[str, Any]] = [normalize(h, {n: cands[n][0] for n in names}, rng)]
     for target in targets:
         for _ in range(targeted_tries):
             row = sample()
@@ -257,7 +353,8 @@ def build_grid(h: Harness, conditions: list[dict[str, Any]], seed: int = 7, rand
             if all(eval_cond(c, state) == want for c, want in target):
                 base_rows.append(row)
                 break
-    walked = [{**row, n: v} for row in base_rows for n in names if len(cands[n]) <= 12 for v in cands[n]]
+    walked = [normalize(h, {**row, n: v}, rng, force=(n,))
+              for row in base_rows for n in names if len(cands[n]) <= 12 for v in cands[n]]
     rows = base_rows + walked + [sample() for _ in range(random_rows)]
 
     seen, unique = set(), []

@@ -1,0 +1,126 @@
+program: CLM0013
+program_file: CLM0013.cob
+domain: insurance_claims
+template: claim_fast_track
+seed: 206993224
+record: IN-RECORD
+out_record: WS-OUT-REC
+main: 0000-MAIN
+copybook: CLM0013C.cpy
+prefix: null
+inputs:
+- name: CLAIM-VALUE
+  pic: 9(7)V99
+  business: claim_amount
+  comment: CLAIMED AMOUNT
+- name: PREV-CLM-CNT
+  pic: 9(2)
+  business: prior_claims
+  comment: CLAIMS IN LAST 3 YEARS
+- name: POL-MONTHS
+  pic: 9(3)
+  business: policy_age_months
+  comment: MONTHS SINCE POLICY START
+outputs:
+- name: CLAIM-DECN
+  pic: X
+  business: claim_status
+  init: A
+  comment: A=APPROVE I=INVESTIGATE D=DENY
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Fast-track small claim
+    intent: Approve claims of 1,000 or less from customers with fewer than 2 prior claims.
+    concepts:
+    - claim
+    - amount
+    - prior claims
+    - approval
+    when:
+      all:
+      - field: claim_amount
+        op: <=
+        value: 1000
+      - field: prior_claims
+        op: <
+        value: 2
+    then:
+    - set: claim_status
+      value: A
+    id: R1
+  - title: Large claim investigation
+    intent: Investigate claims above 40,000.
+    concepts:
+    - claim
+    - amount
+    - investigation
+    when:
+      field: claim_amount
+      op: '>'
+      value: 40000
+    then:
+    - set: claim_status
+      value: I
+    id: R2
+  - title: New policy claim
+    intent: Investigate claims on policies younger than 3 months.
+    concepts:
+    - claim
+    - policy age
+    - investigation
+    when:
+      field: policy_age_months
+      op: <
+      value: 3
+    then:
+    - set: claim_status
+      value: I
+    id: R3
+  - title: Standard claim
+    intent: Approve all other claims.
+    concepts:
+    - claim
+    - approval
+    - default
+    when: null
+    then:
+    - set: claim_status
+      value: A
+    id: R4
+  paragraph: TRIAGE-CLAIM
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: misleading
+  copybook: true
+  replacing: false
+  abbreviated: false
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: CLAIM-VALUE
+  pic: 9(7)V99
+  business: claim_amount
+- name: PREV-CLM-CNT
+  pic: 9(2)
+  business: prior_claims
+- name: POL-MONTHS
+  pic: 9(3)
+  business: policy_age_months
+record_length: 14
+names88:
+  CLAIM-APPROVED:
+    field: claim_status
+    op: ==
+    value: A
+  CLAIM-INVESTIGATE:
+    field: claim_status
+    op: ==
+    value: I
+expected_rules: 4

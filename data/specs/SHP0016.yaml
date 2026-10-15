@@ -1,0 +1,95 @@
+program: SHP0016
+program_file: SHP0016.cob
+domain: shipping_charges
+template: ship_weight_bands
+seed: 1985742440
+record: WS-INPUT
+out_record: WS-OUT-REC
+main: MAINLINE
+copybook: SHP0016C.cpy
+prefix: CU
+inputs:
+- name: CU-PKG-WEIGHT
+  pic: 9(4)
+  business: package_weight
+  comment: PACKAGE WEIGHT IN KG
+outputs:
+- name: SHIP-CHARGE
+  pic: 9(5)V99
+  business: ship_charge
+  init: 0
+  comment: SHIPPING CHARGE
+noise:
+  date: CU-PROC-DATE
+  filler: 4
+blocks:
+- structure: chain
+  rules:
+  - title: Light parcel
+    intent: Charge 5 for parcels up to 2 kg.
+    concepts:
+    - shipping
+    - weight
+    - charge
+    when:
+      field: package_weight
+      op: <=
+      value: 2
+    then:
+    - set: ship_charge
+      value: 5
+    id: R1
+  - title: Medium parcel
+    intent: Charge 12 for parcels up to 10 kg.
+    concepts:
+    - shipping
+    - weight
+    - charge
+    when:
+      field: package_weight
+      op: <=
+      value: 10
+    then:
+    - set: ship_charge
+      value: 12
+    id: R2
+  - title: Heavy parcel
+    intent: Charge 1.25 per kg for heavier parcels.
+    concepts:
+    - shipping
+    - weight
+    - charge
+    - default
+    when: null
+    then:
+    - compute: ship_charge
+      expr: package_weight * 1.25
+    id: R3
+  paragraph: WEIGHT-PRICING
+  render: else_if
+  compact: false
+style:
+  cryptic_names: false
+  comments: none
+  copybook: true
+  replacing: true
+  abbreviated: true
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: CU-PKG-WEIGHT
+  pic: 9(4)
+  business: package_weight
+- name: CU-PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 16
+names88: {}
+expected_rules: 3

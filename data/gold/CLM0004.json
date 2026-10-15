@@ -1,0 +1,292 @@
+{
+  "program": "CLM0004",
+  "program_file": "CLM0004.cob",
+  "domain": "insurance_claims",
+  "template": "claim_fast_track",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "CLM0004-R001",
+      "version": 1,
+      "title": "Fast-track small claim",
+      "intent": "Approve claims of 2,500 or less from customers with fewer than 2 prior claims.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "field": "claim_amount",
+            "source_name": "CLAIM-AMT",
+            "op": "<=",
+            "value": 2500
+          },
+          {
+            "field": "prior_claims",
+            "source_name": "PRIOR-CLAIMS",
+            "op": "<",
+            "value": 2
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "CLAIM-STATUS",
+          "value": "A"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0004.cob",
+        "paragraph": "CLAIM-ROUTING",
+        "line_start": 42,
+        "line_end": 43,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "amount",
+        "prior claims",
+        "approval"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_fast_track",
+        "spec": "data/specs/CLM0004.yaml",
+        "seed": 2038439933
+      }
+    },
+    {
+      "rule_id": "CLM0004-R002",
+      "version": 1,
+      "title": "Large claim investigation",
+      "intent": "Investigate claims above 25,000.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "claim_amount",
+                  "source_name": "CLAIM-AMT",
+                  "op": "<=",
+                  "value": 2500
+                },
+                {
+                  "field": "prior_claims",
+                  "source_name": "PRIOR-CLAIMS",
+                  "op": "<",
+                  "value": 2
+                }
+              ]
+            }
+          },
+          {
+            "field": "claim_amount",
+            "source_name": "CLAIM-AMT",
+            "op": ">",
+            "value": 25000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "CLAIM-STATUS",
+          "value": "I"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0004.cob",
+        "paragraph": "CLAIM-ROUTING",
+        "line_start": 45,
+        "line_end": 46,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "amount",
+        "investigation"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_fast_track",
+        "spec": "data/specs/CLM0004.yaml",
+        "seed": 2038439933
+      }
+    },
+    {
+      "rule_id": "CLM0004-R003",
+      "version": 1,
+      "title": "New policy claim",
+      "intent": "Investigate claims on policies younger than 6 months.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "claim_amount",
+                  "source_name": "CLAIM-AMT",
+                  "op": "<=",
+                  "value": 2500
+                },
+                {
+                  "field": "prior_claims",
+                  "source_name": "PRIOR-CLAIMS",
+                  "op": "<",
+                  "value": 2
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "claim_amount",
+              "source_name": "CLAIM-AMT",
+              "op": ">",
+              "value": 25000
+            }
+          },
+          {
+            "field": "policy_age_months",
+            "source_name": "POLICY-TENURE",
+            "op": "<",
+            "value": 6
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "CLAIM-STATUS",
+          "value": "I"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0004.cob",
+        "paragraph": "CLAIM-ROUTING",
+        "line_start": 48,
+        "line_end": 49,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "policy age",
+        "investigation"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_fast_track",
+        "spec": "data/specs/CLM0004.yaml",
+        "seed": 2038439933
+      }
+    },
+    {
+      "rule_id": "CLM0004-R004",
+      "version": 1,
+      "title": "Standard claim",
+      "intent": "Approve all other claims.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "all": [
+                {
+                  "field": "claim_amount",
+                  "source_name": "CLAIM-AMT",
+                  "op": "<=",
+                  "value": 2500
+                },
+                {
+                  "field": "prior_claims",
+                  "source_name": "PRIOR-CLAIMS",
+                  "op": "<",
+                  "value": 2
+                }
+              ]
+            }
+          },
+          {
+            "not": {
+              "field": "claim_amount",
+              "source_name": "CLAIM-AMT",
+              "op": ">",
+              "value": 25000
+            }
+          },
+          {
+            "not": {
+              "field": "policy_age_months",
+              "source_name": "POLICY-TENURE",
+              "op": "<",
+              "value": 6
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "CLAIM-STATUS",
+          "value": "A"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0004.cob",
+        "paragraph": "CLAIM-ROUTING",
+        "line_start": 50,
+        "line_end": 51,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "approval",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_fast_track",
+        "spec": "data/specs/CLM0004.yaml",
+        "seed": 2038439933
+      }
+    }
+  ]
+}

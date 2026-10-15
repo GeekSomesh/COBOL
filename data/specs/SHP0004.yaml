@@ -1,0 +1,87 @@
+program: SHP0004
+program_file: SHP0004.cob
+domain: shipping_charges
+template: ship_weight_bands
+seed: 472160436
+record: WS-IN-REC
+out_record: OUT-RECORD
+main: A000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: SHIP-WEIGHT
+  pic: 9(4)
+  business: package_weight
+  comment: PACKAGE WEIGHT IN KG
+outputs:
+- name: FREIGHT-AMT
+  pic: 9(5)V99
+  business: ship_charge
+  init: 0
+  comment: SHIPPING CHARGE
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Light parcel
+    intent: Charge 7 for parcels up to 5 kg.
+    concepts:
+    - shipping
+    - weight
+    - charge
+    when:
+      field: package_weight
+      op: <=
+      value: 5
+    then:
+    - set: ship_charge
+      value: 7
+    id: R1
+  - title: Medium parcel
+    intent: Charge 15 for parcels up to 10 kg.
+    concepts:
+    - shipping
+    - weight
+    - charge
+    when:
+      field: package_weight
+      op: <=
+      value: 10
+    then:
+    - set: ship_charge
+      value: 15
+    id: R2
+  - title: Heavy parcel
+    intent: Charge 1.25 per kg for heavier parcels.
+    concepts:
+    - shipping
+    - weight
+    - charge
+    - default
+    when: null
+    then:
+    - compute: ship_charge
+      expr: package_weight * 1.25
+    id: R3
+  paragraph: 2000-WEIGHT-BAND
+  render: else_if
+  compact: false
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: false
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: SHIP-WEIGHT
+  pic: 9(4)
+  business: package_weight
+record_length: 4
+names88: {}
+expected_rules: 3

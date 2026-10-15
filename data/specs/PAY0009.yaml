@@ -1,0 +1,118 @@
+program: PAY0009
+program_file: PAY0009.cob
+domain: payroll_deductions
+template: payroll_benefits
+seed: 1139082860
+record: INPUT-AREA
+out_record: WS-OUT-REC
+main: 0000-MAIN
+copybook: PAY0009C.cpy
+prefix: IN
+inputs:
+- name: IN-EMP-TYPE
+  pic: X
+  business: employee_type
+  comment: EMPLOYEE TYPE F=FULL-TIME P=PART-TIME C=CONTRACTOR
+- name: IN-WEEK-HOURS
+  pic: 9(3)
+  business: hours_worked
+  comment: HOURS WORKED THIS WEEK
+- name: IN-PENSION-OPTIN
+  pic: X
+  business: pension_opt_in
+  comment: PENSION ENROLMENT Y/N
+- name: IN-SERVICE-YEARS
+  pic: 9(2)
+  business: years_service
+  comment: YEARS OF SERVICE
+outputs:
+- name: BENEFIT-IND
+  pic: X
+  business: benefits_flag
+  init: N
+  comment: BENEFITS ELIGIBLE Y/N
+- name: PENSION-RATE
+  pic: 9V9999
+  business: pension_rate
+  init: 0
+  comment: PENSION CONTRIBUTION RATE
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Benefits eligibility
+    intent: Make full-time employees, and part-time employees working at least 30 hours, eligible for benefits.
+    concepts:
+    - benefits
+    - eligibility
+    - employee type
+    - hours
+    when:
+      any:
+      - field: employee_type
+        op: ==
+        value: F
+      - all:
+        - field: employee_type
+          op: ==
+          value: P
+        - field: hours_worked
+          op: '>='
+          value: 30
+    then:
+    - set: benefits_flag
+      value: Y
+    id: R1
+  paragraph: 4000-BENEFITS
+- structure: if
+  rules:
+  - title: Pension contribution rate
+    intent: Contribute 5% to the pension for enrolled employees with at least 3 years of service, otherwise 3%.
+    concepts:
+    - pension
+    - service years
+    - contribution
+    when:
+      all:
+      - field: pension_opt_in
+        op: ==
+        value: Y
+      - field: years_service
+        op: '>='
+        value: 3
+    then:
+    - set: pension_rate
+      value: 0.05
+    else:
+    - set: pension_rate
+      value: 0.03
+    id: R1
+  paragraph: 4100-PENSION
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: true
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: false
+record_layout:
+- name: IN-EMP-TYPE
+  pic: X
+  business: employee_type
+- name: IN-WEEK-HOURS
+  pic: 9(3)
+  business: hours_worked
+- name: IN-PENSION-OPTIN
+  pic: X
+  business: pension_opt_in
+- name: IN-SERVICE-YEARS
+  pic: 9(2)
+  business: years_service
+record_length: 7
+names88: {}
+expected_rules: 2

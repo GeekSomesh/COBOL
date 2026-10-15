@@ -1,0 +1,206 @@
+{
+  "program": "SHP0012",
+  "program_file": "SHP0012.cob",
+  "domain": "shipping_charges",
+  "template": "ship_hazmat",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "SHP0012-R001",
+      "version": 1,
+      "title": "No overnight hazardous goods",
+      "intent": "Block hazardous shipments sent overnight.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "hazmat_flag",
+            "source_name": "TX-D-GI",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "field": "service_level",
+            "source_name": "TX-WS-SVC",
+            "op": "==",
+            "value": "O"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "ship_block",
+          "source_name": "WS-SBLK",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0012.cob",
+        "paragraph": "DANGEROUS-GOODS",
+        "line_start": 32,
+        "line_end": 33,
+        "copybooks": [
+          "SHP0012C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "hazardous",
+        "overnight",
+        "block"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_hazmat",
+        "spec": "data/specs/SHP0012.yaml",
+        "seed": 1240571151
+      }
+    },
+    {
+      "rule_id": "SHP0012-R002",
+      "version": 1,
+      "title": "Long-distance hazardous surcharge",
+      "intent": "Add a 60 surcharge to hazardous shipments over 500 km.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "hazmat_flag",
+            "source_name": "TX-D-GI",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "not": {
+              "field": "service_level",
+              "source_name": "TX-WS-SVC",
+              "op": "==",
+              "value": "O"
+            }
+          },
+          {
+            "field": "distance_km",
+            "source_name": "TX-WS-DIST",
+            "op": ">",
+            "value": 500
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "surcharge",
+          "source_name": "X-CG",
+          "value": 60
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0012.cob",
+        "paragraph": "DANGEROUS-GOODS",
+        "line_start": 35,
+        "line_end": 36,
+        "copybooks": [
+          "SHP0012C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "hazardous",
+        "distance",
+        "surcharge"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_hazmat",
+        "spec": "data/specs/SHP0012.yaml",
+        "seed": 1240571151
+      }
+    },
+    {
+      "rule_id": "SHP0012-R003",
+      "version": 1,
+      "title": "Hazardous goods surcharge",
+      "intent": "Add a 25 surcharge to other hazardous shipments.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "hazmat_flag",
+            "source_name": "TX-D-GI",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "not": {
+              "field": "service_level",
+              "source_name": "TX-WS-SVC",
+              "op": "==",
+              "value": "O"
+            }
+          },
+          {
+            "not": {
+              "field": "distance_km",
+              "source_name": "TX-WS-DIST",
+              "op": ">",
+              "value": 500
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "surcharge",
+          "source_name": "X-CG",
+          "value": 25
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0012.cob",
+        "paragraph": "DANGEROUS-GOODS",
+        "line_start": 37,
+        "line_end": 38,
+        "copybooks": [
+          "SHP0012C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "hazardous",
+        "surcharge"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_hazmat",
+        "spec": "data/specs/SHP0012.yaml",
+        "seed": 1240571151
+      }
+    }
+  ]
+}

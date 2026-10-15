@@ -1,0 +1,262 @@
+{
+  "program": "PAY0004",
+  "program_file": "PAY0004.cob",
+  "domain": "payroll_deductions",
+  "template": "payroll_overtime",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "PAY0004-R001",
+      "version": 1,
+      "title": "No overtime for contractors",
+      "intent": "Pay no overtime to contractors.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "field": "employee_type",
+            "source_name": "EMP-TYPE",
+            "op": "==",
+            "value": "C"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "overtime_pay",
+          "source_name": "OVERTIME-PAY",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0004.cob",
+        "paragraph": "2000-OVERTIME",
+        "line_start": 31,
+        "line_end": 32,
+        "copybooks": [
+          "PAY0004C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "overtime",
+        "contractor",
+        "employee type"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_overtime",
+        "spec": "data/specs/PAY0004.yaml",
+        "seed": 514414884
+      }
+    },
+    {
+      "rule_id": "PAY0004-R002",
+      "version": 1,
+      "title": "Heavy overtime",
+      "intent": "Add 25% of gross pay as overtime when more than 60 hours were worked.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "employee_type",
+              "source_name": "EMP-TYPE",
+              "op": "==",
+              "value": "C"
+            }
+          },
+          {
+            "field": "hours_worked",
+            "source_name": "HRS-WKD",
+            "op": ">",
+            "value": 60
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "overtime_pay",
+          "source_name": "OVERTIME-PAY",
+          "expr": "GROSS-PAY * 0.25"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0004.cob",
+        "paragraph": "2000-OVERTIME",
+        "line_start": 34,
+        "line_end": 35,
+        "copybooks": [
+          "PAY0004C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "overtime",
+        "hours",
+        "gross pay"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_overtime",
+        "spec": "data/specs/PAY0004.yaml",
+        "seed": 514414884
+      }
+    },
+    {
+      "rule_id": "PAY0004-R003",
+      "version": 1,
+      "title": "Standard overtime",
+      "intent": "Add 15% of gross pay as overtime when more than 40 hours were worked.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "employee_type",
+              "source_name": "EMP-TYPE",
+              "op": "==",
+              "value": "C"
+            }
+          },
+          {
+            "not": {
+              "field": "hours_worked",
+              "source_name": "HRS-WKD",
+              "op": ">",
+              "value": 60
+            }
+          },
+          {
+            "field": "hours_worked",
+            "source_name": "HRS-WKD",
+            "op": ">",
+            "value": 40
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "overtime_pay",
+          "source_name": "OVERTIME-PAY",
+          "expr": "GROSS-PAY * 0.15"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0004.cob",
+        "paragraph": "2000-OVERTIME",
+        "line_start": 37,
+        "line_end": 38,
+        "copybooks": [
+          "PAY0004C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "overtime",
+        "hours",
+        "gross pay"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_overtime",
+        "spec": "data/specs/PAY0004.yaml",
+        "seed": 514414884
+      }
+    },
+    {
+      "rule_id": "PAY0004-R004",
+      "version": 1,
+      "title": "No overtime",
+      "intent": "Pay no overtime otherwise.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "employee_type",
+              "source_name": "EMP-TYPE",
+              "op": "==",
+              "value": "C"
+            }
+          },
+          {
+            "not": {
+              "field": "hours_worked",
+              "source_name": "HRS-WKD",
+              "op": ">",
+              "value": 60
+            }
+          },
+          {
+            "not": {
+              "field": "hours_worked",
+              "source_name": "HRS-WKD",
+              "op": ">",
+              "value": 40
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "overtime_pay",
+          "source_name": "OVERTIME-PAY",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0004.cob",
+        "paragraph": "2000-OVERTIME",
+        "line_start": 39,
+        "line_end": 40,
+        "copybooks": [
+          "PAY0004C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "overtime",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_overtime",
+        "spec": "data/specs/PAY0004.yaml",
+        "seed": 514414884
+      }
+    }
+  ]
+}

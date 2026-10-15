@@ -1,0 +1,6 @@
+    *> HAZARDOUS GOODS Y/N
+    05 :PFX:-D-GI            PIC X.
+    *> SERVICE S=STANDARD E=EXPRESS O=OVERNIGHT
+    05 :PFX:-WS-SVC          PIC X.
+    *> DELIVERY DISTANCE IN KM
+    05 :PFX:-WS-DIST         PIC 9(5).

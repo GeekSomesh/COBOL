@@ -1,0 +1,174 @@
+{
+  "program": "PAY0008",
+  "program_file": "PAY0008.cob",
+  "domain": "payroll_deductions",
+  "template": "payroll_union_dues",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "PAY0008-R001",
+      "version": 1,
+      "title": "Higher union dues",
+      "intent": "Deduct 45 union dues from members earning at least 2,000.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "field": "union_member",
+            "source_name": "UNION-MEMBER",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "field": "gross_pay",
+            "source_name": "GROSS-PAY",
+            "op": ">=",
+            "value": 2000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "union_dues",
+          "source_name": "DUES-AMT",
+          "value": 45
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0008.cob",
+        "paragraph": "3000-UNION-DUES",
+        "line_start": 41,
+        "line_end": 42,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "union",
+        "dues",
+        "gross pay",
+        "deduction"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_union_dues",
+        "spec": "data/specs/PAY0008.yaml",
+        "seed": 1450248148
+      }
+    },
+    {
+      "rule_id": "PAY0008-R002",
+      "version": 1,
+      "title": "Basic union dues",
+      "intent": "Deduct 30 union dues from other members.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "all": [
+          {
+            "field": "union_member",
+            "source_name": "UNION-MEMBER",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "not": {
+              "field": "gross_pay",
+              "source_name": "GROSS-PAY",
+              "op": ">=",
+              "value": 2000
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "union_dues",
+          "source_name": "DUES-AMT",
+          "value": 30
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0008.cob",
+        "paragraph": "3000-UNION-DUES",
+        "line_start": 43,
+        "line_end": 44,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "union",
+        "dues",
+        "deduction"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_union_dues",
+        "spec": "data/specs/PAY0008.yaml",
+        "seed": 1450248148
+      }
+    },
+    {
+      "rule_id": "PAY0008-R003",
+      "version": 1,
+      "title": "Non-member",
+      "intent": "Deduct no union dues from non-members.",
+      "domain": "payroll_deductions",
+      "conditions": {
+        "not": {
+          "field": "union_member",
+          "source_name": "UNION-MEMBER",
+          "op": "==",
+          "value": "Y"
+        }
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "union_dues",
+          "source_name": "DUES-AMT",
+          "value": 0
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "PAY0008.cob",
+        "paragraph": "3000-UNION-DUES",
+        "line_start": 46,
+        "line_end": 47,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "union",
+        "dues"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "payroll_union_dues",
+        "spec": "data/specs/PAY0008.yaml",
+        "seed": 1450248148
+      }
+    }
+  ]
+}

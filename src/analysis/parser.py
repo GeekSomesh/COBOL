@@ -168,13 +168,19 @@ class Parser:
                 self.next()
             self.parse_data_division()
         paragraphs: list[Paragraph] = []
+        using: list[str] = []
         if self.at_division("PROCEDURE"):
             self.next(); self.next()
+            if self.accept_word("USING"):       # subprogram parameters (LINKAGE SECTION records)
+                while self.peek() is not None and not self.at_kind("PERIOD") and not self.at_word("RETURNING"):
+                    t = self.next()
+                    if t.kind == "WORD" and t.value not in ("BY", "REFERENCE", "VALUE", "CONTENT"):
+                        using.append(t.value)
             self.skip_to_period()
             paragraphs = self.parse_procedure_division()
         if not program_id:
             program_id = self.src.program_file.rsplit(".", 1)[0].upper()
-        return Program(program_id, paragraphs, self.dict, self.diags)
+        return Program(program_id, paragraphs, self.dict, self.diags, using)
 
     # ---- DATA DIVISION ---------------------------------------------------
     def parse_data_division(self) -> None:

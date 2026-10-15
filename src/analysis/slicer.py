@@ -73,6 +73,11 @@ def _children(s: Stmt) -> list[list[Stmt]]:
     return []
 
 
+def flat_count(c: dict[str, Any]) -> int:
+    """How many items ``combine`` contributes for one path element."""
+    return len(c["all"]) if set(c) == {"all"} else 1
+
+
 def _has_decision(stmts: list[Stmt]) -> bool:
     for s in stmts:
         if isinstance(s, DECISIONS):
@@ -109,7 +114,7 @@ class Slicer:
         for s in stmts:
             self.stmt = s
             if isinstance(s, DECISIONS):
-                self._decision(s, [])
+                self._decision(s, [], [])
             elif isinstance(s, PerformStmt) and s.body:
                 self._walk_top(s.body)
             elif isinstance(s, SearchStmt):
@@ -139,7 +144,7 @@ class Slicer:
             acts, unsupported, external = self._actions(w.stmts)
             self._emit(w.cond or {"all": []}, acts, [], w.line,
                        max([w.line] + [x.line_end for x in w.stmts]), s.file,
-                       [reason] + _notes(w.notes) + unsupported, external)
+                       [reason] + _notes(w.notes) + unsupported, external, trail=[(s, "search", 1)])
 
     def _emit_table(self, s: SearchStmt, table: Table) -> None:
         records: list[dict[str, Any]] = []
@@ -177,7 +182,7 @@ class Slicer:
                             "lines": [], "binary": s.binary, "at_end": True}))
         for rec in records:
             self._emit(rec["cond"], rec["acts"], [], rec["start"], rec["end"], s.file,
-                       rec["unsupported"], rec["external"], lookup=rec["lookup"])
+                       rec["unsupported"], rec["external"], lookup=rec["lookup"], trail=[(s, "search", 1)])
 
     def _starts_at_one(self, prev: Optional[Stmt]) -> bool:
         if isinstance(prev, SetStmt) and isinstance(prev.value, Lit):
@@ -217,7 +222,9 @@ class Slicer:
 
         return any(walk(p.statements) for p in self.program.paragraphs)
 
-    def _decision(self, s: Stmt, path: list[dict[str, Any]]) -> None:
+    def _decision(self, s: Stmt, path: list[dict[str, Any]], trail: list[tuple]) -> None:
+        """``trail`` records, per nesting level, (decision statement, branch, condition items)
+        so the interpreter can test each level of a path rule at its own decision point."""
         if isinstance(s, IfStmt):
             else_ = s.else_ or []
             if not path and not _has_decision(s.then) and not _has_decision(else_):
@@ -225,35 +232,38 @@ class Slicer:
                 else_acts, u2, e2 = self._actions(else_)
                 if acts or else_acts or u1 or u2:    # an IF that only does I/O is not a rule
                     self._emit(combine([s.cond]), acts, else_acts, s.line_start, s.line_end, s.file,
-                               _notes(s.notes) + u1 + u2, e1 or e2)
+                               _notes(s.notes) + u1 + u2, e1 or e2, trail=[(s, "if", 1)])
                 return
-            self._branch(s.then, path + [s.cond], s.line_start, s.file, _notes(s.notes))
+            self._branch(s.then, path + [s.cond], s.line_start, s.file, _notes(s.notes),
+                         trail + [(s, 0, flat_count(s.cond))])
             if s.else_ is not None:
-                self._branch(s.else_, path + [negate(s.cond)], s.else_line or s.line_start, s.file, _notes(s.notes))
+                self._branch(s.else_, path + [negate(s.cond)], s.else_line or s.line_start, s.file, _notes(s.notes),
+                             trail + [(s, 1, flat_count(negate(s.cond)))])
         elif isinstance(s, EvaluateStmt):
             earlier: list[dict[str, Any]] = []
-            for w in s.whens:
+            for i, w in enumerate(s.whens):
                 conds = [negate(c) for c in earlier]
                 if w.cond is not None:
                     conds.append(w.cond)
                     earlier.append(w.cond)
-                self._branch(w.stmts, path + conds, w.line, s.file, _notes(w.notes))
+                self._branch(w.stmts, path + conds, w.line, s.file, _notes(w.notes),
+                             trail + [(s, i, sum(flat_count(c) for c in conds))])
 
     def _branch(self, stmts: list[Stmt], path: list[dict[str, Any]], open_line: int,
-                file: str, notes: list[str]) -> None:
+                file: str, notes: list[str], trail: list[tuple]) -> None:
         direct = [s for s in stmts if not isinstance(s, DECISIONS)]
         acts, unsupported, external = self._actions(direct)
         if acts or unsupported:
             end = max([open_line] + [s.line_end for s in stmts])
             self._emit(combine(path) if path else {"all": []}, acts, [], open_line, end, file,
-                       notes + unsupported, external)
+                       notes + unsupported, external, trail=trail)
         for s in stmts:
             if isinstance(s, DECISIONS):
-                self._decision(s, path)
+                self._decision(s, path, trail)
             elif isinstance(s, PerformStmt) and s.body:
                 for inner in s.body:
                     if isinstance(inner, DECISIONS):
-                        self._decision(inner, path)
+                        self._decision(inner, path, trail)
 
     # ---- actions ------------------------------------------------------------
     def _actions(self, stmts: list[Stmt]) -> tuple[list[dict[str, Any]], list[str], bool]:
@@ -332,10 +342,11 @@ class Slicer:
 
     # ---- output -------------------------------------------------------------
     def _emit(self, cond: dict[str, Any], acts: list, else_acts: list, start: int, end: int,
-              file: str, unsupported: list[str], external: bool, lookup: Optional[dict[str, Any]] = None) -> None:
+              file: str, unsupported: list[str], external: bool, lookup: Optional[dict[str, Any]] = None,
+              trail: Optional[list[tuple]] = None) -> None:
         self.records.append(dict(cond=cond, actions=acts, else_actions=else_acts, start=start,
                                  end=end, file=file, paragraph=self.paragraph, stmt=self.stmt,
-                                 para_idx=getattr(self, "para_idx", 0), lookup=lookup,
+                                 para_idx=getattr(self, "para_idx", 0), lookup=lookup, trail=trail or [],
                                  unsupported=list(dict.fromkeys(unsupported)), external=external))
 
     def _names(self, rec: dict[str, Any]) -> list[str]:

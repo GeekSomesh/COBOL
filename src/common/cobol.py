@@ -28,6 +28,7 @@ class CompileJob:
     source: Path
     exe: Path
     copy_dirs: Sequence[Path] = ()
+    extra: Sequence[Path] = ()          # further sources linked in (CALLed subprograms)
 
 
 @dataclass
@@ -116,10 +117,11 @@ class Toolchain:
         for i, job in enumerate(jobs):
             incs = " ".join(f"-I {shlex.quote(self.path(d))}" for d in job.copy_dirs)
             exe = self.path(job.exe)
-            src = self.path(job.source)
+            src = " ".join(shlex.quote(self.path(p)) for p in [job.source, *job.extra])
+            static = " -fstatic-call" if job.extra else ""
             lines.append(f"mkdir -p {shlex.quote(str(Path(exe).parent.as_posix()))}")
             lines.append(
-                f"out=$(cobc -x {fmt} {incs} {shlex.quote(src)} -o {shlex.quote(exe)} 2>&1); rc=$?; "
+                f"out=$(cobc -x{static} {fmt} {incs} {src} -o {shlex.quote(exe)} 2>&1); rc=$?; "
                 f"printf '@@%d %d\\n' {i} $rc; printf '%s\\n' \"$out\" | sed 's/^/@>{i} /'"
             )
         stdout = self._shell("\n".join(lines), timeout=60 + 30 * len(jobs))

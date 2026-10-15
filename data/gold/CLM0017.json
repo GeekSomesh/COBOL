@@ -1,0 +1,136 @@
+{
+  "program": "CLM0017",
+  "program_file": "CLM0017.cob",
+  "domain": "insurance_claims",
+  "template": "claim_fraud_referral",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "CLM0017-R001",
+      "version": 1,
+      "title": "Auto claim without police report",
+      "intent": "Refer auto claims above 10,000 without a police report to special investigations.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "field": "claim_type",
+            "source_name": "L-TY",
+            "op": "==",
+            "value": "A"
+          },
+          {
+            "field": "police_report",
+            "source_name": "PR-FLG",
+            "op": "==",
+            "value": "N"
+          },
+          {
+            "field": "claim_amount",
+            "source_name": "C-VL",
+            "op": ">",
+            "value": 10000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "siu_referral",
+          "source_name": "WS-SIU",
+          "value": "Y"
+        },
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "WS-CLST",
+          "value": "I"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0017.cob",
+        "paragraph": "CHECK-POLICE-RPT",
+        "line_start": 22,
+        "line_end": 25,
+        "copybooks": [
+          "CLM0017C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "auto",
+        "police report",
+        "fraud",
+        "referral"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_fraud_referral",
+        "spec": "data/specs/CLM0017.yaml",
+        "seed": 1675628526
+      }
+    },
+    {
+      "rule_id": "CLM0017-R002",
+      "version": 1,
+      "title": "Frequent claimant",
+      "intent": "Refer customers with 4 or more prior claims to special investigations.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "field": "prior_claims",
+            "source_name": "P-CC",
+            "op": ">=",
+            "value": 4
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "siu_referral",
+          "source_name": "WS-SIU",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0017.cob",
+        "paragraph": "FREQUENT-CLAIMANT",
+        "line_start": 27,
+        "line_end": 29,
+        "copybooks": [
+          "CLM0017C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "prior claims",
+        "fraud",
+        "referral"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_fraud_referral",
+        "spec": "data/specs/CLM0017.yaml",
+        "seed": 1675628526
+      }
+    }
+  ]
+}

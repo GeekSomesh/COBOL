@@ -1,0 +1,120 @@
+program: CLM0018
+program_file: CLM0018.cob
+domain: insurance_claims
+template: claim_payout
+seed: 591471571
+record: IN-RECORD
+out_record: OUT-RECORD
+main: A000-MAIN
+copybook: null
+prefix: null
+inputs:
+- name: CLM-TYPE-CD
+  pic: X
+  business: claim_type
+  comment: CLAIM TYPE A=AUTO H=HOME M=MEDICAL
+- name: CLM-AMOUNT
+  pic: 9(7)V99
+  business: claim_amount
+  comment: CLAIMED AMOUNT
+- name: DEDUCTIBLE-AMT
+  pic: 9(5)V99
+  business: deductible
+  comment: POLICY DEDUCTIBLE
+outputs:
+- name: SETTLE-AMT
+  pic: 9(7)V99
+  business: payout_amt
+  init: 0
+  comment: AMOUNT PAID ON CLAIM
+- name: CLM-STAT-CD
+  pic: X
+  business: claim_status
+  init: A
+  comment: A=APPROVE I=INVESTIGATE D=DENY
+noise:
+  date: PROC-DATE
+  filler: 4
+blocks:
+- structure: chain
+  rules:
+  - title: Medical co-insurance
+    intent: Pay 70% of medical claims.
+    concepts:
+    - claim
+    - medical
+    - payout
+    - co-insurance
+    when:
+      field: claim_type
+      op: ==
+      value: M
+    then:
+    - compute: payout_amt
+      expr: claim_amount * 0.70
+    id: R1
+  - title: Deductible applies
+    intent: Pay the claimed amount minus the deductible for any other claim with an amount.
+    concepts:
+    - claim
+    - deductible
+    - payout
+    when:
+      field: claim_amount
+      op: '>'
+      value: 0
+    then:
+    - compute: payout_amt
+      expr: claim_amount - deductible
+    id: R2
+  - title: Nothing to pay
+    intent: Deny claims with no claimed amount.
+    concepts:
+    - claim
+    - denial
+    - default
+    when: null
+    then:
+    - set: payout_amt
+      value: 0
+    - set: claim_status
+      value: D
+    id: R3
+  paragraph: CALC-PAYOUT
+  render: else_if
+  compact: true
+style:
+  cryptic_names: false
+  comments: misleading
+  copybook: false
+  replacing: false
+  abbreviated: true
+  use_88: true
+  word_operators: false
+  dead_code: false
+  noise_fields: true
+  decimal_literals: false
+  environment_division: false
+record_layout:
+- name: CLM-TYPE-CD
+  pic: X
+  business: claim_type
+- name: CLM-AMOUNT
+  pic: 9(7)V99
+  business: claim_amount
+- name: DEDUCTIBLE-AMT
+  pic: 9(5)V99
+  business: deductible
+- name: PROC-DATE
+  pic: 9(8)
+  business: null
+- name: FILLER
+  pic: X(4)
+  business: null
+record_length: 29
+names88:
+  CLM-MEDICAL:
+    field: claim_type
+    op: ==
+    value: M
+expected_rules: 3

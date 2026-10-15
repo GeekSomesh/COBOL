@@ -1,0 +1,200 @@
+{
+  "program": "SHP0015",
+  "program_file": "SHP0015.cob",
+  "domain": "shipping_charges",
+  "template": "ship_hazmat",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "SHP0015-R001",
+      "version": 1,
+      "title": "No overnight hazardous goods",
+      "intent": "Block hazardous shipments sent overnight.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "hazmat_flag",
+            "source_name": "DANGER-GOODS-IND",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "field": "service_level",
+            "source_name": "SERVICE-CD",
+            "op": "==",
+            "value": "O"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "ship_block",
+          "source_name": "SHIP-BLOCK",
+          "value": "Y"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0015.cob",
+        "paragraph": "4000-HAZMAT",
+        "line_start": 27,
+        "line_end": 28,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "hazardous",
+        "overnight",
+        "block"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_hazmat",
+        "spec": "data/specs/SHP0015.yaml",
+        "seed": 565031893
+      }
+    },
+    {
+      "rule_id": "SHP0015-R002",
+      "version": 1,
+      "title": "Long-distance hazardous surcharge",
+      "intent": "Add a 60 surcharge to hazardous shipments over 1000 km.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "hazmat_flag",
+            "source_name": "DANGER-GOODS-IND",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "not": {
+              "field": "service_level",
+              "source_name": "SERVICE-CD",
+              "op": "==",
+              "value": "O"
+            }
+          },
+          {
+            "field": "distance_km",
+            "source_name": "SHIP-DISTANCE",
+            "op": ">",
+            "value": 1000
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "surcharge",
+          "source_name": "SURCHG-AMT",
+          "value": 60
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0015.cob",
+        "paragraph": "4000-HAZMAT",
+        "line_start": 29,
+        "line_end": 30,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "hazardous",
+        "distance",
+        "surcharge"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_hazmat",
+        "spec": "data/specs/SHP0015.yaml",
+        "seed": 565031893
+      }
+    },
+    {
+      "rule_id": "SHP0015-R003",
+      "version": 1,
+      "title": "Hazardous goods surcharge",
+      "intent": "Add a 25 surcharge to other hazardous shipments.",
+      "domain": "shipping_charges",
+      "conditions": {
+        "all": [
+          {
+            "field": "hazmat_flag",
+            "source_name": "DANGER-GOODS-IND",
+            "op": "==",
+            "value": "Y"
+          },
+          {
+            "not": {
+              "field": "service_level",
+              "source_name": "SERVICE-CD",
+              "op": "==",
+              "value": "O"
+            }
+          },
+          {
+            "not": {
+              "field": "distance_km",
+              "source_name": "SHIP-DISTANCE",
+              "op": ">",
+              "value": 1000
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "surcharge",
+          "source_name": "SURCHG-AMT",
+          "value": 25
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "SHP0015.cob",
+        "paragraph": "4000-HAZMAT",
+        "line_start": 31,
+        "line_end": 32,
+        "copybooks": [],
+        "performed_from": []
+      },
+      "concepts": [
+        "shipping",
+        "hazardous",
+        "surcharge"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "ship_hazmat",
+        "spec": "data/specs/SHP0015.yaml",
+        "seed": 565031893
+      }
+    }
+  ]
+}

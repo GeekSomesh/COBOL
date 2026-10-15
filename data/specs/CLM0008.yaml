@@ -1,0 +1,126 @@
+program: CLM0008
+program_file: CLM0008.cob
+domain: insurance_claims
+template: claim_fraud_referral
+seed: 2076187857
+record: WS-IN-REC
+out_record: OUT-RECORD
+main: 0000-MAIN
+copybook: CLM0008C.cpy
+prefix: IN
+inputs:
+- name: IN-L-TY
+  pic: X
+  business: claim_type
+  comment: CLAIM TYPE A=AUTO H=HOME M=MEDICAL
+- name: IN-P-RP
+  pic: X
+  business: police_report
+  comment: POLICE REPORT FILED Y/N
+- name: IN-WS-CLAM
+  pic: 9(7)V99
+  business: claim_amount
+  comment: CLAIMED AMOUNT
+- name: IN-PC-CT
+  pic: 9(2)
+  business: prior_claims
+  comment: CLAIMS IN LAST 3 YEARS
+outputs:
+- name: SU-IND
+  pic: X
+  business: siu_referral
+  init: N
+  comment: SPECIAL INVESTIGATIONS REFERRAL
+- name: C-DN
+  pic: X
+  business: claim_status
+  init: A
+  comment: A=APPROVE I=INVESTIGATE D=DENY
+noise: null
+blocks:
+- structure: if
+  rules:
+  - title: Auto claim without police report
+    intent: Refer auto claims above 5,000 without a police report to special investigations.
+    concepts:
+    - claim
+    - auto
+    - police report
+    - fraud
+    - referral
+    when:
+      all:
+      - field: claim_type
+        op: ==
+        value: A
+      - field: police_report
+        op: ==
+        value: N
+      - field: claim_amount
+        op: '>'
+        value: 5000
+    then:
+    - set: siu_referral
+      value: Y
+    - set: claim_status
+      value: I
+    id: R1
+  paragraph: CHECK-POLICE-RPT
+- structure: if
+  rules:
+  - title: Frequent claimant
+    intent: Refer customers with 4 or more prior claims to special investigations.
+    concepts:
+    - claim
+    - prior claims
+    - fraud
+    - referral
+    when:
+      field: prior_claims
+      op: '>='
+      value: 4
+    then:
+    - set: siu_referral
+      value: Y
+    id: R1
+  paragraph: FREQUENT-CLAIMANT
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: true
+  use_88: true
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: false
+record_layout:
+- name: IN-L-TY
+  pic: X
+  business: claim_type
+- name: IN-P-RP
+  pic: X
+  business: police_report
+- name: IN-WS-CLAM
+  pic: 9(7)V99
+  business: claim_amount
+- name: IN-PC-CT
+  pic: 9(2)
+  business: prior_claims
+record_length: 13
+names88:
+  L-AUTO:
+    field: claim_type
+    op: ==
+    value: A
+  P-IS-N:
+    field: police_report
+    op: ==
+    value: N
+  SU-REFERRED:
+    field: siu_referral
+    op: ==
+    value: Y
+expected_rules: 2

@@ -157,3 +157,4 @@ class Program:
     paragraphs: list[Paragraph]
     dictionary: Dictionary
     diagnostics: list[str] = field(default_factory=list)
+    using: list[str] = field(default_factory=list)      # PROCEDURE DIVISION USING parameters

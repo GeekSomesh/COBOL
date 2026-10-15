@@ -51,12 +51,18 @@ def parse_enrichment(content: str) -> Enrichment:
 
 
 def merge(rule: Rule, e: Enrichment, slice_: Slice, model: str) -> Rule:
+    from src.rules.glossary import active
     allowed = {k.upper() for k in slice_.fields}
     names = {}
     for cobol, business in e.field_names.items():
         key, value = str(cobol).upper().strip(), snake(business)
         if key in allowed and value and re.fullmatch(r"[a-z][a-z0-9_]*", value):
             names[key] = value
+    glossary = active()
+    for key in allowed:                    # reviewed glossary names always win over the model
+        fixed = glossary.field_name(key)
+        if fixed:
+            names[key] = fixed
     data = rule.model_dump(by_alias=True)
 
     def rename(c: dict[str, Any]) -> None:

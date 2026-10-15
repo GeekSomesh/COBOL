@@ -1,0 +1,193 @@
+{
+  "program": "CLM0003",
+  "program_file": "CLM0003.cob",
+  "domain": "insurance_claims",
+  "template": "claim_payout",
+  "split": "train",
+  "rules": [
+    {
+      "rule_id": "CLM0003-R001",
+      "version": 1,
+      "title": "Medical co-insurance",
+      "intent": "Pay 80% of medical claims.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "field": "claim_type",
+            "source_name": "CLM-TYPE-CD",
+            "op": "==",
+            "value": "M"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "payout_amt",
+          "source_name": "SETTLE-AMT",
+          "expr": "CLAIM-VALUE * 0.80"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0003.cob",
+        "paragraph": "PAYOUT-RULES",
+        "line_start": 31,
+        "line_end": 32,
+        "copybooks": [
+          "CLM0003C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "medical",
+        "payout",
+        "co-insurance"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_payout",
+        "spec": "data/specs/CLM0003.yaml",
+        "seed": 327579243
+      }
+    },
+    {
+      "rule_id": "CLM0003-R002",
+      "version": 1,
+      "title": "Deductible applies",
+      "intent": "Pay the claimed amount minus the deductible for any other claim with an amount.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "claim_type",
+              "source_name": "CLM-TYPE-CD",
+              "op": "==",
+              "value": "M"
+            }
+          },
+          {
+            "field": "claim_amount",
+            "source_name": "CLAIM-VALUE",
+            "op": ">",
+            "value": 0
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "compute",
+          "target": "payout_amt",
+          "source_name": "SETTLE-AMT",
+          "expr": "CLAIM-VALUE - POLICY-DEDUCT"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0003.cob",
+        "paragraph": "PAYOUT-RULES",
+        "line_start": 35,
+        "line_end": 36,
+        "copybooks": [
+          "CLM0003C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "deductible",
+        "payout"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_payout",
+        "spec": "data/specs/CLM0003.yaml",
+        "seed": 327579243
+      }
+    },
+    {
+      "rule_id": "CLM0003-R003",
+      "version": 1,
+      "title": "Nothing to pay",
+      "intent": "Deny claims with no claimed amount.",
+      "domain": "insurance_claims",
+      "conditions": {
+        "all": [
+          {
+            "not": {
+              "field": "claim_type",
+              "source_name": "CLM-TYPE-CD",
+              "op": "==",
+              "value": "M"
+            }
+          },
+          {
+            "not": {
+              "field": "claim_amount",
+              "source_name": "CLAIM-VALUE",
+              "op": ">",
+              "value": 0
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "set",
+          "target": "payout_amt",
+          "source_name": "SETTLE-AMT",
+          "value": 0
+        },
+        {
+          "type": "set",
+          "target": "claim_status",
+          "source_name": "CLAIM-STATUS",
+          "value": "D"
+        }
+      ],
+      "else_actions": [],
+      "derivations": {},
+      "reachable": true,
+      "trace": {
+        "program": "CLM0003.cob",
+        "paragraph": "PAYOUT-RULES",
+        "line_start": 37,
+        "line_end": 39,
+        "copybooks": [
+          "CLM0003C.cpy"
+        ],
+        "performed_from": []
+      },
+      "concepts": [
+        "claim",
+        "denial",
+        "default"
+      ],
+      "external_dependency": false,
+      "unsupported": [],
+      "confidence": {},
+      "status": "approved",
+      "provenance": {
+        "source": "gold:generator",
+        "template": "claim_payout",
+        "spec": "data/specs/CLM0003.yaml",
+        "seed": 327579243
+      }
+    }
+  ]
+}

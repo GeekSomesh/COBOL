@@ -294,7 +294,7 @@ def run_faults(args: argparse.Namespace) -> None:
     # AUROC: probability that a clean rule scores higher than a faulty one (ties count half)
     auroc = statistics.mean(1.0 if c["score"] > f["score"] else 0.5 if c["score"] == f["score"] else 0.0
                             for c in clean for f in faulty)
-    write("faults", {
+    write("faults" if args.split == "test" else f"faults_{args.split}", {
         "system": "verification ablation (fault injection)", "split": args.split, "programs": len(progs),
         "faulty_rules": len(faulty), "clean_rules": len(clean),
         "with_verification": {
@@ -316,7 +316,45 @@ def run_faults(args: argparse.Namespace) -> None:
         "without_verification": {"faults_routed_to_review": 0.0,
                                  "note": "Without verification every extracted rule gets the same status, so injected faults pass unnoticed."},
         "by_fault_kind": by_kind,
+        "cases": cases,                      # per rule: used to fit and check the calibration (calibrate)
     })
+
+
+# ---- confidence calibration ---------------------------------------------------------------
+
+def _ece(pairs: list[tuple[float, bool]], bins: int = 10) -> float:
+    groups: list[list[tuple[float, bool]]] = [[] for _ in range(bins)]
+    for p, ok in pairs:
+        groups[min(int(p * bins), bins - 1)].append((p, ok))
+    return sum(len(g) / len(pairs) * abs(statistics.mean(p for p, _ in g) - statistics.mean(1.0 if ok else 0.0 for _, ok in g))
+               for g in groups if g)
+
+
+def run_calibrate(args: argparse.Namespace) -> None:
+    """Fit score -> P(rule correct) on the validation fault cases (isotonic regression), then
+    measure calibration error on the test cases before and after. Writes data/calibration.json,
+    which the confidence stage uses to report ``p_correct`` next to the raw score."""
+    from sklearn.isotonic import IsotonicRegression
+    fit = json.loads((RESULTS / "eval_faults_val.json").read_text())["cases"]
+    test = json.loads((RESULTS / "eval_faults.json").read_text())["cases"]
+    iso = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip", increasing=True)
+    iso.fit([c["score"] for c in fit], [0.0 if c["faulty"] else 1.0 for c in fit])
+    xs = sorted({round(float(x), 4) for x in iso.X_thresholds_})
+    table = [[x, round(float(iso.predict([x])[0]), 4)] for x in xs]
+    (DATA / "calibration.json").write_text(json.dumps({
+        "method": "isotonic regression, score -> P(rule correct)", "fitted_on": "fault injection, validation split",
+        "cases": len(fit), "points": table}, indent=2), encoding="utf-8")
+    raw = [(c["score"], not c["faulty"]) for c in test]
+    cal = [(float(iso.predict([c["score"]])[0]), not c["faulty"]) for c in test]
+    write("calibration", {
+        "system": "confidence calibration", "fitted_on": "val fault cases", "measured_on": "test fault cases",
+        "fit_cases": len(fit), "test_cases": len(test),
+        "ece_raw": round(_ece(raw), 4), "ece_calibrated": round(_ece(cal), 4),
+        "brier_raw": round(statistics.mean((p - (1.0 if ok else 0.0)) ** 2 for p, ok in raw), 4),
+        "brier_calibrated": round(statistics.mean((p - (1.0 if ok else 0.0)) ** 2 for p, ok in cal), 4),
+        "points": table,
+    })
+    print(f"ECE raw {_ece(raw):.4f} -> calibrated {_ece(cal):.4f} on {len(test)} test cases")
 
 
 # ---- latency --------------------------------------------------------------------------------
@@ -491,11 +529,12 @@ def main() -> int:
     f.add_argument("--limit", type=int, default=0)
     f.add_argument("--seed", type=int, default=11)
     sub.add_parser("latency")
+    sub.add_parser("calibrate")
     sub.add_parser("table")
     sub.add_parser("errors")
     args = ap.parse_args()
     {"system": run_system, "faults": run_faults, "latency": run_latency, "table": run_table,
-     "errors": run_errors}[args.cmd](args)
+     "errors": run_errors, "calibrate": run_calibrate}[args.cmd](args)
     return 0
 
 

@@ -408,6 +408,27 @@ def explain_endpoint(rule_set: str, target: Optional[str] = None, user: User = D
 
 # ---- health and UI -----------------------------------------------------------------------------
 
+class GlossaryBody(BaseModel):
+    fields: dict[str, str] = {}
+    terms: dict[str, str] = {}
+
+
+@app.get("/v1/glossary")
+def get_glossary(user: User = Depends(need("viewer"))):
+    from src.rules.glossary import active
+    return active().as_dict()
+
+
+@app.put("/v1/glossary")
+def put_glossary(body: GlossaryBody, user: User = Depends(need("admin"))):
+    """Replace the business glossary. Applies to extractions started afterwards."""
+    from src.rules.glossary import Glossary, save
+    g = Glossary.from_dict(body.model_dump())
+    save(g)
+    log.info("glossary updated by=%s fields=%d terms=%d", user.name, len(g.fields), len(g.terms))
+    return g.as_dict()
+
+
 @app.get("/v1/health")
 def health():
     from src.common.cobol import Toolchain, ToolchainError

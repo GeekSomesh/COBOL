@@ -48,12 +48,12 @@ def record_length(layout: list[dict]) -> int:
     return sum(parse_pic(f["pic"]).length for f in layout)
 
 
-def generate(count: int, seed: int) -> list[dict]:
+def generate(count: int, seed: int, templates: list = TEMPLATES) -> list[dict]:
     rng = random.Random(seed)
     numbers: Counter = Counter()
     programs = []
     for i in range(count):
-        template = TEMPLATES[i % len(TEMPLATES)]
+        template = templates[i % len(templates)]
         numbers[template.domain] += 1
         prog_seed = rng.randrange(2**31)
         r = random.Random(prog_seed)
@@ -70,7 +70,7 @@ def generate(count: int, seed: int) -> list[dict]:
         (DATA / "synthetic" / spec["program_file"]).write_text(rendered.program_text, encoding="utf-8")
         if rendered.copybook_text is not None:
             (DATA / "synthetic" / spec["copybook"]).write_text(rendered.copybook_text, encoding="utf-8")
-        split = SPLIT_OF_TEMPLATE[template.id]
+        split = SPLIT_OF_TEMPLATE.get(template.id, "train")
         (DATA / "gold" / f"{prog}.json").write_text(json.dumps({
             "program": prog, "program_file": spec["program_file"], "domain": spec["domain"],
             "template": spec["template"], "split": split, "rules": [dump(g) for g in gold],
@@ -106,15 +106,44 @@ def compile_and_smoke(programs: list[dict]) -> list[str]:
     return errors
 
 
+def add_extra(count: int, seed: int, compile_: bool) -> int:
+    """Training-only programs from extra domains; the main corpus and its splits are untouched
+    except that these programs are appended to the train split."""
+    from src.corpus.extra_templates import EXTRA_PREFIX, EXTRA_TEMPLATES
+    extra = re.compile(rf"^({'|'.join(EXTRA_PREFIX.values())})\d{{4}}")
+    for folder in (DATA / "specs", DATA / "synthetic", DATA / "gold"):
+        for f in folder.glob("*"):
+            if f.is_file() and extra.match(f.name):
+                f.unlink()
+    programs = generate(count, seed, EXTRA_TEMPLATES)
+    splits = json.loads((DATA / "splits.json").read_text(encoding="utf-8"))
+    splits["train"] = [p for p in splits["train"] if not extra.match(p)] + [p["program"] for p in programs]
+    splits["templates"]["train"] = sorted(set(splits["templates"]["train"]) | {p["template"] for p in programs})
+    splits["extra_train"] = [p["program"] for p in programs]
+    (DATA / "splits.json").write_text(json.dumps(splits, indent=2), encoding="utf-8")
+    print(f"added {len(programs)} training-only programs ({sum(p['rules'] for p in programs)} gold rules) "
+          f"from {len(EXTRA_TEMPLATES)} templates in {len(EXTRA_PREFIX)} domains")
+    if not compile_:
+        return 0
+    errors = compile_and_smoke(programs)
+    for e in errors:
+        print("  " + e)
+    return 1 if errors else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--count", type=int, default=60)
     ap.add_argument("--seed", type=int, default=20261006)
     ap.add_argument("--no-compile", action="store_true", help="skip the GnuCOBOL compile check")
+    ap.add_argument("--extra", type=int, default=0,
+                    help="instead: add N training-only programs from three more domains (src/corpus/extra_templates.py)")
     args = ap.parse_args()
 
     for d in ("specs", "synthetic", "gold"):
         (DATA / d).mkdir(parents=True, exist_ok=True)
+    if args.extra:
+        return add_extra(args.extra, args.seed + 1, not args.no_compile)
     clean_previous()
     programs = generate(args.count, args.seed)
     splits = write_splits(programs)

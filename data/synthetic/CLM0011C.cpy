@@ -1,0 +1,12 @@
+    05 CT-TY              PIC X.
+       88 CT-AUTO VALUE 'A'.
+    05 PR-FLG             PIC X.
+       88 PR-IS-N VALUE 'N'.
+    05 C-VL               PIC 9(7)V99.
+    05 WS-PCLM            PIC 9(2).
+    05 RUN-DATE           PIC 9(8).
+    05 RUN-DATE-R REDEFINES RUN-DATE.
+       10 RUN-DATE-YYYY  PIC 9(4).
+       10 RUN-DATE-MM    PIC 9(2).
+       10 RUN-DATE-DD    PIC 9(2).
+    05 FILLER             PIC X(6).

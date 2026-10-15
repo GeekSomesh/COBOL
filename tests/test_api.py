@@ -123,3 +123,13 @@ def test_copybooks_conflicts_and_explain(client):
     assert "features" in ex, ex
     assert {f["name"] for f in ex["features"]} == {"cust_age", "txn_amount"}
     assert ex["surrogate_fidelity"] > 0.9
+
+
+def test_glossary_is_admin_edited_and_readable(client, tmp_path, monkeypatch):
+    monkeypatch.setenv("COBOL_GLOSSARY", str(tmp_path / "glossary.json"))
+    assert client.get("/v1/glossary", headers=H["viewer"]).json() == {"fields": {}, "terms": {}}
+    body = {"fields": {"ws-cscr": "Credit Score"}, "terms": {"amt": "Amount"}}
+    assert client.put("/v1/glossary", json=body, headers=H["reviewer"]).status_code == 403
+    r = client.put("/v1/glossary", json=body, headers=H["admin"])
+    assert r.status_code == 200 and r.json() == {"fields": {"WS-CSCR": "credit_score"}, "terms": {"AMT": "amount"}}
+    assert client.get("/v1/glossary", headers=H["viewer"]).json()["fields"] == {"WS-CSCR": "credit_score"}

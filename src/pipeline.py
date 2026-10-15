@@ -72,7 +72,7 @@ def run_pipeline(program_path: Path | str, copybook_dirs: Sequence[Path | str] =
                  progress: Optional[Progress] = None) -> Extraction:
     from src.llm.enrich import enrich
     from src.verify.checks import (consistency_score, differential, field_harness, naming_score,
-                                   structural)
+                                   satisfiable, structural)
     from src.verify.confidence import apply_confidence
     from src.verify.harness import build_grid, build_harness
 
@@ -97,15 +97,27 @@ def run_pipeline(program_path: Path | str, copybook_dirs: Sequence[Path | str] =
         return Extraction(ex.analysis, rules, report)
 
     harness = build_harness(ex.analysis)
+    exe = None
+    if harness is None and ex.analysis.program.using:
+        # a CALLed subprogram: test it through a generated driver (src/verify/subprogram.py)
+        from src.verify.subprogram import build_driver, build_subprogram_harness
+        harness = build_subprogram_harness(ex.analysis)
+        if harness is not None and cfg.differential and toolchain is not None:
+            dirs = [Path(d) for d in copybook_dirs] or [Path(program_path).parent]
+            exe = cfg.exe or build_driver(ex.analysis, harness, Path(program_path), dirs, toolchain,
+                                          cfg.cache_dir / "bin")
+            report["harness"] = "subprogram driver"
     diff = None
     if cfg.differential and harness is not None and toolchain is not None:
-        exe = cfg.exe or _compile(Path(program_path), ex.analysis, copybook_dirs, toolchain, cfg.cache_dir)
+        exe = exe or cfg.exe or _compile(Path(program_path), ex.analysis, copybook_dirs, toolchain, cfg.cache_dir)
         if exe is not None:
             diff, rows = differential(ex.analysis, rules, exe, toolchain, harness)
             report["differential"] = {"rows": diff.rows, "agreement": round(diff.agreement, 4),
                                       "mismatches": diff.mismatches}
     tick("differential", 1, 1)
 
+    if harness is not None and harness.storage is not None:
+        harness = None              # structural grids: per-rule field grids are enough for the check
     if harness is not None:
         grid_all = build_grid(harness, [s.condition for s in slices]) if slices else []
     out: list[Rule] = []
@@ -128,9 +140,15 @@ def run_pipeline(program_path: Path | str, copybook_dirs: Sequence[Path | str] =
                 enrich(s, ex.rules[k], client, fewshot_examples(cfg.fewshot), retries=0,
                        temperature=0.7, seed=100 + n)[1] for n in range(cfg.consistency_runs)]
             comps["consistency"] = consistency_score(samples)
+        sat = satisfiable(r, s)
+        if sat is not None:
+            extra["satisfiable"] = sat
         if r.intent:
-            from src.llm.evaluation import grounded
+            from src.llm.evaluation import comparison_issues, grounded
             extra["intent_grounded"] = grounded(r.intent, s)
+            wording = comparison_issues(r.intent, s)
+            if wording:
+                extra["intent_comparisons"] = wording
         out.append(apply_confidence(r, comps, extra))
         tick("verify", k + 1, len(slices))
     return Extraction(ex.analysis, out, report)

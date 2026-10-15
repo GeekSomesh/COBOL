@@ -17,8 +17,10 @@ from src.common.models import Rule, Slice
 
 
 def business_name(source_name: str) -> str:
-    """CUST-AGE -> cust_age; TBL-AMT(I) -> tbl_amt_i."""
-    return re.sub(r"[^a-z0-9]+", "_", source_name.lower()).strip("_")
+    """CUST-AGE -> cust_age; TBL-AMT(I) -> tbl_amt_i; the glossary's name or expansion when it has one."""
+    from src.rules.glossary import active
+    named = active().expand(source_name)
+    return named or re.sub(r"[^a-z0-9]+", "_", source_name.lower()).strip("_")
 
 
 def _coerce(value: Any, entry: Optional[dict[str, Any]]) -> Any:

@@ -1,0 +1,107 @@
+program: CLM0006
+program_file: CLM0006.cob
+domain: insurance_claims
+template: claim_payout
+seed: 818001683
+record: INPUT-AREA
+out_record: RESULT-AREA
+main: MAIN-PARA
+copybook: null
+prefix: null
+inputs:
+- name: CLAIM-TYPE
+  pic: X
+  business: claim_type
+  comment: CLAIM TYPE A=AUTO H=HOME M=MEDICAL
+- name: CLM-AMOUNT
+  pic: 9(7)V99
+  business: claim_amount
+  comment: CLAIMED AMOUNT
+- name: POLICY-DEDUCT
+  pic: 9(5)V99
+  business: deductible
+  comment: POLICY DEDUCTIBLE
+outputs:
+- name: SETTLE-AMT
+  pic: 9(7)V99
+  business: payout_amt
+  init: 0
+  comment: AMOUNT PAID ON CLAIM
+- name: CLAIM-STATUS
+  pic: X
+  business: claim_status
+  init: A
+  comment: A=APPROVE I=INVESTIGATE D=DENY
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Medical co-insurance
+    intent: Pay 70% of medical claims.
+    concepts:
+    - claim
+    - medical
+    - payout
+    - co-insurance
+    when:
+      field: claim_type
+      op: ==
+      value: M
+    then:
+    - compute: payout_amt
+      expr: claim_amount * 0.70
+    id: R1
+  - title: Deductible applies
+    intent: Pay the claimed amount minus the deductible for any other claim with an amount.
+    concepts:
+    - claim
+    - deductible
+    - payout
+    when:
+      field: claim_amount
+      op: '>'
+      value: 0
+    then:
+    - compute: payout_amt
+      expr: claim_amount - deductible
+    id: R2
+  - title: Nothing to pay
+    intent: Deny claims with no claimed amount.
+    concepts:
+    - claim
+    - denial
+    - default
+    when: null
+    then:
+    - set: payout_amt
+      value: 0
+    - set: claim_status
+      value: D
+    id: R3
+  paragraph: CALC-PAYOUT
+  render: evaluate_true
+style:
+  cryptic_names: false
+  comments: legacy
+  copybook: false
+  replacing: false
+  abbreviated: true
+  use_88: false
+  word_operators: true
+  dead_code: false
+  noise_fields: false
+  decimal_literals: false
+  environment_division: true
+record_layout:
+- name: CLAIM-TYPE
+  pic: X
+  business: claim_type
+- name: CLM-AMOUNT
+  pic: 9(7)V99
+  business: claim_amount
+- name: POLICY-DEDUCT
+  pic: 9(5)V99
+  business: deductible
+record_length: 17
+names88: {}
+expected_rules: 3

@@ -1,0 +1,118 @@
+program: CLM0007
+program_file: CLM0007.cob
+domain: insurance_claims
+template: claim_fast_track
+seed: 1557270329
+record: INPUT-AREA
+out_record: OUT-RECORD
+main: MAINLINE
+copybook: CLM0007C.cpy
+prefix: TX
+inputs:
+- name: TX-WS-CLAM
+  pic: 9(7)V99
+  business: claim_amount
+  comment: CLAIMED AMOUNT
+- name: TX-WS-PCLM
+  pic: 9(2)
+  business: prior_claims
+  comment: CLAIMS IN LAST 3 YEARS
+- name: TX-WS-POLM
+  pic: 9(3)
+  business: policy_age_months
+  comment: MONTHS SINCE POLICY START
+outputs:
+- name: C-DN
+  pic: X
+  business: claim_status
+  init: A
+  comment: A=APPROVE I=INVESTIGATE D=DENY
+noise: null
+blocks:
+- structure: chain
+  rules:
+  - title: Fast-track small claim
+    intent: Approve claims of 1,500 or less from customers with fewer than 2 prior claims.
+    concepts:
+    - claim
+    - amount
+    - prior claims
+    - approval
+    when:
+      all:
+      - field: claim_amount
+        op: <=
+        value: 1500
+      - field: prior_claims
+        op: <
+        value: 2
+    then:
+    - set: claim_status
+      value: A
+    id: R1
+  - title: Large claim investigation
+    intent: Investigate claims above 50,000.
+    concepts:
+    - claim
+    - amount
+    - investigation
+    when:
+      field: claim_amount
+      op: '>'
+      value: 50000
+    then:
+    - set: claim_status
+      value: I
+    id: R2
+  - title: New policy claim
+    intent: Investigate claims on policies younger than 3 months.
+    concepts:
+    - claim
+    - policy age
+    - investigation
+    when:
+      field: policy_age_months
+      op: <
+      value: 3
+    then:
+    - set: claim_status
+      value: I
+    id: R3
+  - title: Standard claim
+    intent: Approve all other claims.
+    concepts:
+    - claim
+    - approval
+    - default
+    when: null
+    then:
+    - set: claim_status
+      value: A
+    id: R4
+  paragraph: CLAIM-ROUTING
+  render: evaluate_true
+style:
+  cryptic_names: true
+  comments: legacy
+  copybook: true
+  replacing: true
+  abbreviated: false
+  use_88: false
+  word_operators: false
+  dead_code: false
+  noise_fields: false
+  decimal_literals: true
+  environment_division: true
+record_layout:
+- name: TX-WS-CLAM
+  pic: 9(7)V99
+  business: claim_amount
+- name: TX-WS-PCLM
+  pic: 9(2)
+  business: prior_claims
+- name: TX-WS-POLM
+  pic: 9(3)
+  business: policy_age_months
+record_length: 14
+names88: {}
+expected_rules: 4

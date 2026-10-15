@@ -1,7 +1,7 @@
 {
   "system": "ast_only",
   "parser_version": "0.2.0",
-  "generated_at": "2026-10-15T17:47:30+00:00",
+  "generated_at": "2026-10-15T20:03:32+00:00",
   "splits": {
     "reference": {
       "n_pred": 1,
@@ -20,26 +20,26 @@
       "rules_valid": 1,
       "field_name_accuracy": 0.0,
       "rules_with_intent": 0,
-      "avg_ms_per_program": 1.5
+      "avg_ms_per_program": 2.0
     },
     "train": {
-      "n_pred": 546,
-      "n_gold": 546,
-      "tp": 546,
+      "n_pred": 702,
+      "n_gold": 702,
+      "tp": 702,
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
       "traceability_accuracy": 1.0,
       "unmatched_predictions": 0,
       "failures": {},
-      "programs": 200,
-      "programs_parsed_clean": 200,
-      "slice_count_matches": 200,
-      "slices": 546,
-      "rules_valid": 546,
-      "field_name_accuracy": 0.1218,
+      "programs": 254,
+      "programs_parsed_clean": 254,
+      "slice_count_matches": 254,
+      "slices": 702,
+      "rules_valid": 702,
+      "field_name_accuracy": 0.1113,
       "rules_with_intent": 0,
-      "avg_ms_per_program": 1.6
+      "avg_ms_per_program": 1.9
     },
     "val": {
       "n_pred": 112,
@@ -58,7 +58,7 @@
       "rules_valid": 112,
       "field_name_accuracy": 0.1861,
       "rules_with_intent": 0,
-      "avg_ms_per_program": 1.4
+      "avg_ms_per_program": 1.9
     },
     "test": {
       "n_pred": 151,
@@ -114,6 +114,17 @@
       "unmatched_predictions": 0,
       "failures": {}
     },
+    "insurance_claims": {
+      "n_pred": 54,
+      "n_gold": 54,
+      "tp": 54,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "traceability_accuracy": 1.0,
+      "unmatched_predictions": 0,
+      "failures": {}
+    },
     "interest_tiers": {
       "n_pred": 165,
       "n_gold": 165,
@@ -136,6 +147,17 @@
       "unmatched_predictions": 0,
       "failures": {}
     },
+    "payroll_deductions": {
+      "n_pred": 54,
+      "n_gold": 54,
+      "tp": 54,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "traceability_accuracy": 1.0,
+      "unmatched_predictions": 0,
+      "failures": {}
+    },
     "penalty_assessment": {
       "n_pred": 128,
       "n_gold": 128,
@@ -146,12 +168,23 @@
       "traceability_accuracy": 1.0,
       "unmatched_predictions": 0,
       "failures": {}
+    },
+    "shipping_charges": {
+      "n_pred": 48,
+      "n_gold": 48,
+      "tp": 48,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "traceability_accuracy": 1.0,
+      "unmatched_predictions": 0,
+      "failures": {}
     }
   },
   "overall": {
-    "n_pred": 810,
-    "n_gold": 810,
-    "tp": 810,
+    "n_pred": 966,
+    "n_gold": 966,
+    "tp": 966,
     "precision": 1.0,
     "recall": 1.0,
     "f1": 1.0,
@@ -160,5 +193,5 @@
     "failures": {}
   },
   "problems": [],
-  "seconds": 0.61
+  "seconds": 0.87
 }

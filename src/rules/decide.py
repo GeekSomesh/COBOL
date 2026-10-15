@@ -206,6 +206,26 @@ def _by_business(c: dict[str, Any]) -> dict[str, Any]:
     return dict(c, source_name=c["field"])
 
 
+def _overlap(ca: dict[str, Any], cb: dict[str, Any], fields: dict[str, dict[str, Any]], n: int,
+             rng: random.Random) -> tuple[bool, Optional[dict[str, Any]], str]:
+    """Can both conditions hold at once? Exact with the SMT solver, else by sampling."""
+    from src.verify import smt
+    if smt.available():
+        try:
+            numeric = {k.upper() for k, f in fields.items() if f["kind"] == "number"}
+            ok, model = smt.witness([ca, cb], numeric)
+            if ok is not None:
+                example = {k.lower(): v for k, v in (model or {}).items()}
+                return ok, example, "smt"
+        except smt.Unsupported:
+            pass
+    for row in _samples(fields, n, rng):
+        state = {base(k): (to_num(v) if fields[k]["kind"] == "number" else str(v)) for k, v in row.items()}
+        if eval_cond(ca, state) and eval_cond(cb, state):
+            return True, {k: (round(v, 2) if isinstance(v, float) else v) for k, v in row.items()}, "sampling"
+    return False, None, "sampling"
+
+
 def conflicts(rules: list[Rule], n: int = 400, seed: int = 7) -> list[dict[str, Any]]:
     """Duplicates (same logic), overlaps (both can fire) with conflicting writes to the same business field."""
     out: list[dict[str, Any]] = []
@@ -228,15 +248,9 @@ def conflicts(rules: list[Rule], n: int = 400, seed: int = 7) -> list[dict[str, 
             pair = [ra, rb]
             fields = input_fields(pair)
             ca, cb = (_by_business(effective(r)) for r in pair)
-            both = 0
-            for row in _samples(fields, n, rng):
-                state = {base(k): (to_num(v) if fields[k]["kind"] == "number" else str(v)) for k, v in row.items()}
-                if eval_cond(ca, state) and eval_cond(cb, state):
-                    both += 1
-                    example = {k: (round(v, 2) if isinstance(v, float) else v) for k, v in row.items()}
-                    break
-            if both:
+            found, example, method = _overlap(ca, cb, fields, n, rng)
+            if found:
                 out.append({"rules": [ra.rule_id, rb.rule_id], "kind": "conflict", "field": target,
-                            "values": [va, vb], "example_inputs": example,
+                            "values": [va, vb], "example_inputs": example, "method": method,
                             "reason": f"both can fire and set {target} to different values"})
     return out
