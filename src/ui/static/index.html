@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <header class="top">
   <div class="brand"><span class="logo">⟨/⟩</span> COBOL <span class="arrow">→</span> Decision</div>
   <form id="searchForm" class="search" role="search">
@@ -14,24 +15,28 @@
     <button type="submit">Search</button>
   </form>
   <div class="who">
-    <span id="health" class="health" title="Service status"></span>
+    <span id="health" class="health" title="Service status" role="img" aria-label="Service status"></span>
+    <button id="bellBtn" class="ghost" aria-haspopup="true" aria-expanded="false" aria-controls="bellPanel"
+            title="Notifications">🔔 <span id="bellCount" class="pill" aria-label="unread notifications"></span></button>
     <button id="loginBtn" class="ghost">Sign in</button>
   </div>
 </header>
 
-<nav class="tabs" id="tabs">
-  <button data-tab="rules" class="active">Rules</button>
-  <button data-tab="review">Review queue <span id="reviewCount" class="pill"></span></button>
-  <button data-tab="programs">Programs</button>
-  <button data-tab="export">Export</button>
-  <button data-tab="score">Score</button>
-  <button data-tab="insights">Insights</button>
-  <button data-tab="audit">Audit log</button>
+<div id="bellPanel" class="bell card" hidden role="region" aria-label="Notifications"></div>
+<nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
+  <button data-tab="rules" class="active" role="tab" aria-selected="true" aria-controls="tab-rules">Rules</button>
+  <button data-tab="review" role="tab" aria-selected="false" aria-controls="tab-review" tabindex="-1">Review queue <span id="reviewCount" class="pill"></span></button>
+  <button data-tab="programs" role="tab" aria-selected="false" aria-controls="tab-programs" tabindex="-1">Programs</button>
+  <button data-tab="repository" role="tab" aria-selected="false" aria-controls="tab-repository" tabindex="-1">Repository</button>
+  <button data-tab="export" role="tab" aria-selected="false" aria-controls="tab-export" tabindex="-1">Export</button>
+  <button data-tab="score" role="tab" aria-selected="false" aria-controls="tab-score" tabindex="-1">Score</button>
+  <button data-tab="insights" role="tab" aria-selected="false" aria-controls="tab-insights" tabindex="-1">Insights</button>
+  <button data-tab="audit" role="tab" aria-selected="false" aria-controls="tab-audit" tabindex="-1">Audit log</button>
 </nav>
 
-<main>
+<main id="main" tabindex="-1">
   <!-- Rules -->
-  <section id="tab-rules" class="tab active">
+  <section id="tab-rules" class="tab active" role="tabpanel" aria-label="Rules">
     <div class="filters">
       <label>Status <select id="fStatus"><option value="">any</option><option>candidate</option><option>needs_review</option><option>approved</option><option>rejected</option><option>superseded</option></select></label>
       <label>Domain <select id="fDomain"><option value="">any</option></select></label>
@@ -46,8 +51,14 @@
   </section>
 
   <!-- Review -->
-  <section id="tab-review" class="tab">
-    <p class="muted">Rules waiting for a decision, lowest confidence first. Only a reviewer can approve.</p>
+  <section id="tab-review" class="tab" role="tabpanel" aria-label="Review queue">
+    <p class="muted">Rules waiting for a decision, lowest confidence first. Only a reviewer can approve;
+      <span id="approvalsNeeded"></span></p>
+    <div class="filters">
+      <label><input type="checkbox" id="mineOnly"> Assigned to me</label>
+      <label>Reason <input id="bulkReason" placeholder="reason for the selected rules"></label>
+      <button id="bulkApprove">Approve selected</button><button id="bulkReject" class="danger">Reject selected</button>
+    </div>
     <div class="split">
       <div class="list" id="reviewList"></div>
       <div class="detail" id="reviewDetail"><div class="empty">Select a rule to review it.</div></div>
@@ -55,7 +66,7 @@
   </section>
 
   <!-- Programs -->
-  <section id="tab-programs" class="tab">
+  <section id="tab-programs" class="tab" role="tabpanel" aria-label="Programs">
     <form id="uploadForm" class="card upload">
       <h3>Upload a program</h3>
       <label>COBOL program <input type="file" id="upProgram" accept=".cob,.cbl,.cobol,.txt" required></label>
@@ -64,10 +75,49 @@
       <div id="uploadStatus" class="muted"></div>
     </form>
     <div id="programList"></div>
+    <div class="card">
+      <h3>Business glossary</h3>
+      <p class="muted">Your organisation's names: <code>fields</code> fix a COBOL field's business name (they override the model);
+        <code>terms</code> expand abbreviations. Applies to extractions started afterwards. Admins can save.</p>
+      <label for="glossaryText" class="sr">Glossary JSON</label>
+      <textarea id="glossaryText" rows="8" spellcheck="false"></textarea>
+      <div class="row"><button id="glossarySave">Save glossary</button><span id="glossaryStatus" class="muted"></span></div>
+    </div>
+  </section>
+
+  <!-- Repository -->
+  <section id="tab-repository" class="tab" role="tabpanel" aria-label="Repository">
+    <div class="card">
+      <h3>Repository</h3>
+      <p class="muted">How uploaded programs, copybooks, JCL jobs and datasets connect. Upload JCL to see which jobs run which programs and what they read and write.</p>
+      <form id="jclForm" class="row"><label>JCL member <input type="file" id="jclFile" accept=".jcl,.txt,.prc"></label>
+        <button type="submit">Upload JCL</button></form>
+      <div id="repoSummary" class="muted"></div>
+      <div id="repoGraph" class="graph" role="img" aria-label="Call graph"></div>
+      <div id="repoFindings"></div>
+    </div>
+    <div class="card">
+      <h3>Impact analysis</h3>
+      <form id="impactForm" class="filters">
+        <label>Change to <select id="impKind"><option value="field">field</option><option value="copybook">copybook</option>
+          <option value="program">program</option><option value="dataset">dataset</option></select></label>
+        <label>Name <input id="impName" placeholder="e.g. TRAN-CODE, CUSTCOPY, SAM2" required></label>
+        <button type="submit">Show impact</button>
+      </form>
+      <div id="impactResult"></div>
+    </div>
+    <div class="card">
+      <h3>Rule drift between two uploads</h3>
+      <form id="driftForm" class="filters">
+        <label>Before <select id="driftOld"></select></label><label>After <select id="driftNew"></select></label>
+        <button type="submit">Compare</button>
+      </form>
+      <div id="driftResult"></div>
+    </div>
   </section>
 
   <!-- Export -->
-  <section id="tab-export" class="tab">
+  <section id="tab-export" class="tab" role="tabpanel" aria-label="Export">
     <div class="card">
       <h3>Export rules</h3>
       <div class="filters">
@@ -77,14 +127,15 @@
       <div class="row">
         <button data-export="json">Rules JSON</button>
         <button data-export="tree">Decision-tree JSON</button>
-        <button data-export="pmml">PMML</button>
+        <button data-export="pmml">PMML 4.4</button>
+        <button data-export="dmn">DMN 1.3</button>
       </div>
       <pre id="exportPreview" class="preview"></pre>
     </div>
   </section>
 
   <!-- Score -->
-  <section id="tab-score" class="tab">
+  <section id="tab-score" class="tab" role="tabpanel" aria-label="Score">
     <div class="card">
       <h3>Score with approved rules</h3>
       <p class="muted">Stateless: inputs are not stored or logged.</p>
@@ -95,7 +146,7 @@
   </section>
 
   <!-- Insights -->
-  <section id="tab-insights" class="tab">
+  <section id="tab-insights" class="tab" role="tabpanel" aria-label="Insights">
     <div class="card">
       <h3>Feature influence (SHAP)</h3>
       <p class="muted">A surrogate model trained on decisions replayed through the rules. The rules are already explicit; this shows which inputs drive them.</p>
@@ -110,7 +161,8 @@
   </section>
 
   <!-- Audit -->
-  <section id="tab-audit" class="tab">
+  <section id="tab-audit" class="tab" role="tabpanel" aria-label="Audit log">
+    <div class="row"><button id="verifyChain" class="ghost">Verify the audit chain</button><span id="chainStatus" class="muted"></span></div>
     <div id="auditList"></div>
   </section>
 </main>
@@ -123,7 +175,8 @@
     <div class="row"><button value="ok">Sign in</button><button value="cancel" class="ghost">Cancel</button></div>
   </form>
 </dialog>
-<div id="toast" class="toast" role="status"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="app.js"></script>
+<script src="repo.js"></script>
 </body>
 </html>

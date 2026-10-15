@@ -117,6 +117,7 @@ class PerformStmt(Stmt):
 @dataclass
 class CallStmt(Stmt):
     program: str = ""
+    dynamic: bool = False                   # True when the target is a data item, not a literal
     using: list[str] = field(default_factory=list)
     handlers: list[tuple[str, list[Stmt]]] = field(default_factory=list)
 

@@ -1,4 +1,4 @@
-"""Exports: rules JSON, decision-tree JSON and PMML TreeModel (rules.md section 7).
+"""Exports: rules JSON, decision-tree JSON, PMML TreeModel and DMN (src/rules/dmn.py) (rules.md section 7).
 
 A rule set is the rules of one paragraph (one decision block). First-match
 chains are recognised by their ``not`` exclusions and become nested
@@ -157,6 +157,8 @@ def _predicate(c: dict[str, Any], ind: str) -> str:
         items = c["all"] if "all" in c else c["any"]
         if not items:
             return f"{ind}<True/>"
+        if len(items) == 1:                  # PMML needs two or more children in a CompoundPredicate
+            return _predicate(items[0], ind)
         inner = "\n".join(_predicate(x, ind + "  ") for x in items)
         return f'{ind}<CompoundPredicate booleanOperator="{op}">\n{inner}\n{ind}</CompoundPredicate>'
     if "not" in c:
@@ -208,7 +210,8 @@ def _nodes(node: Optional[dict[str, Any]], target: str, ind: str, counter: list[
 
 
 def to_pmml(rules: list[Rule]) -> tuple[str, list[str]]:
-    """PMML 4.4 with one TreeModel per eligible rule set; returns (xml, skipped reasons)."""
+    """PMML 4.4 with one TreeModel per eligible rule set; returns (xml, skipped reasons).
+    The xml is empty when no rule set is tree-shaped with one literal output (PMML would be invalid)."""
     models, skipped = [], []
     fields: OrderedDict[str, str] = OrderedDict()
     targets: OrderedDict[str, str] = OrderedDict()
@@ -240,13 +243,17 @@ def to_pmml(rules: list[Rule]) -> tuple[str, list[str]]:
         f'    <DataField name={quoteattr(f)} optype="{t}" dataType="{"double" if t == "continuous" else "string"}"/>'
         for f, t in list(fields.items()) + [(k, v) for k, v in targets.items() if k not in fields])
     n_fields = len(fields) + len([k for k in targets if k not in fields])
+    if not models:
+        return "", skipped
     if len(models) > 1:
         segs = "\n".join(f'    <Segment id="{i + 1}">\n      <True/>\n' + m.replace("\n", "\n    ") + "\n    </Segment>"
                          for i, m in enumerate(models))
-        body = (f'  <MiningModel functionName="classification">\n    <MiningSchema/>\n'
+        top = "\n".join(f'      <MiningField name={quoteattr(f)}/>' for f in fields) + "\n" + "\n".join(
+            f'      <MiningField name={quoteattr(t)} usageType="target"/>' for t in targets if t not in fields)
+        body = (f'  <MiningModel functionName="classification">\n    <MiningSchema>\n{top.rstrip()}\n    </MiningSchema>\n'
                 f'    <Segmentation multipleModelMethod="modelChain">\n{segs}\n    </Segmentation>\n  </MiningModel>')
     else:
-        body = models[0] if models else "  <!-- no tree-shaped rule set with a single output field -->"
+        body = models[0]
     xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
            '<PMML version="4.4" xmlns="http://www.dmg.org/PMML-4_4">\n'
            '  <Header description="Decision rules extracted from COBOL by cobol-to-decision"/>\n'

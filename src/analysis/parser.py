@@ -744,6 +744,7 @@ class Parser:
         node = CallStmt("CALL", start.file, start.line, end, handlers=handlers)
         if toks:
             node.program = toks[0].value
+            node.dynamic = toks[0].kind == "WORD"      # CALL WS-PGM: target held in a data item
             _, _, using = self._split(toks[1:], "USING")
             node.using = [t.value for t in using if t.kind == "WORD"
                           and t.value not in ("BY", "REFERENCE", "CONTENT", "VALUE", "RETURNING", "OMITTED")]

@@ -133,3 +133,62 @@ def test_glossary_is_admin_edited_and_readable(client, tmp_path, monkeypatch):
     r = client.put("/v1/glossary", json=body, headers=H["admin"])
     assert r.status_code == 200 and r.json() == {"fields": {"WS-CSCR": "credit_score"}, "terms": {"AMT": "amount"}}
     assert client.get("/v1/glossary", headers=H["viewer"]).json()["fields"] == {"WS-CSCR": "credit_score"}
+
+
+def test_repository_jcl_impact_and_drift(client):
+    ibm = ROOT / "data" / "public" / "ibm-zopeneditor-sample"
+    books = [("copybooks", (n, (ibm / n).read_bytes())) for n in ("CUSTCOPY.cpy", "TRANREC.cpy")]
+    ids = {}
+    for name in ("SAM1.cbl", "SAM2.cbl"):
+        r = client.post("/v1/programs", files=[("program", (name, (ibm / name).read_bytes()))] + books, headers=H["admin"])
+        ids[name] = r.json()["program_id"]
+    assert client.post("/v1/jcl", files=[("jcl", ("RUN.jcl", (ibm / "RUN.jcl").read_bytes()))],
+                       headers=H["viewer"]).status_code == 403
+    r = client.post("/v1/jcl", files=[("jcl", ("RUN.jcl", (ibm / "RUN.jcl").read_bytes()))], headers=H["admin"])
+    assert r.status_code == 201 and r.json()["jobs"][0]["job"] == "ZDERUN"
+    g = client.get("/v1/repository", headers=H["viewer"]).json()
+    assert any(e["type"] == "CALLS" and e["to"] == "program:SAM2" for e in g["edges"])
+    imp = client.get("/v1/impact", params={"kind": "program", "name": "SAM2"}, headers=H["viewer"]).json()
+    assert imp["callers"] == ["SAM1"] and imp["jobs"] == ["ZDERUN"]
+    changed = (ibm / "SAM2.cbl").read_text().replace("IF TRAN-UPDATE-NUMX1 = '+'", "IF TRAN-UPDATE-NUMX1 = '#'", 1)
+    r = client.post("/v1/programs", files=[("program", ("SAM2.cbl", changed.encode()))] + books, headers=H["admin"])
+    d = client.get("/v1/diff", params={"old": ids["SAM2.cbl"], "new": r.json()["program_id"]}, headers=H["viewer"]).json()
+    assert d["summary"]["changed"] == 1 and d["changed"][0]["changes"] == ["TRAN-UPDATE-NUMX1 ==: + -> #"]
+
+
+def test_review_workflow_two_approvers_assignment_comments_bulk_and_audit_chain(client, monkeypatch):
+    pid = upload_and_extract(client, FIXTURES / "FLOWPRG.cob")
+    main.store.approvals_required = 2
+    rules = client.get("/v1/rules", params={"program": pid}, headers=H["viewer"]).json()["items"]
+    rid = rules[0]["rule_id"]
+    # assignment notifies the assignee; comments notify the people involved
+    assert client.post(f"/v1/rules/{rid}/assign", json={"assignee": "rita"}, headers=H["admin"]).json()["assignee"] == "rita"
+    client.post(f"/v1/rules/{rid}/comments", json={"text": "threshold matches policy 4.2?"}, headers=H["reviewer"])
+    notes = client.get("/v1/notifications", headers=H["reviewer"]).json()["items"]
+    assert [n["kind"] for n in notes] == ["assigned"]
+    assert client.get("/v1/notifications", headers=H["admin"]).json()["items"][0]["kind"] == "comment"
+    assert client.get(f"/v1/rules/{rid}/comments", headers=H["viewer"]).json()["items"][0]["user"] == "rita"
+    # two distinct approvals are needed; the same reviewer cannot approve twice
+    r = client.patch(f"/v1/rules/{rid}", json={"action": "approve", "reason": "ok"}, headers=H["reviewer"]).json()
+    assert r["status"] != "approved" and r["approvals"] == {"by": ["rita"], "required": 2}
+    assert client.patch(f"/v1/rules/{rid}", json={"action": "approve", "reason": "again"},
+                        headers=H["reviewer"]).status_code == 409
+    r = client.patch(f"/v1/rules/{rid}", json={"action": "approve", "reason": "ok"}, headers=H["admin"]).json()
+    assert r["status"] == "approved"
+    # four eyes: whoever edits a rule cannot approve that version
+    other = rules[1]["rule_id"]
+    client.patch(f"/v1/rules/{other}", json={"action": "edit", "changes": {"title": "Renamed"}}, headers=H["reviewer"])
+    r = client.patch(f"/v1/rules/{other}", json={"action": "approve", "reason": "mine"}, headers=H["reviewer"])
+    assert r.status_code == 403 and r.json()["error"]["code"] == "SELF_APPROVAL"
+    # bulk review reports each rule on its own
+    ids = [x["rule_id"] for x in rules[2:4]] + ["NOPE-R001"]
+    b = client.post("/v1/rules/bulk_review", json={"rule_ids": ids, "action": "reject", "reason": "dup"},
+                    headers=H["reviewer"]).json()
+    assert b["ok"] == 2 and b["failed"] == 1
+    queue = client.get("/v1/review_queue", headers=H["viewer"]).json()
+    assert queue["approvals_required"] == 2 and all(i["status"] in ("needs_review", "candidate") for i in queue["items"])
+    # the review log is hash-chained: tampering with an entry is detected
+    assert client.get("/v1/audit/verify", headers=H["admin"]).json()["ok"] is True
+    main.store.db.execute("UPDATE reviews SET reason='changed later' WHERE id=(SELECT MIN(id) FROM reviews)")
+    v = client.get("/v1/audit/verify", headers=H["admin"]).json()
+    assert v["ok"] is False and v["broken_at"] >= 1

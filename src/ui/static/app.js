@@ -43,11 +43,26 @@ $("#loginForm").addEventListener("submit", (e) => {
 
 // ---- tabs -----------------------------------------------------------------------------
 document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => showTab(b.dataset.tab));
+// keyboard: arrow keys move between tabs (WAI-ARIA tabs pattern)
+$("#tabs").addEventListener("keydown", (e) => {
+  const tabs = [...document.querySelectorAll("#tabs button")];
+  const i = tabs.indexOf(document.activeElement);
+  if (i < 0 || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+  e.preventDefault();
+  const j = e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+  tabs[j].focus();
+  showTab(tabs[j].dataset.tab);
+});
 function showTab(name) {
-  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll("#tabs button").forEach((b) => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+    b.tabIndex = on ? 0 : -1;
+  });
   document.querySelectorAll(".tab").forEach((s) => s.classList.toggle("active", s.id === "tab-" + name));
   ({ rules: loadRules, review: loadReview, programs: loadPrograms, export: () => {}, score: loadScoreSets,
-     insights: loadInsightSets, audit: loadAudit })[name]?.();
+     insights: loadInsightSets, audit: loadAudit, repository: () => window.loadRepository?.() })[name]?.();
 }
 
 // ---- rendering helpers --------------------------------------------------------------------
@@ -94,8 +109,8 @@ function confBar(score) {
 }
 const badge = (s) => `<span class="badge ${esc(s)}">${esc(s.replace("_", " "))}</span>`;
 
-function itemHtml(r) {
-  return `<div class="item" data-id="${esc(r.rule_id)}">
+function itemHtml(r, extra = "") {
+  return `<div class="item" data-id="${esc(r.rule_id)}" tabindex="0" role="button" aria-label="${esc(r.title || r.rule_id)}">${extra}
     <div class="t">${esc(r.title || r.rule_id)}</div>
     <div class="muted">${esc(r.intent || "")}</div>
     <div class="meta">${badge(r.status)} ${confBar(r.confidence?.score)} <span>${esc(r.rule_id)}</span>
@@ -120,10 +135,15 @@ async function loadRules() {
   } catch (e) { toast(e.message); }
 }
 function bindList(listSel, detailSel) {
-  document.querySelectorAll(listSel + " .item").forEach((el) => el.onclick = () => {
-    document.querySelectorAll(listSel + " .item").forEach((x) => x.classList.remove("sel"));
-    el.classList.add("sel");
-    showRule(el.dataset.id, detailSel);
+  document.querySelectorAll(listSel + " .item").forEach((el) => {
+    const open = (e) => {
+      if (e.target.matches("input[type=checkbox]")) return;
+      document.querySelectorAll(listSel + " .item").forEach((x) => x.classList.remove("sel"));
+      el.classList.add("sel");
+      showRule(el.dataset.id, detailSel);
+    };
+    el.onclick = open;
+    el.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(e); } };
   });
 }
 ["#fStatus", "#fDomain", "#fProgram"].forEach((s) => $(s).onchange = loadRules);
@@ -174,6 +194,15 @@ async function showRule(id, detailSel) {
           <button id="approveBtn">Approve</button><button id="rejectBtn" class="danger">Reject</button>
           <button id="editBtn" class="ghost">Edit title / intent</button>
         </div>
+        <h4>Assignment and approvals</h4>
+        <div class="row"><span id="assignInfo" class="muted"></span>
+          <label class="sr" for="assignee">Assign to</label><input id="assignee" placeholder="reviewer name" size="14">
+          <button id="assignBtn" class="ghost">Assign</button></div>
+        <h4>Comments</h4>
+        <div id="commentList" class="muted"></div>
+        <label class="sr" for="commentText">Comment</label>
+        <textarea id="commentText" placeholder="Ask a question or note evidence, e.g. policy reference"></textarea>
+        <div class="row"><button id="commentBtn" class="ghost">Add comment</button></div>
         <h4>History</h4>
         <div class="muted">${hist.reviews.map((h) => `${esc(h.ts)} · ${esc(h.user)} · <b>${esc(h.action)}</b> v${h.version} — ${esc(h.reason)}`).join("<br>") || "No review actions yet."}</div>
       </div>`;
@@ -182,6 +211,7 @@ async function showRule(id, detailSel) {
     box.querySelector("#approveBtn").onclick = () => review(id, "approve", detailSel);
     box.querySelector("#rejectBtn").onclick = () => review(id, "reject", detailSel);
     box.querySelector("#editBtn").onclick = () => editRule(r, detailSel);
+    window.bindCollaboration?.(r, detailSel);
   } catch (e) { box.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 }
 async function review(id, action, detailSel) {
@@ -210,11 +240,35 @@ async function editRule(r, detailSel) {
 // ---- review queue -------------------------------------------------------------------------------
 async function loadReview() {
   try {
-    const [a, b] = await Promise.all([api("/v1/rules?status=needs_review&page_size=200"), api("/v1/rules?status=candidate&page_size=200")]);
-    const items = [...a.items, ...b.items].sort((x, y) => (x.confidence.score ?? 0) - (y.confidence.score ?? 0));
-    $("#reviewList").innerHTML = items.map(itemHtml).join("") || `<div class="empty">Nothing to review.</div>`;
+    const [a, b, q] = await Promise.all([api("/v1/rules?status=needs_review&page_size=200"),
+      api("/v1/rules?status=candidate&page_size=200"), api(`/v1/review_queue?mine=${$("#mineOnly").checked}`)]);
+    const info = Object.fromEntries(q.items.map((x) => [x.rule_id, x]));
+    $("#approvalsNeeded").textContent = `${q.approvals_required} approval${q.approvals_required === 1 ? "" : "s"} needed per rule.`;
+    const items = [...a.items, ...b.items].filter((r) => info[r.rule_id])
+      .sort((x, y) => (x.confidence.score ?? 0) - (y.confidence.score ?? 0));
+    $("#reviewList").innerHTML = items.map((r) => {
+      const i = info[r.rule_id];
+      const extra = `<label class="pick"><input type="checkbox" data-pick="${esc(r.rule_id)}" aria-label="select ${esc(r.rule_id)}"></label>`
+        + (i.assignee ? `<span class="chip" title="assigned by ${esc(i.assigned_by)}">→ ${esc(i.assignee)}</span>` : "")
+        + (i.approvals.length ? `<span class="chip">${i.approvals.length}/${i.approvals_required} approved</span>` : "");
+      return itemHtml(r, extra);
+    }).join("") || `<div class="empty">Nothing to review.</div>`;
     bindList("#reviewList", "#reviewDetail");
   } catch (e) { toast(e.message); }
+}
+$("#mineOnly").onchange = loadReview;
+for (const [btn, action] of [["#bulkApprove", "approve"], ["#bulkReject", "reject"]]) {
+  $(btn).onclick = async () => {
+    const ids = [...document.querySelectorAll("[data-pick]:checked")].map((x) => x.dataset.pick);
+    const reason = $("#bulkReason").value.trim();
+    if (!ids.length) return toast("Select rules first.");
+    if (!reason) return toast("Please give a reason.");
+    try {
+      const r = await api("/v1/rules/bulk_review", { method: "POST", json: { rule_ids: ids, action, reason } });
+      toast(`${r.ok} rule(s) ${action === "approve" ? "approved or waiting for more approvals" : "rejected"}${r.failed ? `, ${r.failed} failed` : ""}`);
+      loadReview(); refreshCounts();
+    } catch (e) { toast(e.message); }
+  };
 }
 async function refreshCounts() {
   try {
@@ -296,12 +350,13 @@ document.querySelectorAll("[data-export]").forEach((b) => b.onclick = async () =
     const res = await fetch("/v1/export?" + p, { headers: { Authorization: "Bearer " + token } });
     if (!res.ok) throw new Error((await res.json()).error.message);
     const text = await res.text();
-    const pretty = fmt === "pmml" ? text : JSON.stringify(JSON.parse(text), null, 2);
+    const xml = fmt === "pmml" || fmt === "dmn";
+    const pretty = xml ? text : JSON.stringify(JSON.parse(text), null, 2);
     $("#exportPreview").textContent = pretty.slice(0, 20000);
-    const blob = new Blob([pretty], { type: fmt === "pmml" ? "application/xml" : "application/json" });
+    const blob = new Blob([pretty], { type: xml ? "application/xml" : "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `rules-${fmt}.${fmt === "pmml" ? "pmml" : "json"}`;
+    a.download = `rules-${fmt}.${xml ? fmt : "json"}`;
     a.click();
   } catch (e) { toast(e.message); }
 });

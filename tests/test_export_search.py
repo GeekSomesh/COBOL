@@ -94,3 +94,26 @@ def test_conflicts_across_programs():
     dup = a.model_copy(deep=True)
     dup.rule_id, dup.trace.program = "DUP-R001", "DUP.cob"
     assert any(c["kind"] == "duplicate" for c in conflicts([a, dup]))
+
+
+def test_pmml_and_dmn_validate_against_the_official_schemas():
+    from src.rules.dmn import to_dmn
+    from src.rules.schema_check import validate
+    for prog in ("CRD0001", "PEN0003", "FRD0010", "LON0004"):
+        doc = json.loads((ROOT / "data" / "gold" / f"{prog}.json").read_text())
+        rules = extract(ROOT / "data" / "synthetic" / doc["program_file"], [ROOT / "data" / "synthetic"]).rules
+        pmml, _ = to_pmml(rules)
+        assert pmml == "" or validate(pmml, "pmml") == [], prog
+        dmn, skipped = to_dmn(rules, prog)
+        assert validate(dmn, "dmn") == [] and not skipped, prog
+
+
+def test_dmn_rows_keep_first_match_order_and_ranges():
+    from src.rules.dmn import to_dmn
+    doc = json.loads((ROOT / "data" / "gold" / "PEN0001.json").read_text())
+    rules = extract(ROOT / "data" / "synthetic" / doc["program_file"], [ROOT / "data" / "synthetic"]).rules
+    xml, _ = to_dmn(rules, "PEN0001")
+    assert 'hitPolicy="FIRST"' in xml and "<inputEntry><text>[" in xml       # BETWEEN -> a FEEL range
+    from src.rules.schema_check import validate
+    assert validate(xml, "dmn") == []
+    assert validate(xml.replace("<decisionTable", "<decisionTabel", 1), "dmn")    # a broken file is reported

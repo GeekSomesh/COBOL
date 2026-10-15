@@ -3,6 +3,12 @@
 Integrity (security.md T5): every rule version stores a content hash of its
 logic and documentation. Re-extracting unchanged code keeps the current version;
 changed code adds a new version and marks an approved predecessor superseded.
+
+Review workflow: rules can be assigned to a reviewer and commented on; approval
+needs ``approvals_required`` distinct reviewers (four-eyes: the author of an edit
+cannot approve it). Every review event (approve, reject, edit, assign, comment)
+is appended to the ``reviews`` log, whose rows form a SHA-256 hash chain, so a
+changed or deleted entry is detectable (``verify_audit``).
 """
 
 from __future__ import annotations
@@ -35,7 +41,16 @@ CREATE TABLE IF NOT EXISTS jobs(
   error TEXT, created_at TEXT, updated_at TEXT);
 CREATE TABLE IF NOT EXISTS embeddings(
   rule_id TEXT, content_hash TEXT, vector TEXT, PRIMARY KEY(rule_id, content_hash));
+CREATE TABLE IF NOT EXISTS approvals(
+  rule_id TEXT, version INT, user TEXT, ts TEXT, PRIMARY KEY(rule_id, version, user));
+CREATE TABLE IF NOT EXISTS assignments(
+  rule_id TEXT PRIMARY KEY, assignee TEXT, assigned_by TEXT, ts TEXT);
+CREATE TABLE IF NOT EXISTS comments(
+  id INTEGER PRIMARY KEY AUTOINCREMENT, rule_id TEXT, version INT, user TEXT, text TEXT, ts TEXT);
+CREATE TABLE IF NOT EXISTS notifications(
+  id INTEGER PRIMARY KEY AUTOINCREMENT, user TEXT, kind TEXT, rule_id TEXT, text TEXT, ts TEXT, read INT DEFAULT 0);
 """
+GENESIS = "0" * 64
 
 TRANSITIONS = {
     "approve": {"candidate", "needs_review"},
@@ -62,14 +77,21 @@ def content_hash(rule: Rule) -> str:
 
 
 class Store:
-    def __init__(self, path: Path | str):
+    def __init__(self, path: Path | str, approvals_required: Optional[int] = None):
+        import os
         self.path = str(path)
         Path(self.path).parent.mkdir(parents=True, exist_ok=True) if self.path != ":memory:" else None
         self._lock = threading.RLock()
         self.db = sqlite3.connect(self.path, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
+        cols = {r["name"] for r in self.db.execute("PRAGMA table_info(reviews)")}
+        for col in ("prev_hash", "hash"):                    # migrate stores created before the hash chain
+            if col not in cols:
+                self.db.execute(f"ALTER TABLE reviews ADD COLUMN {col} TEXT")
         self.db.commit()
+        self.approvals_required = max(1, approvals_required if approvals_required is not None
+                                      else int(os.environ.get("COBOL_APPROVALS_REQUIRED", "1")))
 
     # ---- programs --------------------------------------------------------------
     def add_program(self, name: str, program_file: str, files: dict[str, str]) -> str:
@@ -193,6 +215,18 @@ class Store:
             rule, pid = self.get_rule(rule_id)
             if rule.status not in TRANSITIONS[action]:
                 raise StoreError("INVALID_STATE", f"Cannot {action} a rule in status {rule.status}", 409)
+            approvals = None
+            if action == "approve":
+                if rule.provenance.get("edited_by") == user:
+                    raise StoreError("SELF_APPROVAL", "The author of an edit cannot approve it (four-eyes rule)", 403)
+                done = self.db.execute("SELECT 1 FROM approvals WHERE rule_id=? AND version=? AND user=?",
+                                       (rule_id, rule.version, user)).fetchone()
+                if done:
+                    raise StoreError("ALREADY_APPROVED", f"{user} already approved version {rule.version}", 409)
+                self.db.execute("INSERT INTO approvals VALUES(?,?,?,?)", (rule_id, rule.version, user, now()))
+                have = self.db.execute("SELECT COUNT(*) n FROM approvals WHERE rule_id=? AND version=?",
+                                       (rule_id, rule.version)).fetchone()["n"]
+                approvals = (have, self.approvals_required)
             if action == "edit":
                 if not changes:
                     raise StoreError("INVALID_REQUEST", "edit needs a 'changes' object", 400)
@@ -210,15 +244,109 @@ class Store:
                 self.db.execute("UPDATE rules SET is_latest=0 WHERE rule_id=?", (rule_id,))
                 self._insert(pid, new, content_hash(new))
                 result = new
+            elif approvals is not None and approvals[0] < approvals[1]:
+                result = rule                            # waiting for more approvers
             else:
                 status = "approved" if action == "approve" else "rejected"
                 result = rule.model_copy(update={"status": status})
                 self.db.execute("UPDATE rules SET status=?, json=? WHERE rule_id=? AND version=?",
                                 (status, json.dumps(dump(result)), rule_id, rule.version))
-            self.db.execute("INSERT INTO reviews(rule_id, version, action, reason, user, changes, ts) VALUES(?,?,?,?,?,?,?)",
-                            (rule_id, result.version, action, reason, user, json.dumps(changes or {}), now()))
+            log = dict(changes or {})
+            if approvals is not None:
+                log["approvals"] = f"{approvals[0]}/{approvals[1]}"
+            self._append_review(rule_id, result.version, action, reason, user, log)
             self.db.commit()
         return result
+
+    # ---- audit log: append-only, hash-chained ----------------------------------
+    def _append_review(self, rule_id: str, version: int, action: str, reason: str, user: str,
+                       changes: dict[str, Any]) -> None:
+        ts = now()
+        prev = self.db.execute("SELECT hash FROM reviews WHERE hash IS NOT NULL ORDER BY id DESC LIMIT 1").fetchone()
+        prev_hash = prev["hash"] if prev else GENESIS
+        payload = json.dumps([rule_id, version, action, reason, user, changes, ts], sort_keys=True)
+        h = hashlib.sha256((prev_hash + payload).encode()).hexdigest()
+        self.db.execute("INSERT INTO reviews(rule_id, version, action, reason, user, changes, ts, prev_hash, hash) "
+                        "VALUES(?,?,?,?,?,?,?,?,?)",
+                        (rule_id, version, action, reason, user, json.dumps(changes), ts, prev_hash, h))
+
+    def verify_audit(self) -> dict[str, Any]:
+        """Recompute the hash chain; reports the first row that was changed, inserted or removed."""
+        rows = self.db.execute("SELECT * FROM reviews ORDER BY id").fetchall()
+        legacy = sum(1 for r in rows if r["hash"] is None)
+        prev = GENESIS
+        for r in rows:
+            if r["hash"] is None:
+                continue                                 # written before the chain existed
+            payload = json.dumps([r["rule_id"], r["version"], r["action"], r["reason"], r["user"],
+                                  json.loads(r["changes"] or "{}"), r["ts"]], sort_keys=True)
+            expect = hashlib.sha256((prev + payload).encode()).hexdigest()
+            if r["prev_hash"] != prev or r["hash"] != expect:
+                return {"ok": False, "entries": len(rows), "broken_at": r["id"], "legacy_unchained": legacy}
+            prev = r["hash"]
+        return {"ok": True, "entries": len(rows), "head": prev, "legacy_unchained": legacy}
+
+    # ---- assignment, comments, approvals, notifications ------------------------
+    def approvals(self, rule_id: str, version: int) -> list[str]:
+        return [r["user"] for r in self.db.execute(
+            "SELECT user FROM approvals WHERE rule_id=? AND version=? ORDER BY ts", (rule_id, version))]
+
+    def assign(self, rule_id: str, assignee: str, by: str) -> dict[str, Any]:
+        with self._lock:
+            rule, _ = self.get_rule(rule_id)
+            self.db.execute("INSERT OR REPLACE INTO assignments VALUES(?,?,?,?)", (rule_id, assignee, by, now()))
+            self._append_review(rule_id, rule.version, "assign", "", by, {"assignee": assignee})
+            if assignee != by:
+                self.notify(assignee, "assigned", rule_id, f"{by} asked you to review {rule_id}")
+            self.db.commit()
+        return self.assignment(rule_id) or {}
+
+    def assignment(self, rule_id: str) -> Optional[dict[str, Any]]:
+        row = self.db.execute("SELECT * FROM assignments WHERE rule_id=?", (rule_id,)).fetchone()
+        return dict(row) if row else None
+
+    def add_comment(self, rule_id: str, user: str, text: str) -> dict[str, Any]:
+        with self._lock:
+            rule, _ = self.get_rule(rule_id)
+            ts = now()
+            cur = self.db.execute("INSERT INTO comments(rule_id, version, user, text, ts) VALUES(?,?,?,?,?)",
+                                  (rule_id, rule.version, user, text, ts))
+            self._append_review(rule_id, rule.version, "comment", text[:200], user, {})
+            people = {r["user"] for r in self.db.execute("SELECT DISTINCT user FROM comments WHERE rule_id=?", (rule_id,))}
+            a = self.assignment(rule_id)
+            if a:
+                people |= {a["assignee"], a["assigned_by"]}
+            for p in sorted(people - {user}):
+                self.notify(p, "comment", rule_id, f"{user} commented on {rule_id}: {text[:80]}")
+            self.db.commit()
+        return {"id": cur.lastrowid, "rule_id": rule_id, "version": rule.version, "user": user, "text": text, "ts": ts}
+
+    def comments(self, rule_id: str) -> list[dict[str, Any]]:
+        return [dict(r) for r in self.db.execute("SELECT * FROM comments WHERE rule_id=? ORDER BY id", (rule_id,))]
+
+    def notify(self, user: str, kind: str, rule_id: Optional[str], text: str) -> None:
+        self.db.execute("INSERT INTO notifications(user, kind, rule_id, text, ts) VALUES(?,?,?,?,?)",
+                        (user, kind, rule_id, text, now()))
+
+    def notifications(self, user: str, unread_only: bool = False) -> list[dict[str, Any]]:
+        sql = "SELECT * FROM notifications WHERE user=?" + (" AND read=0" if unread_only else "") + " ORDER BY id DESC LIMIT 200"
+        return [dict(r) for r in self.db.execute(sql, (user,))]
+
+    def mark_read(self, nid: int, user: str) -> None:
+        with self._lock:
+            self.db.execute("UPDATE notifications SET read=1 WHERE id=? AND user=?", (nid, user))
+            self.db.commit()
+
+    def review_queue(self, assignee: Optional[str] = None) -> list[dict[str, Any]]:
+        """Rules waiting for review, least confident first, with assignment and approvals so far."""
+        rows = self.db.execute(
+            "SELECT r.rule_id, r.version, r.status, r.confidence, r.title, r.program_id, a.assignee, a.assigned_by "
+            "FROM rules r LEFT JOIN assignments a ON a.rule_id = r.rule_id "
+            "WHERE r.is_latest=1 AND r.status IN ('needs_review', 'candidate') "
+            + ("AND a.assignee=? " if assignee else "") + "ORDER BY COALESCE(r.confidence, 0), r.rule_id",
+            (assignee,) if assignee else ()).fetchall()
+        return [dict(r) | {"approvals": self.approvals(r["rule_id"], r["version"]),
+                           "approvals_required": self.approvals_required} for r in rows]
 
     def history(self, rule_id: str) -> dict[str, Any]:
         versions = self.db.execute(

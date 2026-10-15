@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import secrets
 import shutil
 import threading
@@ -313,13 +314,117 @@ class ReviewBody(BaseModel):
     changes: Optional[dict[str, Any]] = None
 
 
-@app.patch("/v1/rules/{rule_id}")
-def review_rule(rule_id: str, body: ReviewBody, user: User = Depends(need("reviewer"))):
+def _webhook(event: dict[str, Any]) -> None:
+    """POST review events to COBOL_WEBHOOK_URL (chat / ticketing integration), best effort."""
+    url = os.environ.get("COBOL_WEBHOOK_URL")
+    if not url:
+        return
+
+    def send() -> None:
+        try:
+            import requests
+            requests.post(url, json=event, timeout=3)
+        except Exception as exc:                 # never let a notification break a review
+            log.warning("webhook failed: %s", exc)
+    threading.Thread(target=send, daemon=True).start()
+
+
+def _review(rule_id: str, body: "ReviewBody", user: User) -> dict[str, Any]:
     if body.action in ("approve", "reject") and not body.reason.strip():
         raise fail(400, "INVALID_REQUEST", "A reason is required for approve and reject")
     rule = store.review(rule_id, body.action, body.reason, user.name, body.changes)
     log.info("review rule=%s action=%s user=%s", rule_id, body.action, user.name)
-    return dump(rule)
+    a = store.assignment(rule_id)
+    for person in {a["assignee"], a["assigned_by"]} - {user.name} if a else ():
+        store.notify(person, body.action, rule_id, f"{user.name} chose {body.action} for {rule_id}: {body.reason[:80]}")
+    store.db.commit()
+    _webhook({"event": "review", "rule_id": rule_id, "action": body.action, "user": user.name,
+              "status": rule.status, "version": rule.version})
+    return dump(rule) | {"approvals": {"by": store.approvals(rule_id, rule.version),
+                                       "required": store.approvals_required}}
+
+
+@app.patch("/v1/rules/{rule_id}")
+def review_rule(rule_id: str, body: ReviewBody, user: User = Depends(need("reviewer"))):
+    return _review(rule_id, body, user)
+
+
+class BulkBody(BaseModel):
+    rule_ids: list[str]
+    action: str
+    reason: str = ""
+
+
+@app.post("/v1/rules/bulk_review")
+def bulk_review(body: BulkBody, user: User = Depends(need("reviewer"))):
+    """Approve or reject many rules with one reason; each rule succeeds or fails on its own."""
+    if body.action not in ("approve", "reject"):
+        raise fail(400, "INVALID_REQUEST", "bulk review supports approve and reject")
+    if len(body.rule_ids) > 500:
+        raise fail(400, "INVALID_REQUEST", "at most 500 rules per request")
+    out = []
+    for rid in body.rule_ids:
+        try:
+            r = _review(rid, ReviewBody(action=body.action, reason=body.reason), user)
+            out.append({"rule_id": rid, "ok": True, "status": r["status"]})
+        except HTTPException as exc:
+            out.append({"rule_id": rid, "ok": False, "error": exc.detail})
+        except StoreError as exc:
+            out.append({"rule_id": rid, "ok": False, "error": {"code": exc.code, "message": exc.message}})
+    return {"items": out, "ok": sum(i["ok"] for i in out), "failed": sum(not i["ok"] for i in out)}
+
+
+class AssignBody(BaseModel):
+    assignee: str
+
+
+@app.post("/v1/rules/{rule_id}/assign")
+def assign_rule(rule_id: str, body: AssignBody, user: User = Depends(need("reviewer"))):
+    out = store.assign(rule_id, body.assignee.strip(), user.name)
+    _webhook({"event": "assign", "rule_id": rule_id, "assignee": body.assignee, "user": user.name})
+    return out
+
+
+class CommentBody(BaseModel):
+    text: str
+
+
+@app.get("/v1/rules/{rule_id}/comments")
+def rule_comments(rule_id: str, user: User = Depends(need("viewer"))):
+    store.get_rule(rule_id)
+    return {"items": store.comments(rule_id), "assignment": store.assignment(rule_id)}
+
+
+@app.post("/v1/rules/{rule_id}/comments", status_code=201)
+def add_comment(rule_id: str, body: CommentBody, user: User = Depends(need("reviewer"))):
+    text = body.text.strip()
+    if not text or len(text) > 4000:
+        raise fail(400, "INVALID_REQUEST", "a comment needs 1 to 4000 characters")
+    out = store.add_comment(rule_id, user.name, text)
+    _webhook({"event": "comment", "rule_id": rule_id, "user": user.name})
+    return out
+
+
+@app.get("/v1/review_queue")
+def review_queue(mine: bool = False, user: User = Depends(need("viewer"))):
+    return {"items": store.review_queue(user.name if mine else None),
+            "approvals_required": store.approvals_required}
+
+
+@app.get("/v1/notifications")
+def notifications(unread: bool = False, user: User = Depends(need("viewer"))):
+    return {"items": store.notifications(user.name, unread)}
+
+
+@app.post("/v1/notifications/{nid}/read", status_code=204)
+def notification_read(nid: int, user: User = Depends(need("viewer"))):
+    store.mark_read(nid, user.name)
+
+
+@app.get("/v1/audit/verify")
+def audit_verify(user: User = Depends(need("admin"))):
+    """Recompute the review log's hash chain: detects edited, inserted or deleted entries."""
+    return store.verify_audit()
 
 
 @app.get("/v1/rules/{rule_id}/history")
@@ -342,18 +447,29 @@ def get_conflicts(program: Optional[str] = None, user: User = Depends(need("view
 # ---- export / score / explain ------------------------------------------------------------------
 
 @app.get("/v1/export")
-def export(format: str = Query("json", pattern="^(json|tree|pmml)$"), program: Optional[str] = None,
+def export(format: str = Query("json", pattern="^(json|tree|pmml|dmn)$"), program: Optional[str] = None,
            domain: Optional[str] = None, status: Optional[str] = None, user: User = Depends(need("viewer"))):
+    """JSON, decision trees, PMML 4.4 or DMN 1.3. XML exports are checked against the official
+    schemas before they are returned; skipped rule sets are counted in a response header."""
+    from src.rules.dmn import to_dmn
     from src.rules.export import to_json, to_pmml, to_tree_json
+    from src.rules.schema_check import validate
     rules = [r for r, _ in store.latest_rules(program, status, domain)]
     if format == "json":
         return JSONResponse(json.loads(to_json(rules)))
     if format == "tree":
         return JSONResponse(to_tree_json(rules))
-    xml, skipped = to_pmml(rules)
+    xml, skipped = to_pmml(rules) if format == "pmml" else to_dmn(rules, program or "cobol-rules")
+    if not xml:
+        raise fail(422, "NOT_EXPORTABLE", "no rule set can be expressed in PMML: " + "; ".join(skipped[:5]))
+    errors = validate(xml, format)
+    if errors:                                   # never hand out a document that breaks the standard
+        log.error("%s export failed schema validation: %s", format, errors[:3])
+        raise fail(500, "EXPORT_INVALID", f"{format.upper()} failed schema validation: {errors[0]}")
+    ext = "pmml" if format == "pmml" else "dmn"
     return PlainTextResponse(xml, media_type="application/xml",
-                             headers={"X-PMML-Skipped": str(len(skipped)),
-                                      "Content-Disposition": "attachment; filename=rules.pmml"})
+                             headers={"X-Skipped-Rule-Sets": str(len(skipped)),
+                                      "Content-Disposition": f"attachment; filename=rules.{ext}"})
 
 
 def _rule_set(name: str, statuses: tuple[str, ...]) -> list[Rule]:
@@ -407,6 +523,98 @@ def explain_endpoint(rule_set: str, target: Optional[str] = None, user: User = D
 
 
 # ---- health and UI -----------------------------------------------------------------------------
+
+# ---- repository: JCL, call graph, impact, drift ---------------------------------------------
+
+def _jcl_dir() -> Path:
+    d = DATA / "jcl"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+@app.post("/v1/jcl", status_code=201)
+async def upload_jcl(jcl: UploadFile = File(...), user: User = Depends(need("admin"))):
+    from src.repo.jcl import parse_jcl
+    data = await jcl.read()
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise fail(413, "FILE_TOO_LARGE", f"{jcl.filename} is larger than {MAX_UPLOAD_BYTES} bytes")
+    name = Path(jcl.filename or "upload.jcl").name
+    if not re.fullmatch(r"[A-Za-z0-9_.@#$-]+", name):
+        raise fail(400, "INVALID_REQUEST", "JCL file name may only use letters, digits and _.@#$-")
+    text = data.decode("utf-8", errors="replace")
+    jobs = parse_jcl(text, name)
+    if not jobs:
+        raise fail(422, "PARSE_ERROR", "no JOB or EXEC statement found")
+    (_jcl_dir() / name).write_text(text, encoding="utf-8")
+    return {"name": name, "jobs": [{"job": j.name, "steps": [s.name for s in j.steps]} for j in jobs]}
+
+
+@app.get("/v1/jcl")
+def list_jcl(user: User = Depends(need("viewer"))):
+    return {"items": sorted(p.name for p in _jcl_dir().glob("*"))}
+
+
+_repo_cache: dict[str, Any] = {}
+
+
+def _repository() -> tuple[Any, dict[str, Any]]:
+    """Repository graph over every uploaded program and JCL member (cached until uploads change)."""
+    from src.repo.graph import build_graph, scan_sources
+    progs = store.programs()
+    jcl = sorted(_jcl_dir().glob("*"))
+    key = repr([(p["id"], p.get("sha256")) for p in progs]
+               + [(j.name, j.stat().st_mtime) for j in jcl])
+    if _repo_cache.get("key") == key:
+        return _repo_cache["repo"], _repo_cache["graph"]
+    entries, copybooks = [], []
+    for p in progs:
+        folder = program_dir(p["id"])
+        folder.mkdir(parents=True, exist_ok=True)
+        prog = store.program(p["id"])
+        for name, text in prog["files"].items():
+            (folder / name).write_text(text, encoding="utf-8")
+        entries.append((folder / prog["program_file"], [folder]))
+        copybooks += [Path(n).stem.upper() for n in prog["files"] if n != prog["program_file"]]
+    repo = scan_sources(entries, jcl, copybooks, "uploads")
+    graph = build_graph(repo)
+    _repo_cache.update(key=key, repo=repo, graph=graph)
+    return repo, graph
+
+
+@app.get("/v1/repository")
+def repository(user: User = Depends(need("viewer"))):
+    """Call graph, copybook use, JCL jobs and datasets across all uploaded sources, with findings."""
+    return _repository()[1]
+
+
+@app.get("/v1/impact")
+def impact_endpoint(kind: str = Query(..., pattern="^(field|copybook|program|dataset)$"), name: str = Query(..., min_length=1),
+                    user: User = Depends(need("viewer"))):
+    """What a change would affect: rules that read or write a field, programs including a copybook,
+    callers of a program (transitively) and the JCL jobs that run them."""
+    from src.repo.graph import impact
+    repo, graph = _repository()
+    return impact(repo, graph, kind, name)
+
+
+@app.get("/v1/diff")
+def drift(old: str, new: str, user: User = Depends(need("viewer"))):
+    """Rule drift between two uploads (e.g. before and after a change): added, removed and changed
+    rules, with an input where a changed condition behaves differently."""
+    from src.pipeline import extract
+    from src.rules.diff import diff_rules
+    sets = []
+    for pid in (old, new):
+        prog = store.program(pid)
+        folder = program_dir(pid)
+        folder.mkdir(parents=True, exist_ok=True)
+        for name, text in prog["files"].items():
+            (folder / name).write_text(text, encoding="utf-8")
+        sets.append(extract(folder / prog["program_file"], [folder]).rules)
+    approved = {r.rule_id for r, _ in store.latest_rules(status="approved")}
+    before = [r.model_copy(update={"status": "approved"}) if r.rule_id in approved else r for r in sets[0]]
+    return {"old": old, "new": new, **diff_rules(before, sets[1])}
+
 
 class GlossaryBody(BaseModel):
     fields: dict[str, str] = {}
