@@ -687,7 +687,8 @@ class Parser:
         connector = {"ADD": ("TO",), "SUBTRACT": ("FROM",), "MULTIPLY": ("BY",), "DIVIDE": ("INTO", "BY")}[verb]
         left, word, right = self._split(main, *connector)
         a, b = self._operands(left), self._operands(right)
-        a_txt, b_txt = [operand_text(o) for o in a], [operand_text(o) for o in b]
+        unplus = lambda t: t[1:] if t.startswith("+") else t     # ADD +1 TO X  ->  X + 1   # noqa: E731
+        a_txt, b_txt = [unplus(operand_text(o)) for o in a], [unplus(operand_text(o)) for o in b]
         names = [o.name for o in a + b if isinstance(o, Ident)]
         if giving:
             if verb == "ADD":

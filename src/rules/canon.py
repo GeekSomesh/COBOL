@@ -7,11 +7,12 @@ are scored separately). Normalisation:
 * negation pushed to the leaves (NNF), flipping relational operators
 * nested ``all``/``any`` flattened, single-child groups unwrapped, children sorted
 * numbers compared as decimals (5000 == 5000.00), strings right-trimmed (COBOL padding)
-* expressions upper-cased with whitespace removed
+* expressions upper-cased with whitespace and unary plus removed
 """
 
 from __future__ import annotations
 
+import re
 from decimal import Decimal, InvalidOperation
 from typing import Any, Union
 
@@ -112,8 +113,12 @@ def canon_cond(cond: Any) -> Key:
     return _key(_nnf(_expand(_plain(cond))))
 
 
+_UNARY_PLUS = re.compile(r"(^|[-+*/(=])\+")
+
+
 def canon_expr(expr: str) -> str:
-    return "".join(str(expr).upper().split())
+    """Upper-case, no whitespace, unary plus dropped (X + +1 == X + 1)."""
+    return _UNARY_PLUS.sub(r"\1", "".join(str(expr).upper().split()))
 
 
 def canon_action(a: Any) -> tuple:

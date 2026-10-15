@@ -1,0 +1,46 @@
+{
+  "note": "gold rules are hand-drafted and unverified; scores are indicative",
+  "history": [
+    {
+      "date": "2026-10-15",
+      "parser": "0.2.0",
+      "f1": {
+        "SAM1": 0.885,
+        "SAM2": 0.947
+      },
+      "finding": "SAM1: 3 rules wrote ADD +1 as 'X + +1' (parser fixed). SAM2: 1 drafted trace included END-IF against the documented convention (draft fixed)."
+    }
+  ],
+  "programs": {
+    "SAM1": {
+      "gold": 26,
+      "predicted": 26,
+      "matched": 26,
+      "logic_matched": 26,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "failures": {},
+      "disagreements": []
+    },
+    "SAM2": {
+      "gold": 19,
+      "predicted": 19,
+      "matched": 19,
+      "logic_matched": 19,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "failures": {},
+      "disagreements": []
+    }
+  },
+  "overall": {
+    "gold": 45,
+    "predicted": 45,
+    "matched": 45,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  }
+}
