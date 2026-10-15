@@ -1,8 +1,8 @@
 """Differential-testing harness (implementation.md 6.2, 6.3).
 
 Works for any program that follows the batch convention used by the corpus:
-``ACCEPT <record>`` reads one fixed-width input record, and the program prints
-``DISPLAY "NAME=" NAME`` for each output. Layout, outputs and value domains are
+each ``ACCEPT <field or record>`` reads one fixed-width input line, and the
+program prints ``DISPLAY "NAME=" NAME`` for each output. Layout, outputs and value domains are
 read from the parsed program itself, so no generator spec is needed.
 """
 
@@ -19,6 +19,9 @@ from src.analysis.dictionary import DataItem
 from src.verify.engine import base, is_numeric_entry, store, to_num
 
 
+LINE_SEP = "\x1f"          # separates the input lines of one run (see Toolchain.run_batch)
+
+
 @dataclass
 class Harness:
     record: str
@@ -26,6 +29,7 @@ class Harness:
     outputs: list[str]                            # displayed field names
     fields: dict[str, dict[str, Any]]             # dictionary entries (COBOL name -> entry)
     initial: dict[str, Any] = field(default_factory=dict)   # VALUE clauses of outputs/work fields
+    lines: list[int] = field(default_factory=list)          # fields per ACCEPT, in order (empty: one line)
 
     @property
     def record_length(self) -> int:
@@ -54,33 +58,37 @@ def _elementary(item: DataItem) -> list[DataItem]:
 def build_harness(analysis: Analysis) -> Optional[Harness]:
     """Harness for programs that ACCEPT one record and DISPLAY NAME=VALUE pairs; else None."""
     program = analysis.program
-    record_name: Optional[str] = None
+    accepted: list[str] = []
     outputs: list[str] = []
     for para in program.paragraphs:
         for s in _walk(para.statements):
-            if isinstance(s, OtherStmt) and s.verb == "ACCEPT" and record_name is None:
+            if isinstance(s, OtherStmt) and s.verb == "ACCEPT":
                 parts = s.text.split()
-                if len(parts) == 2:
-                    record_name = parts[1]
+                if len(parts) == 2:              # ACCEPT x FROM DATE etc. do not read stdin
+                    accepted.append(parts[1])
             if isinstance(s, OtherStmt) and s.verb == "DISPLAY":
                 parts = s.text.split()
                 if len(parts) == 3 and parts[1].startswith("'") and parts[1].endswith("='"):
                     outputs.append(parts[2])
-    if not record_name or not outputs:
+    if not accepted or not outputs or len(set(accepted)) != len(accepted):
         return None
     d = program.dictionary
-    rec = d.lookup(record_name)
-    if rec is None:
-        return None
-    items = _elementary(rec) if rec.children else ([rec] if rec.pic else [])
-    if not items:
-        return None
-    layout = []
-    for it in items:
-        info = it.picinfo
-        if it.usage not in ("DISPLAY",) or info is None:
-            return None             # binary/packed input fields: not supported by the text harness
-        layout.append({"name": it.name, "pic": it.pic, "length": info.length, "entry": it.entry()})
+    layout, lines = [], []
+    for name in accepted:
+        rec = d.lookup(name)
+        if rec is None:
+            return None
+        items = _elementary(rec) if rec.children else ([rec] if rec.pic else [])
+        if not items:
+            return None
+        for it in items:
+            info = it.picinfo
+            if it.usage not in ("DISPLAY",) or info is None:
+                return None             # binary/packed input fields: not supported by the text harness
+            layout.append({"name": it.name, "pic": it.pic, "length": info.length, "entry": it.entry(),
+                           "direct": not rec.children})   # ACCEPT into one field converts the text
+        lines.append(len(items))
+    record_name = accepted[0]
     fields = d.entries()
     initial = {}
     for name, entry in fields.items():
@@ -90,7 +98,7 @@ def build_harness(analysis: Analysis) -> Optional[Harness]:
             initial[name] = store(0, entry)
         else:
             initial[name] = ""
-    return Harness(record_name, layout, outputs, fields, initial)
+    return Harness(record_name, layout, outputs, fields, initial, lines if len(lines) > 1 else [])
 
 
 # ---- encode / decode -----------------------------------------------------------------
@@ -108,8 +116,17 @@ def encode_record(h: Harness, row: dict[str, Any]) -> str:
     out = []
     for f in h.layout:
         value = row.get(f["name"], 0 if is_numeric_entry(f["entry"]) else "")
-        out.append(encode_value(value, f["entry"], f["length"]))
-    return "".join(out)
+        if f.get("direct") and is_numeric_entry(f["entry"]):
+            out.append(format(store(value, f["entry"]), "f"))     # ACCEPT numeric-item reads "123.45"
+        else:
+            out.append(encode_value(value, f["entry"], f["length"]))
+    if not h.lines:
+        return "".join(out)
+    parts, k = [], 0
+    for n in h.lines:                    # one input line per ACCEPT
+        parts.append("".join(out[k:k + n]))
+        k += n
+    return LINE_SEP.join(parts)
 
 
 def decode_display(text: str, entry: Optional[dict[str, Any]]) -> Any:

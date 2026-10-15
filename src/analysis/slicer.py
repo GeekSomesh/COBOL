@@ -25,6 +25,7 @@ from src.analysis.ast import (
     AssignStmt, CallStmt, EvaluateStmt, ExecStmt, Expr, GoToStmt, Ident, IfStmt, Lit,
     MoveStmt, OtherStmt, PerformStmt, Program, SearchStmt, SetStmt, Stmt,
 )
+from src.analysis.tables import NotBindable, Table, _plain, bind_actions, bind_cond, decode
 from src.common.models import Slice
 from src.ingest.source import ResolvedSource
 
@@ -50,6 +51,26 @@ def combine(path: list[dict[str, Any]]) -> dict[str, Any]:
     for c in path:
         flat.extend(c["all"] if set(c) == {"all"} else [c])
     return {"all": flat}
+
+
+def _base(name: str) -> str:
+    return str(name).split("(")[0].strip().upper()
+
+
+def _children(s: Stmt) -> list[list[Stmt]]:
+    """Nested statement lists of a statement."""
+    if isinstance(s, IfStmt):
+        return [s.then, s.else_ or []]
+    if isinstance(s, (EvaluateStmt, SearchStmt)):
+        out = [w.stmts for w in s.whens]
+        if isinstance(s, SearchStmt) and s.at_end:
+            out.append(s.at_end)
+        return out
+    if isinstance(s, PerformStmt) and s.body:
+        return [s.body]
+    if isinstance(s, (OtherStmt, CallStmt)):
+        return [h for _, h in s.handlers]
+    return []
 
 
 def _has_decision(stmts: list[Stmt]) -> bool:
@@ -84,6 +105,7 @@ class Slicer:
         return self._actions([s])[0]
 
     def _walk_top(self, stmts: list[Stmt]) -> None:
+        prev: Optional[Stmt] = None
         for s in stmts:
             self.stmt = s
             if isinstance(s, DECISIONS):
@@ -91,11 +113,109 @@ class Slicer:
             elif isinstance(s, PerformStmt) and s.body:
                 self._walk_top(s.body)
             elif isinstance(s, SearchStmt):
-                for w in s.whens:
-                    acts, unsupported, external = self._actions(w.stmts)
-                    self._emit(w.cond or {"all": []}, acts, [], w.line,
-                               max([w.line] + [x.line_end for x in w.stmts]), s.file,
-                               ["SEARCH"] + _notes(w.notes) + unsupported, external)
+                self._search(s, prev)
+            prev = s
+
+    # ---- SEARCH over a lookup table -----------------------------------------
+    def _search(self, s: SearchStmt, prev: Optional[Stmt]) -> None:
+        """A SEARCH over a VALUE-initialised table becomes one rule per table row (first match
+        wins, row by row, WHEN by WHEN) plus an AT END rule for "no row matched". Otherwise each
+        WHEN stays one rule flagged for review."""
+        table = decode(self.dict, s.table) if s.table else None
+        reason = None
+        if table is None:
+            reason = "SEARCH over a table that is not VALUE-initialised"
+        elif self._table_written(table):
+            reason = "SEARCH over a table the program modifies"
+        elif not s.binary and not self._starts_at_one(prev):
+            reason = "SEARCH without SET index TO 1 just before it"
+        if reason is None:
+            try:
+                self._emit_table(s, table)
+                return
+            except NotBindable as e:
+                reason = f"SEARCH: {e}"
+        for w in s.whens:
+            acts, unsupported, external = self._actions(w.stmts)
+            self._emit(w.cond or {"all": []}, acts, [], w.line,
+                       max([w.line] + [x.line_end for x in w.stmts]), s.file,
+                       [reason] + _notes(w.notes) + unsupported, external)
+
+    def _emit_table(self, s: SearchStmt, table: Table) -> None:
+        records: list[dict[str, Any]] = []
+        earlier: list[dict[str, Any]] = []
+        done = False
+        for r, row in enumerate(table.rows):
+            for w in s.whens:
+                cond = bind_cond(w.cond or {"all": []}, row, table)
+                if cond is False:
+                    continue
+                acts, unsupported, external = self._actions(w.stmts)
+                acts = bind_actions(acts, row, table)
+                path = [negate(c) for c in earlier] + ([cond] if cond is not True else [])
+                records.append(dict(
+                    cond=combine(path) if path else {"all": []}, acts=acts, start=w.line,
+                    end=max([w.line] + [x.line_end for x in w.stmts]),
+                    unsupported=_notes(w.notes) + unsupported, external=external,
+                    lookup={"table": table.name, "row": r + 1, "values": {k: _plain(v) for k, v in row.items()},
+                            "file": table.file, "lines": table.lines[r], "binary": s.binary}))
+                if cond is True:                 # this row always matches: later rows are never reached
+                    done = True
+                    break
+                earlier.append(cond)
+            if done:
+                break
+        if not done and s.at_end is not None:
+            acts, unsupported, external = self._actions(s.at_end)
+            if acts or unsupported:
+                path = [negate(c) for c in earlier]
+                records.append(dict(
+                    cond=combine(path) if path else {"all": []}, acts=acts, start=s.at_end_line,
+                    end=max([s.at_end_line] + [x.line_end for x in s.at_end]),
+                    unsupported=unsupported, external=external,
+                    lookup={"table": table.name, "row": None, "values": {}, "file": table.file,
+                            "lines": [], "binary": s.binary, "at_end": True}))
+        for rec in records:
+            self._emit(rec["cond"], rec["acts"], [], rec["start"], rec["end"], s.file,
+                       rec["unsupported"], rec["external"], lookup=rec["lookup"])
+
+    def _starts_at_one(self, prev: Optional[Stmt]) -> bool:
+        if isinstance(prev, SetStmt) and isinstance(prev.value, Lit):
+            return prev.value.value == 1
+        return isinstance(prev, OtherStmt) and re.fullmatch(r"SET \S+ TO 1", prev.text or "") is not None
+
+    def _table_written(self, table: Table) -> bool:
+        """True when any statement may change the table's storage at run time."""
+        occ = self.dict.lookup(table.name)
+        names = set(table.columns) | {table.name}
+        top = occ
+        while top is not None and top.parent is not None:
+            names.add(top.parent.name)
+            top = top.parent
+        src = self.dict.lookup(top.redefines) if top is not None and top.redefines else None
+        stack = [src] if src is not None else []
+        while stack:
+            it = stack.pop()
+            names.add(it.name)
+            stack.extend(it.children)
+        names.discard("FILLER")
+        pattern = re.compile(r"(?<![A-Z0-9-])(" + "|".join(re.escape(n) for n in names) + r")(?![A-Z0-9-])")
+
+        def walk(stmts: list[Stmt]) -> bool:
+            for s in stmts:
+                if isinstance(s, (MoveStmt, SetStmt)) and any(_base(t.text) in names for t in s.targets):
+                    return True
+                if isinstance(s, AssignStmt) and any(_base(t.text) in names for t, _ in s.assignments):
+                    return True
+                if isinstance(s, OtherStmt) and pattern.search((s.text or "").upper()):
+                    return True                  # ACCEPT / READ INTO / INITIALIZE / STRING ... into the table
+                if isinstance(s, CallStmt) and pattern.search(" ".join(s.using).upper()):
+                    return True                  # passed BY REFERENCE: the callee may change it
+                if any(walk(sub) for sub in _children(s)):
+                    return True
+            return False
+
+        return any(walk(p.statements) for p in self.program.paragraphs)
 
     def _decision(self, s: Stmt, path: list[dict[str, Any]]) -> None:
         if isinstance(s, IfStmt):
@@ -212,10 +332,10 @@ class Slicer:
 
     # ---- output -------------------------------------------------------------
     def _emit(self, cond: dict[str, Any], acts: list, else_acts: list, start: int, end: int,
-              file: str, unsupported: list[str], external: bool) -> None:
+              file: str, unsupported: list[str], external: bool, lookup: Optional[dict[str, Any]] = None) -> None:
         self.records.append(dict(cond=cond, actions=acts, else_actions=else_acts, start=start,
                                  end=end, file=file, paragraph=self.paragraph, stmt=self.stmt,
-                                 para_idx=getattr(self, "para_idx", 0),
+                                 para_idx=getattr(self, "para_idx", 0), lookup=lookup,
                                  unsupported=list(dict.fromkeys(unsupported)), external=external))
 
     def _names(self, rec: dict[str, Any]) -> list[str]:
@@ -250,13 +370,18 @@ class Slicer:
         fields: dict[str, dict[str, Any]] = {}
         copybooks: list[str] = []
         unsupported = list(rec["unsupported"])
+        storage: dict[str, dict[str, str]] = {}
         for name in self._names(rec):
             item = self.dict.lookup(name)
             fields[name] = item.entry()
             if item.file != self.src.program_file and item.file not in copybooks:
                 copybooks.append(item.file)
-            if self._overlaps(item):
-                unsupported.append(f"REDEFINES overlap on {name}")
+            alias = self._alias(item)
+            if alias is not None:
+                storage.setdefault(alias[0], {})[alias[1]] = name
+        for root, views in storage.items():
+            if len(views) > 1:                   # one rule reads the same bytes through two layouts
+                unsupported.append("REDEFINES: " + " and ".join(sorted(views.values())) + f" share storage ({root})")
         if rec["file"] != self.src.program_file and rec["file"] not in copybooks:
             copybooks.append(rec["file"])
         return Slice(
@@ -275,13 +400,17 @@ class Slicer:
             copybooks=copybooks,
             external_dependency=rec["external"],
             unsupported=list(dict.fromkeys(unsupported)),
+            lookup=rec.get("lookup"),
         )
 
-    def _overlaps(self, item: Any) -> bool:
-        """The field shares storage with another field (it, or a group above it, is or has a REDEFINES)."""
+    def _alias(self, item: Any) -> Optional[tuple[str, str]]:
+        """(storage area, layout) when the field lies in storage that has several layouts
+        (REDEFINES); fields of one layout overlap fields of another."""
         p = item
         while p is not None:
-            if p.redefines or p.name in self.redefined:
-                return True
+            if p.redefines:
+                return p.redefines, p.name
+            if p.name in self.redefined:
+                return p.name, p.name
             p = p.parent
-        return False
+        return None

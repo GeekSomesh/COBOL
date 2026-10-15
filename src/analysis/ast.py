@@ -74,6 +74,10 @@ class EvaluateStmt(Stmt):
 @dataclass
 class SearchStmt(Stmt):
     whens: list[WhenBranch] = field(default_factory=list)
+    table: str = ""                         # the OCCURS item searched
+    binary: bool = False                    # SEARCH ALL
+    at_end: Optional[list[Stmt]] = None     # AT END statements (None when absent)
+    at_end_line: int = 0
 
 
 @dataclass

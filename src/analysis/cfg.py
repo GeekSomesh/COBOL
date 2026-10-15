@@ -271,6 +271,8 @@ class FlowAnalyzer:
         else:  # SEARCH
             for w in s.whens:
                 branch(w.stmts, cur + ([w.cond] if w.cond else []))
+            if s.at_end:
+                branch(s.at_end, cur)
             outcome = "none"
         for k in assigned:                       # conditionally assigned: no longer a known derivation
             env.pop(k, None)

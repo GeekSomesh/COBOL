@@ -58,6 +58,8 @@ def store(value: Any, entry: Optional[dict[str, Any]]) -> Any:
         if entry.get("signed"):
             n = n * sign
         return n
+    if entry is None and isinstance(value, (int, float, Decimal)) and not isinstance(value, bool):
+        return to_num(value)                 # no PICTURE known (scoring): keep numbers numeric
     text = "" if value is None else str(value)
     if isinstance(value, Decimal):
         text = format(value, "f")

@@ -49,11 +49,12 @@ def input_fields(rules: list[Rule]) -> dict[str, dict[str, Any]]:
     """
     fields: dict[str, dict[str, Any]] = {}
     derived = _derived(rules)
+    written = set(output_fields(rules).values())      # set by an earlier rule, not supplied by the caller
     for r in rules:
         leaves = _leaves(r.conditions, []) + (_leaves(r.context, []) if r.context is not None else [])
         for expr in r.derivations.values():
             for name in _IDENT.findall(expr.upper()):
-                if name not in derived:
+                if name not in derived and name not in written:
                     leaves.append({"field": name.lower().replace("-", "_"), "source_name": name, "value": 0})
         for leaf in leaves:
             if base(leaf["source_name"]) in derived:

@@ -94,6 +94,7 @@ class Rule(BaseModel):
     context: Optional[Cond] = None  # conditions under which callers reach this rule (None = always)
     derivations: dict[str, str] = {}  # computed field -> expression in terms of earlier fields / inputs
     reachable: bool = True          # False: no path from the program entry reaches this rule (dead code)
+    lookup: Optional[dict[str, Any]] = None   # row of a hard-coded table this rule was expanded from
     trace: Trace
     concepts: list[str] = []
     external_dependency: bool = False
@@ -133,6 +134,7 @@ class Slice(BaseModel):
     derivations: dict[str, str] = {}
     performed_from: list[str] = []
     reachable: bool = True
+    lookup: Optional[dict[str, Any]] = None
 
 
 Cond.model_rebuild()

@@ -145,13 +145,14 @@ class Toolchain:
     def run_batch(self, jobs: Sequence[tuple[Path, str]], timeout_each: float = 5) -> list[str]:
         """Run each (exe, input record) pair once, all inside one shell; return each stdout.
 
-        Records must not contain newlines or tabs.
+        Records must not contain newlines or tabs; a record may hold several input
+        lines separated by \\x1f (one per ACCEPT).
         """
         if not jobs:
             return []
         script = (
             "i=0; while IFS=$'\\t' read -r exe rec; do "
-            f"printf '@@BEGIN %d\\n' $i; printf '%s\\n' \"$rec\" | timeout {timeout_each} \"$exe\" 2>&1; "
+            f"printf '@@BEGIN %d\\n' $i; printf '%s\\n' \"$rec\" | tr '\\037' '\\n' | timeout {timeout_each} \"$exe\" 2>&1; "
             "printf '\\n@@END %d %d\\n' $i $?; i=$((i+1)); done"
         )
         stdin = "".join(f"{self.path(exe)}\t{rec}\n" for exe, rec in jobs)

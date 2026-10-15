@@ -70,6 +70,13 @@ function group(label, items) {
   if (items.length === 1) return condHtml(items[0]);
   return `<div><span class="conj">${label}</span><ul>${items.map((x) => `<li>${condHtml(x)}</li>`).join("")}</ul></div>`;
 }
+function lookupHtml(l) {
+  if (l.at_end) return `<h4>Lookup table</h4><div class="muted">No row of <code>${esc(l.table)}</code> matched (AT END).</div>`;
+  const cells = Object.entries(l.values || {}).map(([k, v]) => `<code>${esc(k)}</code> = <code>${esc(JSON.stringify(v))}</code>`).join(" · ");
+  const where = (l.lines || []).length ? ` (${esc(l.file)} line ${l.lines.map(esc).join(", ")})` : "";
+  return `<h4>Lookup table</h4><div class="muted">Row ${esc(l.row)} of <code>${esc(l.table)}</code>${where}: ${cells}</div>`;
+}
+
 function actHtml(a) {
   const tgt = `<span class="fld" title="COBOL: ${esc(a.source_name)}">${esc(a.target || a.source_name)}</span>`;
   if (a.type === "set") return `set ${tgt} = ${a.expr ? `<code>${esc(a.expr)}</code>` : `<span class="val">${esc(fmtVal(a.value))}</span>`}`;
@@ -149,6 +156,7 @@ async function showRule(id, detailSel) {
           ${r.else_actions?.length ? `<h4>Else</h4><ul class="acts">${r.else_actions.map((a) => `<li>${actHtml(a)}</li>`).join("")}</ul>` : ""}
           ${r.context ? `<h4>Only reached when</h4><div class="cond">${condHtml(r.context)}</div>` : ""}
           ${Object.keys(r.derivations || {}).length ? `<h4>Computed fields</h4><ul class="acts">${Object.entries(r.derivations).map(([k, v]) => `<li><code>${esc(k)}</code> = <code>${esc(v)}</code></li>`).join("")}</ul>` : ""}
+          ${r.lookup ? lookupHtml(r.lookup) : ""}
           ${r.reachable === false ? `<div class="warn">⚠ dead code: no path from the program entry reaches this rule</div>` : ""}
           <h4>Confidence</h4><div class="comps">${compRows}</div>
           ${(r.confidence?.warnings || []).map((w) => `<div class="warn">⚠ ${esc(w)}</div>`).join("")}

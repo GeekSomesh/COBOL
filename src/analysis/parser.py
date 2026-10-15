@@ -458,13 +458,17 @@ class Parser:
 
     def parse_search(self) -> SearchStmt:
         start = self.next()
-        self.accept_word("ALL")
         node = SearchStmt("SEARCH", start.file, start.line, start.line)
+        node.binary = bool(self.accept_word("ALL"))
+        if self.at_kind("WORD") and not self.at_word("AT", "WHEN", "END", "VARYING"):
+            node.table = self.next().value
         while self.peek() is not None and not self.at_word("AT", "WHEN", "END") and not self.at_kind("PERIOD"):
-            self.next()
-        if self.accept_word("AT") or self.at_word("END"):
+            self.next()             # VARYING index
+        if self.at_word("AT") or self.at_word("END"):
+            node.at_end_line = self.peek().line
+            self.accept_word("AT")
             self.accept_word("END")
-            self.parse_statements()     # AT END actions are not decision rules
+            node.at_end = self.parse_statements()
         while self.at_word("WHEN"):
             when_tok = self.next()
             cond, notes = self.parse_condition()

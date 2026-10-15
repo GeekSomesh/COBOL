@@ -94,6 +94,7 @@ def baseline_rule(slice_: Slice, source_hash: str = "") -> Rule:
         "context": _cond(slice_.context, slice_) if slice_.context else None,
         "derivations": dict(slice_.derivations),
         "reachable": slice_.reachable,
+        "lookup": slice_.lookup,
         "external_dependency": slice_.external_dependency,
         "unsupported": slice_.unsupported,
         "status": "needs_review",
