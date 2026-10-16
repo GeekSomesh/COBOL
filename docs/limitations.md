@@ -35,4 +35,4 @@ Honest limits of the system as built (2026-10-16). Each was observed or measured
 - PMML covers decision blocks that write one literal output (114 of 354 corpus programs); DMN covers all blocks. Both are schema-validated, not executed in a third-party engine.
 - PostgreSQL is supported through a small SQL adapter (no ORM) and tested on PostgreSQL 16; migrations beyond "create if missing" and "add column if missing" are manual.
 - The Docker toolchain backend mounts only the project and temp folders; programs elsewhere need `COBOL_DOCKER_MOUNTS`.
-- CI (`.github/workflows/ci.yml`) has been written and its steps run locally, but it has not run on GitHub yet.
+- CI (`.github/workflows/ci.yml`) runs on every push: tests with native GnuCOBOL and PostgreSQL, corpus and IBM regressions, and the container build. It does not run the LLM evaluations (no GPU).
